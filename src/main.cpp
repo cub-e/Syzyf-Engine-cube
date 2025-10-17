@@ -118,11 +118,11 @@ void InitImgui() {
 }
 
 void Input() {
-	// I/O ops go here
+	
 }
 
 void Update() {
-	// Update game objects' state here
+	
 }
 
 void Render() {
@@ -136,7 +136,6 @@ void Render() {
 }
 
 void ImGuiBegin() {
-	// Start the Dear ImGui frame
 	ImGui_ImplOpenGL3_NewFrame();
 	ImGui_ImplGlfw_NewFrame();
 	ImGui::NewFrame();
