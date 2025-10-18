@@ -21,3 +21,4 @@ set(CMAKE_CXX_STANDARD 23)
 
 # ---- Main project's files ----
 add_subdirectory(src)
+target_include_directories(GL_Project PRIVATE src/include)
