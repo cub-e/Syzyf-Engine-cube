@@ -1,7 +1,7 @@
 #pragma once
 
-// #include <spdlog/fmt/bundled/format.h>
-// #include <spdlog/fmt/ostr.h>
+#include <spdlog/fmt/bundled/format.h>
+
 #include <glm/fwd.hpp>
 
 template<>
