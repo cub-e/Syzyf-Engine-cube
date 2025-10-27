@@ -17,7 +17,7 @@ parent(nullptr) {
 void SceneNode::RecalculateTransform() {
 	if (this->transform.LocalTransform().IsDirty()) {
 		if (this->parent) {
-			this->transform.GlobalTransform() = this->transform.LocalTransform().Value() * this->parent->GlobalTransform().Value();
+			this->transform.GlobalTransform() = this->parent->GlobalTransform().Value() * this->transform.LocalTransform().Value();
 		}
 		else {
 			this->transform.GlobalTransform() = this->transform.LocalTransform().Value();
