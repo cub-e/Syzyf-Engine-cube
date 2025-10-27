@@ -147,7 +147,15 @@ Transform::RotationAccess::RotationAccess(TransformAccess& source) :
 source(source) { }
 
 glm::quat Transform::RotationAccess::Value() const {
-	return glm::quat(this->source.transformation);
+	glm::vec3 scale = this->source.Scale();
+
+	glm::mat3 rotationMatrix = (glm::mat3) this->source.transformation;
+
+	rotationMatrix[0] /= scale.x;
+	rotationMatrix[1] /= scale.y;
+	rotationMatrix[2] /= scale.z;
+
+	return glm::normalize(glm::quat(rotationMatrix));
 }
 
 Transform::RotationAccess::operator glm::quat() const {
@@ -157,11 +165,11 @@ Transform::RotationAccess::operator glm::quat() const {
 Transform::RotationAccess& Transform::RotationAccess::operator=(const glm::quat& rotation) {
 	glm::vec3 scale = this->source.Scale();
 
-	glm::mat3 rotationMatrix = glm::mat3_cast(rotation);
+	glm::mat3 rotationMatrix = glm::mat3_cast(glm::normalize(rotation));
 	
-	rotationMatrix[0][0] *= scale.x;
-	rotationMatrix[1][1] *= scale.y;
-	rotationMatrix[2][2] *= scale.z;
+	rotationMatrix[0] *= scale.x;
+	rotationMatrix[1] *= scale.y;
+	rotationMatrix[2] *= scale.z;
 
 	this->source.transformation[0][0] = rotationMatrix[0][0];
 	this->source.transformation[0][1] = rotationMatrix[0][1];
