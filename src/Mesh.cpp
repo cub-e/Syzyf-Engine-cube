@@ -109,8 +109,6 @@ Mesh Mesh::Load(fs::path modelPath, const VertexSpec& meshSpec) {
 	float* vertexData = new float[vertexCount * vertexSize + 3];
 	uint* indexData = new uint[triangleCount * 3];
 
-	spdlog::info("Vertex size = {}", vertexSize);
-
 	for (int vertIndex = 0; vertIndex < vertexCount; vertIndex++) {
 		float* currentVertexData = vertexData + vertIndex * vertexSize;
 		memset(currentVertexData, 0, vertexSize * sizeof(float));
@@ -177,8 +175,6 @@ Mesh Mesh::Load(fs::path modelPath, const VertexSpec& meshSpec) {
 		if (length > 0) {
 			glVertexAttribPointer(input, length, GL_FLOAT, false, vertexSize * sizeof(float), (void*) (offset * sizeof(float)));
 			glEnableVertexAttribArray(input);
-			
-			spdlog::info("Offset for input {} = {}", input, offset);
 			
 			offset += length;
 		}
