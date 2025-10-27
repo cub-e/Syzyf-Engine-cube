@@ -7,6 +7,8 @@
 
 #include <glm/fwd.hpp>
 
+#include <Texture.h>
+
 template <class T>
 concept Blittable = ( // It's stupid, but frankly idk if there's a better way to do it
 	std::same_as<T, float>
@@ -30,6 +32,11 @@ concept Blittable = ( // It's stupid, but frankly idk if there's a better way to
 	std::same_as<T, glm::mat4>
 );
 
+template <class T>
+concept TextureClass = (
+	std::derived_from<T, Texture>
+);
+
 enum class UniformType {
 	Float1,
 	Float2,
@@ -41,11 +48,17 @@ enum class UniformType {
 	Uint4,
 	Matrix3x3,
 	Matrix4x4,
+	Sampler2D,
 	Unsupported
 };
 
 struct UniformVariable {
 	UniformType type;
+	std::string name;
+};
+
+struct TextureVariable {
+	TextureType type;
 	std::string name;
 };
 
@@ -56,10 +69,11 @@ class IncompatibleUniformTypeException : public std::runtime_error {
 
 struct UniformSpec {
 	std::vector<UniformVariable> variables;
+	std::vector<TextureVariable> textures;
 	std::vector<int> offsets;
 
 	UniformSpec();
-	UniformSpec(std::vector<UniformVariable> variables);
+	UniformSpec(std::vector<UniformVariable> variables, std::vector<TextureVariable> textures);
 
 	unsigned int GetBufferSize() const;
 };

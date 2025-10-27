@@ -10,10 +10,12 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
+#include <Formatters.h>
 #include <Shader.h>
 #include <Mesh.h>
 #include <Material.h>
@@ -49,6 +51,52 @@ constexpr int32_t GL_VERSION_MINOR = 6;
 
 Scene* mainScene;
 
+class Mover : public GameObject {
+public:
+	void Update() {
+		glm::vec3 movement = glm::zero<glm::vec3>();
+		glm::quat rotation = glm::identity<glm::quat>();
+
+		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+			movement += this->GlobalTransform().Left();
+		}
+		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+			movement += this->GlobalTransform().Right();
+		}
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+			movement += this->GlobalTransform().Forward();
+		}
+		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+			movement += this->GlobalTransform().Backward();
+		}
+
+		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
+			rotation *= glm::angleAxis(glm::radians(-1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		}
+		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
+			rotation *= glm::angleAxis(glm::radians(1.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+		}
+
+		this->GlobalTransform().Position() += movement * 0.04f;
+		this->GlobalTransform().Rotation() *= rotation;
+	}
+};
+
+class AutoRotator : public GameObject {
+private:
+	float speed;
+public:
+	AutoRotator(float speed) {
+		this->speed = speed;
+	}
+
+	void Update() {
+		glm::quat rotation = glm::angleAxis(glm::radians(this->speed), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		this->LocalTransform().Rotation() *= rotation;
+	}
+};
+
 int main(int, char**) {
 	if (!InitProgram()) {
 		spdlog::error("Failed to initialize project!");
@@ -63,25 +111,50 @@ int main(int, char**) {
 
 	Mesh cube = Mesh::Load("./res/models/cube.obj", VertexSpec::Mesh);
 
-	Material* mat = new Material(prog);
+	Material* centerMat = new Material(prog);
+	Material* orbiterMat = new Material(prog);
 
-	glm::mat4 model = glm::identity<glm::mat4>();
-	glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 0.0f, -10.0f), glm::zero<glm::vec3>(), glm::vec3(0.0f, 1.0f, 0.0f));
-	glm::mat4 projection = glm::perspective(glm::radians(40.0f), 16.0f/9.0f, 1.0f, 100.0f);
+	stbi_set_flip_vertically_on_load(true);
+	
+	Texture2D* stoneTex = Texture::Load<Texture2D>("./res/textures/stone.jpg", TextureFormat::RGB);
+	stoneTex->SetMagFilter(GL_LINEAR);
+	stoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
-	mat->SetValue<glm::mat4>("gMVPMatrix", projection * view * model);
-	mat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
+	Texture2D* invStoneTex = Texture::Load<Texture2D>("./res/textures/stone_inv.jpg", TextureFormat::RGB);
+	invStoneTex->SetMagFilter(GL_LINEAR);
+	invStoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+
+	centerMat->SetValue<glm::vec3>("uColor", glm::vec3(0.0f, 0.5f, 1.0f));
+	centerMat->SetValue<Texture2D>("colorTex", stoneTex);
+	orbiterMat->SetValue<glm::vec3>("uColor", glm::vec3(0.0f, 0.5f, 1.0f));
+	orbiterMat->SetValue<Texture2D>("colorTex", invStoneTex);
 
 	mainScene = new Scene();
 	
 	auto rendererObject = mainScene->CreateNode();
 	auto cameraObject = mainScene->CreateNode();
 
-	MeshRenderer* renderer = rendererObject->AddObject<MeshRenderer>(cube, mat);
+	rendererObject->AddObject<MeshRenderer>(cube, centerMat);
+	rendererObject->AddObject<AutoRotator>(1.0f);
+
+	auto rendererChildRotator = mainScene->CreateNode(rendererObject);
+	rendererChildRotator->AddObject<AutoRotator>(-2.0f);
+
+	for (int i = 0; i < 4; i++) {
+		auto rendererChild = mainScene->CreateNode(rendererChildRotator);
+
+		rendererChild->LocalTransform().Scale() = glm::vec3(0.3f);
+		rendererChild->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, 1.2f) * glm::angleAxis(glm::radians(90.0f * i), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		rendererChild->AddObject<AutoRotator>(1.0f);
+		
+		rendererChild->AddObject<MeshRenderer>(cube, orbiterMat);
+	}
 
 	Camera* camera = cameraObject->AddObject<Camera>(glm::radians(40.0f), 16.0f/9.0f, 1.0f, 100.0f);
+	cameraObject->AddObject<Mover>();
 
-	camera->GetTransform().LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
+	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
 
 	InitImgui();
 	spdlog::info("Initialized ImGui.");

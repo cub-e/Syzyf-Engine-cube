@@ -13,13 +13,15 @@ unsigned int UniformTypeSizes[] {
 	4 * sizeof(GLuint),
 	9 * sizeof(GLfloat),
 	16 * sizeof(GLfloat),
+	sizeof(Texture*),
 	0
 };
 
 UniformSpec::UniformSpec() { }
 
-UniformSpec::UniformSpec(std::vector<UniformVariable> variables):
-variables(variables) {
+UniformSpec::UniformSpec(std::vector<UniformVariable> variables, std::vector<TextureVariable> textures):
+variables(variables),
+textures(textures) {
 	int offset = 0;
 	for (const auto& var : variables) {
 		this->offsets.push_back(offset);

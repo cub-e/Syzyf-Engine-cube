@@ -2,6 +2,7 @@
 
 #include <UniformSpec.h>
 #include <Shader.h>
+#include <Texture.h>
 
 class Material {
 	friend class SceneGraphics;
@@ -14,6 +15,9 @@ private:
 
 	template<Blittable T>
 	static inline bool IsUniformOfRightType(UniformType type);
+
+	template<TextureClass T>
+	static inline bool IsUniformOfRightType(UniformType type);
 public:
 	Material(ShaderProgram* shader);
 
@@ -21,17 +25,32 @@ public:
 	T GetValue(const std::string& uniformName) const;
 	template<Blittable T>
 	T GetValue(unsigned int uniformIndex) const;
+
+	template<TextureClass T>
+	T* GetValue(const std::string& uniformName) const;
+	template<TextureClass T>
+	T* GetValue(unsigned int uniformIndex) const;
 	
 	template<Blittable T>
 	void SetValue(const std::string& uniformName, const T& value);
 	template<Blittable T>
 	void SetValue(unsigned int uniformIndex, const T& value);
 
+	template<TextureClass T>
+	void SetValue(const std::string& uniformName, T* value);
+	template<TextureClass T>
+	void SetValue(unsigned int uniformIndex, T* value);
+
 	const ShaderProgram* GetShader() const;
 };
 
 template<Blittable T>
 T Material::GetValue(const std::string& uniformName) const {
+	return GetValue<T>(glGetUniformLocation(this->shader->GetHandle(), uniformName.c_str()));
+}
+
+template<TextureClass T>
+T* Material::GetValue(const std::string& uniformName) const {
 	return GetValue<T>(glGetUniformLocation(this->shader->GetHandle(), uniformName.c_str()));
 }
 
@@ -48,8 +67,26 @@ T Material::GetValue(unsigned int uniformIndex) const {
 	return *((T*) ((char*) this->dataBuffer + this->shader->GetUniforms().offsets[uniformIndex]));
 }
 
+template<TextureClass T>
+T* Material::GetValue(unsigned int uniformIndex) const {
+	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().variables.size()) {
+		return nullptr;
+	}
+
+	if (!IsUniformOfRightType<T>(this->shader->GetUniforms().variables[uniformIndex].type)) {
+		return nullptr;
+	}
+
+	return *((T**) ((char*) this->dataBuffer + this->shader->GetUniforms().offsets[uniformIndex]));
+}
+
 template<Blittable T>
 void Material::SetValue(const std::string& uniformName, const T& value) {
+	SetValue<T>(glGetUniformLocation(this->shader->GetHandle(), uniformName.c_str()), value);
+}
+
+template<TextureClass T>
+void Material::SetValue(const std::string& uniformName, T* value) {
 	SetValue<T>(glGetUniformLocation(this->shader->GetHandle(), uniformName.c_str()), value);
 }
 
@@ -64,6 +101,19 @@ void Material::SetValue(unsigned int uniformIndex, const T& value) {
 	}
 
 	*((T*) ((char*) this->dataBuffer + this->shader->GetUniforms().offsets[uniformIndex])) = value;
+}
+
+template<TextureClass T>
+void Material::SetValue(unsigned int uniformIndex, T* value) {
+	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().variables.size()) {
+		return;
+	}
+
+	if (!IsUniformOfRightType<T>(this->shader->GetUniforms().variables[uniformIndex].type)) {
+		return;
+	}
+
+	*((T**) ((char*) this->dataBuffer + this->shader->GetUniforms().offsets[uniformIndex])) = value;
 }
 
 template<Blittable T>
@@ -100,4 +150,7 @@ template<> inline bool Material::IsUniformOfRightType<glm::mat3>(UniformType typ
 }
 template<> inline bool Material::IsUniformOfRightType<glm::mat4>(UniformType type) {
 	return type == UniformType::Matrix4x4;
+}
+template<> inline bool Material::IsUniformOfRightType<Texture2D>(UniformType type) {
+	return type == UniformType::Sampler2D;
 }

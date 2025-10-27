@@ -9,6 +9,8 @@ void Material::Bind() {
 
 	auto& uniforms = this->shader->GetUniforms();
 
+	int textureIndex = 0;
+
 	for (unsigned int i = 0; i < uniforms.variables.size(); i++) {
 		int offset = uniforms.offsets[i];
 		switch (uniforms.variables[i].type) {
@@ -39,6 +41,26 @@ void Material::Bind() {
 		case UniformType::Matrix4x4:
 			glUniformMatrix4fv(i, 1, false, &GetValue<glm::mat4>(i)[0][0]);
 			break;
+		case UniformType::Sampler2D:
+			Texture2D* tex = GetValue<Texture2D>(i);
+
+			GLuint texHandle = 0;
+
+			if (tex) {
+				if (tex->IsDirty()) {
+					tex->Update();
+				}
+				
+				texHandle = tex->GetHandle();
+			}
+			
+			glActiveTexture(GL_TEXTURE0 + textureIndex);
+			glBindTexture(GL_TEXTURE_2D, texHandle);
+			glUniform1i(i, textureIndex);
+
+			textureIndex++;
+
+			break;
 		}
 	}
 }
@@ -48,6 +70,7 @@ shader(shader) {
 	unsigned int uniformBufferSize = shader->GetUniforms().GetBufferSize();
 	
 	this->dataBuffer = (void*) new char[uniformBufferSize];
+	memset(this->dataBuffer, 0, uniformBufferSize);
 }
 
 const ShaderProgram* Material::GetShader() const {

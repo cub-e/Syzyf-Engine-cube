@@ -336,6 +336,12 @@ bool IsUniformTypeSupported(GLenum type) {
 	);
 }
 
+bool IsTextureTypeSupported(GLenum type) {
+	return (
+		type == GL_SAMPLER_2D
+	);
+}
+
 UniformType GLEnumToUniformType(GLenum type) {
 	const static std::map<GLenum, UniformType> dict {
 		{ GL_FLOAT, UniformType::Float1 },
@@ -348,6 +354,14 @@ UniformType GLEnumToUniformType(GLenum type) {
 		{ GL_UNSIGNED_INT_VEC4, UniformType::Uint4 },
 		{ GL_FLOAT_MAT3, UniformType::Matrix3x3 },
 		{ GL_FLOAT_MAT4, UniformType::Matrix4x4 }
+	};
+
+	return dict.at(type);
+}
+
+TextureType GLEnumToTextureType(GLenum type) {
+	const static std::map<GLenum, TextureType> dict {
+		{ GL_SAMPLER_2D, TextureType::Texture2D }
 	};
 
 	return dict.at(type);
@@ -366,6 +380,7 @@ handle(handle) {
 	char uniformName[bufferSize + 1];
 
 	std::vector<UniformVariable> uniforms;
+	std::vector<TextureVariable> textures;
 
 	for (int i = 0; i < uniformCount; i++) {
 		int nameLength = 0;
@@ -376,16 +391,22 @@ handle(handle) {
 		if (IsUniformTypeSupported(uniformType) && !std::string(uniformName).starts_with("Object_") && !std::string(uniformName).starts_with("Global_")) {
 			uniforms.push_back({ GLEnumToUniformType(uniformType), std::string(uniformName) });
 		}
-		else {
-			uniforms.push_back({ UniformType::Unsupported, "" });
+		else if (IsTextureTypeSupported(uniformType)) {
+			textures.push_back({ GLEnumToTextureType(uniformType), std::string(uniformName) });
+			uniforms.push_back({ UniformType::Sampler2D, uniformName });
 		}
+		else {
+			uniforms.push_back({ UniformType::Unsupported, uniformName });
+		}
+
+		spdlog::info("name: {}, index: {}, location: {}, type: 0x{:x}", std::string(uniformName), i, glGetUniformLocation(handle, uniformName), (int) uniformType);
 	}
 
-	this->uniforms = UniformSpec(uniforms);
+	this->uniforms = UniformSpec(uniforms, textures);
 
-	for (int i = 0; i < uniformCount; i++) {
-		spdlog::info("Uniform at {}: name = {}, type = {}, offset = {}", i, this->uniforms.variables[i].name, (int) this->uniforms.variables[i].type, this->uniforms.offsets[i]);
-	}
+	// for (int i = 0; i < uniformCount; i++) {
+	// 	spdlog::info("Uniform at {}: name = {}, type = {}, offset = {}", i, this->uniforms.variables[i].name, (int) this->uniforms.variables[i].type, this->uniforms.offsets[i]);
+	// }
 
 	spdlog::info("Total buffer size: {}", this->uniforms.GetBufferSize());
 }

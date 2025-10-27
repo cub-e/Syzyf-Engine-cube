@@ -16,7 +16,7 @@ globalUniformsBuffer(0) {
 
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 3, nullptr, GL_STATIC_DRAW);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_STATIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
@@ -35,6 +35,8 @@ void SceneGraphics::Render() {
 	globalUniforms.Global_ProjectionMatrix = mainCamera->ProjectionMatrix();
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_Time = (float) glfwGetTime();
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(globalUniforms), &globalUniforms);

@@ -37,6 +37,7 @@ struct ShaderGlobalUniforms {
 	glm::mat4 Global_VPMatrix;
 	Light Global_LightInfo;
 	float Global_Time;
+	float _pad[3];
 };
 
 struct ShaderObjectUniforms {
