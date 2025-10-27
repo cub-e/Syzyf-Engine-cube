@@ -335,6 +335,8 @@ bool IsUniformTypeSupported(GLenum type) {
 		type == GL_FLOAT_MAT4
 		||
 		type == GL_SAMPLER_2D
+		||
+		type == GL_SAMPLER_CUBE
 	);
 }
 
@@ -351,6 +353,7 @@ UniformType GLEnumToUniformType(GLenum type) {
 		{ GL_FLOAT_MAT3, UniformType::Matrix3x3 },
 		{ GL_FLOAT_MAT4, UniformType::Matrix4x4 },
 		{ GL_SAMPLER_2D, UniformType::Sampler2D },
+		{ GL_SAMPLER_CUBE, UniformType::Cubemap },
 	};
 
 	return dict.at(type);

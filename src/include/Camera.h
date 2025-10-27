@@ -19,4 +19,5 @@ public:
 	glm::mat4 ViewProjectionMatrix() const;
 
 	static Camera* GetMainCamera();
+	void SetAsMainCamera();
 };

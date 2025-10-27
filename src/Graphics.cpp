@@ -5,6 +5,7 @@
 
 #include <MeshRenderer.h>
 #include <Camera.h>
+#include <Skybox.h>
 
 #include <GLFW/glfw3.h>
 
@@ -80,6 +81,16 @@ void SceneGraphics::Render() {
 
 		currentMat = mat;
 		currentMesh = mesh;
+	}
+
+	Skybox* sky = Skybox::GetCurrentSkybox();
+
+	if (sky) {
+		glDepthFunc(GL_LEQUAL);
+		sky->GetSKyMaterial()->Bind();
+		glBindVertexArray(sky->GetSkyMesh()->GetHandle());
+		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
+		glDepthFunc(GL_LESS);
 	}
 
 	glBindVertexArray(0);

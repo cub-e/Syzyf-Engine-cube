@@ -23,7 +23,7 @@ enum class TextureFormat {
 };
 
 class Texture {
-private:
+protected:
 	template<typename T>
 	struct TextureInfoBit {
 		T value;
@@ -71,10 +71,16 @@ public:
 };
 
 class Cubemap : public Texture {
+private:
+	TextureInfoBit<GLenum> wrapW;
 public:
+	GLenum GetWrapModeW() const;
+	void SetWrapModeW(GLenum wrapMode);
+
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Cubemap;
 	}
 };
 
 template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureFormat format);
+template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat format);

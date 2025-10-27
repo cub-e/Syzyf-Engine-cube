@@ -22,6 +22,7 @@
 #include <MeshRenderer.h>
 #include <Scene.h>
 #include <Camera.h>
+#include <Skybox.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -104,18 +105,21 @@ int main(int, char**) {
 	}
 	spdlog::info("Initialized project.");
 
-	VertexShader* vert = (VertexShader*) ShaderBase::Load("./res/shaders/basic.vert");
-	PixelShader* frag = (PixelShader*) ShaderBase::Load("./res/shaders/basic.frag");
+	VertexShader* meshVert = (VertexShader*) ShaderBase::Load("./res/shaders/basic.vert");
+	PixelShader* meshFrag = (PixelShader*) ShaderBase::Load("./res/shaders/basic.frag");
 
-	ShaderProgram* prog = ShaderProgram::Build().WithVertexShader(vert).WithPixelShader(frag).Link();
+	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(meshVert).WithPixelShader(meshFrag).Link();
+
+	VertexShader* skyVert = (VertexShader*) ShaderBase::Load("./res/shaders/skybox.vert");
+	PixelShader* skyFrag = (PixelShader*) ShaderBase::Load("./res/shaders/skybox.frag");
+
+	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(skyVert).WithPixelShader(skyFrag).Link();
 
 	Mesh cube = Mesh::Load("./res/models/cube.obj", VertexSpec::Mesh);
 
-	Material* centerMat = new Material(prog);
-	Material* orbiterMat = new Material(prog);
+	Material* centerMat = new Material(meshProg);
+	Material* orbiterMat = new Material(meshProg);
 
-	stbi_set_flip_vertically_on_load(true);
-	
 	Texture2D* stoneTex = Texture::Load<Texture2D>("./res/textures/stone.jpg", TextureFormat::RGB);
 	stoneTex->SetMagFilter(GL_LINEAR);
 	stoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
@@ -123,6 +127,11 @@ int main(int, char**) {
 	Texture2D* invStoneTex = Texture::Load<Texture2D>("./res/textures/stone_inv.jpg", TextureFormat::RGB);
 	invStoneTex->SetMagFilter(GL_LINEAR);
 	invStoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+
+	Cubemap* skyCubemap = Texture::Load<Cubemap>("./res/textures/skybox.jpg", TextureFormat::RGB);
+
+	Material* skyMat = new Material(skyProg);
+	skyMat->SetValue("skyboxTexture", skyCubemap);
 
 	centerMat->SetValue<glm::vec3>("uColor", glm::vec3(0.0f, 0.5f, 1.0f));
 	centerMat->SetValue<Texture2D>("colorTex", stoneTex);
@@ -155,6 +164,9 @@ int main(int, char**) {
 	cameraObject->AddObject<Mover>();
 
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
+
+	auto skyboxObject = mainScene->CreateNode();
+	skyboxObject->AddObject<Skybox>(skyMat);
 
 	InitImgui();
 	spdlog::info("Initialized ImGui.");

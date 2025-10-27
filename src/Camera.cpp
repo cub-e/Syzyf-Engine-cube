@@ -9,7 +9,7 @@ fovy(fovy),
 aspectRatio(aspectRatio),
 nearPlane(nearPlane),
 farPlane(farPlane) {
-	mainCamera = this;
+	SetAsMainCamera();
 }
 
 glm::mat4 Camera::ViewMatrix() const {
@@ -28,4 +28,8 @@ glm::mat4 Camera::ViewProjectionMatrix() const {
 
 Camera* Camera::GetMainCamera() {
 	return mainCamera;
+}
+
+void Camera::SetAsMainCamera() {
+	mainCamera = this;
 }

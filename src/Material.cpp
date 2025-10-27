@@ -42,25 +42,49 @@ void Material::Bind() {
 			glUniformMatrix4fv(i, 1, false, &GetValue<glm::mat4>(i)[0][0]);
 			break;
 		case UniformType::Sampler2D:
-			Texture2D* tex = GetValue<Texture2D>(i);
+		{
+			Texture2D* imageTex = GetValue<Texture2D>(i);
 
-			GLuint texHandle = 0;
+			GLuint imageTexHandle = 0;
 
-			if (tex) {
-				if (tex->IsDirty()) {
-					tex->Update();
+			if (imageTex) {
+				if (imageTex->IsDirty()) {
+					imageTex->Update();
 				}
 				
-				texHandle = tex->GetHandle();
+				imageTexHandle = imageTex->GetHandle();
 			}
 			
 			glActiveTexture(GL_TEXTURE0 + textureIndex);
-			glBindTexture(GL_TEXTURE_2D, texHandle);
+			glBindTexture(GL_TEXTURE_2D, imageTexHandle);
 			glUniform1i(i, textureIndex);
 
 			textureIndex++;
 
 			break;
+		}
+		case UniformType::Cubemap:
+		{
+			Cubemap* cubeTex = GetValue<Cubemap>(i);
+
+			GLuint cubeTexHandle = 0;
+
+			if (cubeTex) {
+				if (cubeTex->IsDirty()) {
+					cubeTex->Update();
+				}
+				
+				cubeTexHandle = cubeTex->GetHandle();
+			}
+			
+			glActiveTexture(GL_TEXTURE0 + textureIndex);
+			glBindTexture(GL_TEXTURE_CUBE_MAP, cubeTexHandle);
+			glUniform1i(i, textureIndex);
+
+			textureIndex++;
+
+			break;
+		}
 		}
 	}
 }

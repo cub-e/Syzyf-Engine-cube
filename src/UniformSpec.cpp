@@ -13,7 +13,8 @@ unsigned int UniformTypeSizes[] {
 	4 * sizeof(GLuint),
 	9 * sizeof(GLfloat),
 	16 * sizeof(GLfloat),
-	sizeof(Texture*),
+	sizeof(Texture2D*),
+	sizeof(Cubemap*),
 	0
 };
 

@@ -154,3 +154,6 @@ template<> inline bool Material::IsUniformOfRightType<glm::mat4>(UniformType typ
 template<> inline bool Material::IsUniformOfRightType<Texture2D>(UniformType type) {
 	return type == UniformType::Sampler2D;
 }
+template<> inline bool Material::IsUniformOfRightType<Cubemap>(UniformType type) {
+	return type == UniformType::Cubemap;
+}

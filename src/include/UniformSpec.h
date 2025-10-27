@@ -49,6 +49,7 @@ enum class UniformType {
 	Matrix3x3,
 	Matrix4x4,
 	Sampler2D,
+	Cubemap,
 	Unsupported
 };
 

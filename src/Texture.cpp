@@ -108,7 +108,7 @@ bool Texture::IsDirty() const {
 void Texture::Update() {
 	GLenum glTexType[] {
 		GL_TEXTURE_2D,
-		// GL_TEXTURE_CUBE_MAP
+		GL_TEXTURE_CUBE_MAP
 	};
 
 	if (!this->dirty) {
@@ -151,6 +151,8 @@ void Texture::Update() {
 }
 
 template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureFormat format) {
+	stbi_set_flip_vertically_on_load(true);
+	
 	static GLenum glFormats[] {
 		0,
 		GL_RED,
@@ -181,24 +183,106 @@ template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureForm
 
 	glTexImage2D(GL_TEXTURE_2D, 0, glFormats[(int) format], width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
 	
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
 	stbi_image_free(textureData);
-		
+	
 	glBindTexture(GL_TEXTURE_2D, 0);
-
+	
 	Texture2D* result = new Texture2D();
 	result->handle = textureHandle;
-	result->dirty = false;
-
-	result->wrapU = { GL_CLAMP_TO_EDGE, false };
-	result->wrapV = { GL_CLAMP_TO_EDGE, false };
-	result->minFilter = { GL_LINEAR_MIPMAP_LINEAR, false };
-	result->magFilter = { GL_LINEAR, false };
-	result->mipmapped = { false, false };
+	
+	result->SetWrapModeU(GL_CLAMP_TO_EDGE);
+	result->SetWrapModeV(GL_CLAMP_TO_EDGE);
+	result->SetMinFilter(GL_LINEAR);
+	result->SetMagFilter(GL_LINEAR);
+	
+	result->Update();
 
 	return result;
+}
+
+template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat format) {
+	stbi_set_flip_vertically_on_load(false);
+
+	static GLenum glFormats[] {
+		0,
+		GL_RED,
+		GL_RG,
+		GL_RGB,
+		GL_RGBA
+	};
+
+	static std::string cubeSides[] {
+		"_right",
+		"_left",
+		"_top",
+		"_bottom",
+		"_front",
+		"_back"
+	};
+
+	fs::path texturePaths[6];
+	
+	for (int i = 0; i < 6; i++) {
+		fs::path subTexturePath = texturePath;
+		subTexturePath = texturePaths[i] = subTexturePath.replace_filename(texturePath.stem().string() + cubeSides[i] + texturePath.extension().string());
+
+		fs::directory_entry textureFile(subTexturePath);
+		
+		if (!textureFile.exists() || !textureFile.is_regular_file()) {
+			spdlog::error("File {} doesn't exist", subTexturePath.string());
+
+			return nullptr;
+		}
+	}
+	
+	GLuint textureHandle;
+	glGenTextures(1, &textureHandle);
+	glBindTexture(GL_TEXTURE_CUBE_MAP, textureHandle);
+
+	int width, height, nrChannels;
+	for (int i = 0; i < 6; i++) {
+		unsigned char* textureData = stbi_load(texturePaths[i].c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+	
+		if (!textureData) {
+			spdlog::error("stbi_load failed on file {}", texturePaths[i].string());
+			
+			glDeleteTextures(1, &textureHandle);
+
+			return nullptr;
+		}
+	
+		glTexImage2D(
+			GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+			0, glFormats[(int) format], width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData
+		);
+		
+		stbi_image_free(textureData);
+	}
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	Cubemap* result = new Cubemap();
+	result->handle = textureHandle;
+	
+	result->SetWrapModeU(GL_CLAMP_TO_EDGE);
+	result->SetWrapModeV(GL_CLAMP_TO_EDGE);
+	result->SetWrapModeW(GL_CLAMP_TO_EDGE);
+	result->SetMinFilter(GL_LINEAR);
+	result->SetMagFilter(GL_LINEAR);
+	
+	result->Update();
+
+	return result;
+}
+
+GLenum Cubemap::GetWrapModeW() const {
+	return this->wrapW.value;
+}
+void Cubemap::SetWrapModeW(GLenum wrapMode) {
+	if (this->wrapW.value != wrapMode && WrapModeValid(wrapMode)) {
+		this->wrapW.value = wrapMode;
+		
+		this->wrapW.dirty = true;
+		this->dirty = true;
+	}
 }
