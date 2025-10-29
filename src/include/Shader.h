@@ -91,6 +91,14 @@ public:
 	virtual GLenum GetType() const;
 };
 
+class ComputeShader : public ShaderBase {
+	friend class ShaderBase;
+private:
+	ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
+public:
+	virtual GLenum GetType() const;
+};
+
 class ShaderBuilder {
 public:
 	VertexShader* vertexShader;
@@ -122,4 +130,17 @@ public:
 	GLuint GetHandle();
 	const UniformSpec& GetUniforms() const;
 	const VertexSpec& GetVertexSpec() const;
+};
+
+class ComputeShaderProgram {
+private:
+	ComputeShader* computeShader;
+	UniformSpec uniforms;
+
+	GLuint handle;
+public:	
+	ComputeShaderProgram(ComputeShader* computeShader);
+
+	GLuint GetHandle() const;
+	const UniformSpec& GetUniforms() const;
 };

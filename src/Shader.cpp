@@ -276,6 +276,13 @@ GLenum PixelShader::GetType() const {
 	return GL_FRAGMENT_SHADER;
 }
 
+ComputeShader::ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
+ShaderBase(filePath, variantInfo, handle) { }
+
+GLenum ComputeShader::GetType() const {
+	return GL_COMPUTE_SHADER;
+}
+
 ShaderBuilder& ShaderBuilder::WithVertexShader(VertexShader* vertexShader) {
 	this->vertexShader = vertexShader;
 
@@ -384,7 +391,6 @@ handle(handle) {
 	char uniformName[bufferSize + 1];
 
 	std::vector<UniformVariable> uniforms;
-	std::vector<TextureVariable> textures;
 
 	for (int i = 0; i < uniformCount; i++) {
 		int nameLength = 0;
@@ -424,4 +430,59 @@ const UniformSpec& ShaderProgram::GetUniforms() const {
 }
 const VertexSpec& ShaderProgram::GetVertexSpec() const {
 	return this->vertexShader->GetVertexSpec();
+}
+
+ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
+	assert(computeShader);
+	
+	this->computeShader = computeShader;
+
+	this->handle = glCreateProgram();
+	glAttachShader(this->handle, this->computeShader->GetHandle());
+	glLinkProgram(this->handle);
+
+	int compileSuccess;
+	char compileMsg[512];
+
+	glGetProgramiv(this->handle, GL_LINK_STATUS, &compileSuccess);
+	if (!compileSuccess) {
+		glGetProgramInfoLog(this->handle, 512, NULL, compileMsg);
+
+		spdlog::error("Error linking shader:\n{}", compileMsg);
+	}
+
+	int uniformCount = 0;
+	glGetProgramiv(this->handle, GL_ACTIVE_UNIFORMS, &uniformCount);
+
+	int bufferSize = 0;
+	glGetProgramiv(this->handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &bufferSize);
+	char uniformName[bufferSize + 1];
+
+	std::vector<UniformVariable> uniforms;
+
+	for (int i = 0; i < uniformCount; i++) {
+		int nameLength = 0;
+		int uniformSize = 0;
+		GLenum uniformType;
+		glGetActiveUniform(this->handle, i, bufferSize, &nameLength, &uniformSize, &uniformType, uniformName);
+
+		if (IsUniformTypeSupported(uniformType)) {
+			uniforms.push_back({ GLEnumToUniformType(uniformType), std::string(uniformName) });
+		}
+		else {
+			uniforms.push_back({ UniformType::Unsupported, uniformName });
+		}
+
+		spdlog::info("name: {}, index: {}, location: {}, type: 0x{:x}", std::string(uniformName), i, glGetUniformLocation(handle, uniformName), (int) uniformType);
+	}
+
+	this->uniforms = UniformSpec(uniforms);
+}
+
+GLuint ComputeShaderProgram::GetHandle() const {
+	return this->handle;
+}
+
+const UniformSpec& ComputeShaderProgram::GetUniforms() const {
+	return this->uniforms;
 }
