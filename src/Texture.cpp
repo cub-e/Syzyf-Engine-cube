@@ -275,6 +275,31 @@ template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat f
 	return result;
 }
 
+Texture2D::Texture2D(unsigned int width, unsigned int height, TextureFormat format) {
+	static GLenum glFormats[] {
+		0,
+		GL_R32F,
+		GL_RG32F,
+		GL_RGB32F,
+		GL_RGBA32F,
+	};
+
+	glGenTextures(1, &this->handle);
+
+	glBindTexture(GL_TEXTURE_2D, this->handle);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, glFormats[(int) format], width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+
+	this->SetWrapModeU(GL_CLAMP_TO_EDGE);
+	this->SetWrapModeV(GL_CLAMP_TO_EDGE);
+	this->SetMinFilter(GL_LINEAR);
+	this->SetMagFilter(GL_LINEAR);
+
+	this->Update();
+
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
 GLenum Cubemap::GetWrapModeW() const {
 	return this->wrapW.value;
 }

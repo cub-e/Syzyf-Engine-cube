@@ -68,6 +68,9 @@ char* LoadFile(const fs::path& filePath, GLenum& shaderType) {
 	else if (filePath.extension() == ".geom") {
 		shaderType = GL_GEOMETRY_SHADER;
 	}
+	else if (filePath.extension() == ".comp") {
+		shaderType = GL_COMPUTE_SHADER;
+	}
 	else {
 		// throw shader::shader_unknown_type_exception(path_to_file);
 	}
@@ -154,6 +157,22 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	
 		glShaderSource(shaderHandle, 4, shaderCodeParts, shaderCodeLengths);
 	}
+	else if (shaderType == GL_COMPUTE_SHADER) {
+		const char* shaderCodeParts[2];
+		int shaderCodeLengths[2] {-1, -1};
+
+		if (versionOffset > 0) {
+			shaderCodeParts[0] = buf;
+			shaderCodeLengths[0] = versionOffset;
+		}
+		else {
+			shaderCodeParts[0] = versionHeader.c_str();
+		}
+
+		shaderCodeParts[1] = buf + versionOffset;
+
+		glShaderSource(shaderHandle, 2, shaderCodeParts, shaderCodeLengths);
+	}
 	else {
 		const char* shaderCodeParts[3];
 		int shaderCodeLengths[3] {-1, -1, -1};
@@ -223,6 +242,9 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	}
 	else if (shaderType == GL_GEOMETRY_SHADER) {
 		result = new GeometryShader(filePath, {}, shaderHandle);
+	}
+	else if (shaderType == GL_COMPUTE_SHADER) {
+		result = new ComputeShader(filePath, {}, shaderHandle);
 	}
 	else {
 		// throw shader::shader_unknown_type_exception(path_to_file);
@@ -470,6 +492,7 @@ ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
 			uniforms.push_back({ GLEnumToUniformType(uniformType), std::string(uniformName) });
 		}
 		else {
+			spdlog::warn("Unsupported type: {}", uniformType);
 			uniforms.push_back({ UniformType::Unsupported, uniformName });
 		}
 

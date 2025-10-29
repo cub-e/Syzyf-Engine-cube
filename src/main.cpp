@@ -98,6 +98,39 @@ public:
 	}
 };
 
+void InitScene() {
+	const unsigned int textureSize = 512;
+
+	Texture2D* computeTexture = new Texture2D(textureSize, textureSize, TextureFormat::RGBA);
+
+	ComputeShader* comp = (ComputeShader*) ShaderBase::Load("./res/shaders/forwardplus/compute_frustums.comp");
+	ComputeShaderProgram* prog = new ComputeShaderProgram(comp);
+
+	glUseProgram(prog->GetHandle());
+
+	glBindImageTexture(0, computeTexture->GetHandle(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+	glDispatchCompute(textureSize, textureSize, 1);
+	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+
+	ShaderProgram* quadProg = ShaderProgram::Build()
+	.WithVertexShader(
+		(VertexShader*) ShaderBase::Load("./res/shaders/fullscreen.vert")
+	)
+	.WithPixelShader(
+		(PixelShader*) ShaderBase::Load("./res/shaders/basic.frag")
+	).Link();
+
+	Mesh quadMesh = Mesh::Load("./res/models/fullscreenquad.obj", VertexSpec::Mesh);
+	Material* quadMat = new Material(quadProg);
+	quadMat->SetValue("uColor", glm::one<glm::vec3>());
+	quadMat->SetValue("colorTex", computeTexture);
+
+	mainScene = new Scene();
+	SceneNode* quadObject = mainScene->CreateNode();
+	quadObject->AddObject<MeshRenderer>(quadMesh, quadMat);
+	quadObject->AddObject<Camera>(Camera::Orthographic(1, -1, -1, 1));
+}
+
 int main(int, char**) {
 	if (!InitProgram()) {
 		spdlog::error("Failed to initialize project!");
@@ -105,68 +138,7 @@ int main(int, char**) {
 	}
 	spdlog::info("Initialized project.");
 
-	VertexShader* meshVert = (VertexShader*) ShaderBase::Load("./res/shaders/basic.vert");
-	PixelShader* meshFrag = (PixelShader*) ShaderBase::Load("./res/shaders/basic.frag");
-
-	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(meshVert).WithPixelShader(meshFrag).Link();
-
-	VertexShader* skyVert = (VertexShader*) ShaderBase::Load("./res/shaders/skybox.vert");
-	PixelShader* skyFrag = (PixelShader*) ShaderBase::Load("./res/shaders/skybox.frag");
-
-	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(skyVert).WithPixelShader(skyFrag).Link();
-
-	Mesh cube = Mesh::Load("./res/models/cube.obj", VertexSpec::Mesh);
-
-	Material* centerMat = new Material(meshProg);
-	Material* orbiterMat = new Material(meshProg);
-
-	Texture2D* stoneTex = Texture::Load<Texture2D>("./res/textures/stone.jpg", TextureFormat::RGB);
-	stoneTex->SetMagFilter(GL_LINEAR);
-	stoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
-
-	Texture2D* invStoneTex = Texture::Load<Texture2D>("./res/textures/stone_inv.jpg", TextureFormat::RGB);
-	invStoneTex->SetMagFilter(GL_LINEAR);
-	invStoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
-
-	Cubemap* skyCubemap = Texture::Load<Cubemap>("./res/textures/skybox.jpg", TextureFormat::RGB);
-
-	Material* skyMat = new Material(skyProg);
-	skyMat->SetValue("skyboxTexture", skyCubemap);
-
-	centerMat->SetValue<glm::vec3>("uColor", glm::vec3(0.0f, 0.5f, 1.0f));
-	centerMat->SetValue<Texture2D>("colorTex", stoneTex);
-	orbiterMat->SetValue<glm::vec3>("uColor", glm::vec3(0.0f, 0.5f, 1.0f));
-	orbiterMat->SetValue<Texture2D>("colorTex", invStoneTex);
-
-	mainScene = new Scene();
-	
-	auto rendererObject = mainScene->CreateNode();
-	auto cameraObject = mainScene->CreateNode();
-
-	rendererObject->AddObject<MeshRenderer>(cube, centerMat);
-	rendererObject->AddObject<AutoRotator>(1.0f);
-
-	auto rendererChildRotator = mainScene->CreateNode(rendererObject);
-	rendererChildRotator->AddObject<AutoRotator>(-2.0f);
-
-	for (int i = 0; i < 4; i++) {
-		auto rendererChild = mainScene->CreateNode(rendererChildRotator);
-
-		rendererChild->LocalTransform().Scale() = glm::vec3(0.3f);
-		rendererChild->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, 1.2f) * glm::angleAxis(glm::radians(90.0f * i), glm::vec3(0.0f, 1.0f, 0.0f));
-
-		rendererChild->AddObject<AutoRotator>(1.0f);
-		
-		rendererChild->AddObject<MeshRenderer>(cube, orbiterMat);
-	}
-
-	Camera* camera = cameraObject->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 1.0f, 100.0f));
-	cameraObject->AddObject<Mover>();
-
-	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
-
-	auto skyboxObject = mainScene->CreateNode();
-	skyboxObject->AddObject<Skybox>(skyMat);
+	InitScene();
 
 	InitImgui();
 	spdlog::info("Initialized ImGui.");

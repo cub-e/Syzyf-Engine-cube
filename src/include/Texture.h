@@ -65,6 +65,9 @@ public:
 
 class Texture2D : public Texture {
 public:
+	Texture2D() = default;
+	Texture2D(unsigned int width, unsigned int height, TextureFormat format);
+
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;
 	}
