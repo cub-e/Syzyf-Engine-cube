@@ -127,7 +127,7 @@ private:
 public:
 	static ShaderBuilder Build();
 	
-	GLuint GetHandle();
+	GLuint GetHandle() const;
 	const UniformSpec& GetUniforms() const;
 	const VertexSpec& GetVertexSpec() const;
 };
@@ -143,4 +143,9 @@ public:
 
 	GLuint GetHandle() const;
 	const UniformSpec& GetUniforms() const;
+};
+
+class ComputeShaderDispatch {
+private:
+	ComputeShaderProgram* program;
 };

@@ -361,89 +361,18 @@ ShaderProgram* ShaderBuilder::Link() {
 	);
 }
 
-bool IsUniformTypeSupported(GLenum type) {
-	return (
-		type == GL_UNSIGNED_INT
-		||
-		type == GL_FLOAT
-		||
-		(type >= GL_FLOAT_VEC2 && type <= GL_FLOAT_VEC4)
-		||
-		(type >= GL_UNSIGNED_INT_VEC2 && type <= GL_UNSIGNED_INT_VEC4)
-		||
-		type == GL_FLOAT_MAT3
-		||
-		type == GL_FLOAT_MAT4
-		||
-		type == GL_SAMPLER_2D
-		||
-		type == GL_SAMPLER_CUBE
-	);
-}
-
-UniformType GLEnumToUniformType(GLenum type) {
-	const static std::map<GLenum, UniformType> dict {
-		{ GL_FLOAT, UniformType::Float1 },
-		{ GL_FLOAT_VEC2, UniformType::Float2 },
-		{ GL_FLOAT_VEC3, UniformType::Float3 },
-		{ GL_FLOAT_VEC4, UniformType::Float4 },
-		{ GL_UNSIGNED_INT, UniformType::Uint1 },
-		{ GL_UNSIGNED_INT_VEC2, UniformType::Uint2 },
-		{ GL_UNSIGNED_INT_VEC3, UniformType::Uint3 },
-		{ GL_UNSIGNED_INT_VEC4, UniformType::Uint4 },
-		{ GL_FLOAT_MAT3, UniformType::Matrix3x3 },
-		{ GL_FLOAT_MAT4, UniformType::Matrix4x4 },
-		{ GL_SAMPLER_2D, UniformType::Sampler2D },
-		{ GL_SAMPLER_CUBE, UniformType::Cubemap },
-	};
-
-	return dict.at(type);
-}
-
 ShaderProgram::ShaderProgram(VertexShader* vertexShader, GeometryShader* geometryShader, PixelShader* pixelShader, GLuint handle):
 vertexShader(vertexShader),
 geometryShader(geometryShader),
 pixelShader(pixelShader),
-handle(handle) {
-	int uniformCount = 0;
-	glGetProgramiv(handle, GL_ACTIVE_UNIFORMS, &uniformCount);
-
-	int bufferSize = 0;
-	glGetProgramiv(handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &bufferSize);
-	char uniformName[bufferSize + 1];
-
-	std::vector<UniformVariable> uniforms;
-
-	for (int i = 0; i < uniformCount; i++) {
-		int nameLength = 0;
-		int uniformSize = 0;
-		GLenum uniformType;
-		glGetActiveUniform(handle, i, bufferSize, &nameLength, &uniformSize, &uniformType, uniformName);
-
-		if (IsUniformTypeSupported(uniformType) && !std::string(uniformName).starts_with("Object_") && !std::string(uniformName).starts_with("Global_")) {
-			uniforms.push_back({ GLEnumToUniformType(uniformType), std::string(uniformName) });
-		}
-		else {
-			uniforms.push_back({ UniformType::Unsupported, uniformName });
-		}
-
-		spdlog::info("name: {}, index: {}, location: {}, type: 0x{:x}", std::string(uniformName), i, glGetUniformLocation(handle, uniformName), (int) uniformType);
-	}
-
-	this->uniforms = UniformSpec(uniforms);
-
-	// for (int i = 0; i < uniformCount; i++) {
-	// 	spdlog::info("Uniform at {}: name = {}, type = {}, offset = {}", i, this->uniforms.variables[i].name, (int) this->uniforms.variables[i].type, this->uniforms.offsets[i]);
-	// }
-
-	spdlog::info("Total buffer size: {}", this->uniforms.GetBufferSize());
-}
+handle(handle),
+uniforms(this) { }
 
 ShaderBuilder ShaderProgram::Build() {
 	return ShaderBuilder{};
 }
 
-GLuint ShaderProgram::GetHandle() {
+GLuint ShaderProgram::GetHandle() const {
 	return this->handle;
 }
 
@@ -454,52 +383,17 @@ const VertexSpec& ShaderProgram::GetVertexSpec() const {
 	return this->vertexShader->GetVertexSpec();
 }
 
-ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
-	assert(computeShader);
-	
-	this->computeShader = computeShader;
+ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader):
+uniforms(this) {
+	int bufferCount = 0;
 
-	this->handle = glCreateProgram();
-	glAttachShader(this->handle, this->computeShader->GetHandle());
-	glLinkProgram(this->handle);
+	char buf[256];
 
-	int compileSuccess;
-	char compileMsg[512];
+	glGetProgramInterfaceiv(this->handle, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &bufferCount);
+	glGetProgramResourceName(this->handle, GL_UNIFORM_BLOCK, 0, 256, nullptr, buf);
 
-	glGetProgramiv(this->handle, GL_LINK_STATUS, &compileSuccess);
-	if (!compileSuccess) {
-		glGetProgramInfoLog(this->handle, 512, NULL, compileMsg);
-
-		spdlog::error("Error linking shader:\n{}", compileMsg);
-	}
-
-	int uniformCount = 0;
-	glGetProgramiv(this->handle, GL_ACTIVE_UNIFORMS, &uniformCount);
-
-	int bufferSize = 0;
-	glGetProgramiv(this->handle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &bufferSize);
-	char uniformName[bufferSize + 1];
-
-	std::vector<UniformVariable> uniforms;
-
-	for (int i = 0; i < uniformCount; i++) {
-		int nameLength = 0;
-		int uniformSize = 0;
-		GLenum uniformType;
-		glGetActiveUniform(this->handle, i, bufferSize, &nameLength, &uniformSize, &uniformType, uniformName);
-
-		if (IsUniformTypeSupported(uniformType)) {
-			uniforms.push_back({ GLEnumToUniformType(uniformType), std::string(uniformName) });
-		}
-		else {
-			spdlog::warn("Unsupported type: {}", uniformType);
-			uniforms.push_back({ UniformType::Unsupported, uniformName });
-		}
-
-		spdlog::info("name: {}, index: {}, location: {}, type: 0x{:x}", std::string(uniformName), i, glGetUniformLocation(handle, uniformName), (int) uniformType);
-	}
-
-	this->uniforms = UniformSpec(uniforms);
+	spdlog::info("Buffer count: {}", bufferCount);
+	spdlog::info("Buffer at 0: {}", buf);
 }
 
 GLuint ComputeShaderProgram::GetHandle() const {

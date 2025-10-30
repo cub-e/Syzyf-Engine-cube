@@ -56,28 +56,28 @@ T* Material::GetValue(const std::string& uniformName) const {
 
 template<Blittable T>
 T Material::GetValue(unsigned int uniformIndex) const {
-	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().variables.size()) {
+	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().VariableCount()) {
 		return T{};
 	}
 
-	if (!IsUniformOfRightType<T>(this->shader->GetUniforms().variables[uniformIndex].type)) {
+	if (!IsUniformOfRightType<T>(this->shader->GetUniforms()[uniformIndex].type)) {
 		return T{};
 	}
 
-	return *((T*) ((char*) this->dataBuffer + this->shader->GetUniforms().offsets[uniformIndex]));
+	return *((T*) ((char*) this->dataBuffer + this->shader->GetUniforms()[uniformIndex].offset));
 }
 
 template<TextureClass T>
 T* Material::GetValue(unsigned int uniformIndex) const {
-	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().variables.size()) {
+	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().VariableCount()) {
 		return nullptr;
 	}
 
-	if (!IsUniformOfRightType<T>(this->shader->GetUniforms().variables[uniformIndex].type)) {
+	if (!IsUniformOfRightType<T>(this->shader->GetUniforms()[uniformIndex].type)) {
 		return nullptr;
 	}
 
-	return *((T**) ((char*) this->dataBuffer + this->shader->GetUniforms().offsets[uniformIndex]));
+	return *((T**) ((char*) this->dataBuffer + this->shader->GetUniforms()[uniformIndex].offset));
 }
 
 template<Blittable T>
@@ -92,28 +92,28 @@ void Material::SetValue(const std::string& uniformName, T* value) {
 
 template<Blittable T>
 void Material::SetValue(unsigned int uniformIndex, const T& value) {
-	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().variables.size()) {
+	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().VariableCount()) {
 		return;
 	}
 
-	if (!IsUniformOfRightType<T>(this->shader->GetUniforms().variables[uniformIndex].type)) {
+	if (!IsUniformOfRightType<T>(this->shader->GetUniforms()[uniformIndex].type)) {
 		return;
 	}
 
-	*((T*) ((char*) this->dataBuffer + this->shader->GetUniforms().offsets[uniformIndex])) = value;
+	*((T*) ((char*) this->dataBuffer + this->shader->GetUniforms()[uniformIndex].offset)) = value;
 }
 
 template<TextureClass T>
 void Material::SetValue(unsigned int uniformIndex, T* value) {
-	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().variables.size()) {
+	if (uniformIndex < 0 || uniformIndex >= this->shader->GetUniforms().VariableCount()) {
 		return;
 	}
 
-	if (!IsUniformOfRightType<T>(this->shader->GetUniforms().variables[uniformIndex].type)) {
+	if (!IsUniformOfRightType<T>(this->shader->GetUniforms()[uniformIndex].type)) {
 		return;
 	}
 
-	*((T**) ((char*) this->dataBuffer + this->shader->GetUniforms().offsets[uniformIndex])) = value;
+	*((T**) ((char*) this->dataBuffer + this->shader->GetUniforms()[uniformIndex].offset)) = value;
 }
 
 template<Blittable T>

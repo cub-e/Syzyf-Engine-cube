@@ -9,6 +9,9 @@
 
 #include <Texture.h>
 
+class ShaderProgram;
+class ComputeShaderProgram;
+
 template <class T>
 concept Blittable = ( // It's stupid, but frankly idk if there's a better way to do it
 	std::same_as<T, float>
@@ -55,12 +58,10 @@ enum class UniformType {
 
 struct UniformVariable {
 	UniformType type;
+	int offset;
 	std::string name;
-};
 
-struct TextureVariable {
-	TextureType type;
-	std::string name;
+	UniformVariable(UniformType type, std::string name);
 };
 
 class IncompatibleUniformTypeException : public std::runtime_error {
@@ -68,13 +69,19 @@ class IncompatibleUniformTypeException : public std::runtime_error {
 	IncompatibleUniformTypeException(const UniformVariable& variable);
 };
 
-struct UniformSpec {
+class UniformSpec {
+private:
 	std::vector<UniformVariable> variables;
-	std::vector<int> offsets;
-
+	void CreateFrom(GLuint programHandle);
+public:
 	UniformSpec();
 	UniformSpec(std::vector<UniformVariable> variables);
+	UniformSpec(const ShaderProgram* program);
+	UniformSpec(const ComputeShaderProgram* program);
 
 	unsigned int GetBufferSize() const;
-};
+	unsigned int VariableCount() const;
+	const UniformVariable& VariableAt(int index) const;
 
+	const UniformVariable& operator[](int index) const;
+};
