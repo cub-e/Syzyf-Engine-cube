@@ -1,0 +1,17 @@
+#version 460
+
+layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) uniform image2D imgOutput;
+
+void main() {
+    vec4 value = vec4(0.0, 0.0, 0.0, 1.0);
+    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
+	
+    vec2 uv = vec2(texelCoord) / gl_NumWorkGroups.xy;
+
+    value.r = float(uv.x > 0.3 && uv.x < 0.8);
+    value.g = float(uv.y > 0.3 && uv.y < 0.8);
+	
+    imageStore(imgOutput, texelCoord, value);
+}

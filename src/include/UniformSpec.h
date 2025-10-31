@@ -75,7 +75,6 @@ private:
 	void CreateFrom(GLuint programHandle);
 public:
 	UniformSpec();
-	UniformSpec(std::vector<UniformVariable> variables);
 	UniformSpec(const ShaderProgram* program);
 	UniformSpec(const ComputeShaderProgram* program);
 

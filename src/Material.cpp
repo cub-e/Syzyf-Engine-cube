@@ -13,6 +13,7 @@ void Material::Bind() {
 
 	for (unsigned int i = 0; i < uniforms.VariableCount(); i++) {
 		int offset = uniforms[i].offset;
+
 		switch (uniforms[i].type) {
 		case UniformType::Float1:
 			glUniform1f(i, GetValue<float>(i));

@@ -365,8 +365,9 @@ ShaderProgram::ShaderProgram(VertexShader* vertexShader, GeometryShader* geometr
 vertexShader(vertexShader),
 geometryShader(geometryShader),
 pixelShader(pixelShader),
-handle(handle),
-uniforms(this) { }
+handle(handle) {
+	this->uniforms = UniformSpec(this);
+}
 
 ShaderBuilder ShaderProgram::Build() {
 	return ShaderBuilder{};
@@ -383,17 +384,25 @@ const VertexSpec& ShaderProgram::GetVertexSpec() const {
 	return this->vertexShader->GetVertexSpec();
 }
 
-ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader):
-uniforms(this) {
-	int bufferCount = 0;
+ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
+	assert(computeShader);
 
-	char buf[256];
+	this->uniforms = UniformSpec(this);
+	
+	this->handle = glCreateProgram();
+	glAttachShader(this->handle, computeShader->GetHandle());
 
-	glGetProgramInterfaceiv(this->handle, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &bufferCount);
-	glGetProgramResourceName(this->handle, GL_UNIFORM_BLOCK, 0, 256, nullptr, buf);
+	glLinkProgram(this->handle);
 
-	spdlog::info("Buffer count: {}", bufferCount);
-	spdlog::info("Buffer at 0: {}", buf);
+	int compileSuccess;
+	char compileMsg[512];
+
+	glGetProgramiv(this->handle, GL_LINK_STATUS, &compileSuccess);
+	if (!compileSuccess) {
+		glGetProgramInfoLog(this->handle, 512, NULL, compileMsg);
+
+		spdlog::error("Error linking compute shader program:\n{}", compileMsg);
+	}
 }
 
 GLuint ComputeShaderProgram::GetHandle() const {

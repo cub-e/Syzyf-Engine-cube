@@ -59,14 +59,11 @@ UniformType GLEnumToUniformType(GLenum type) {
 	return dict.at(type);
 }
 
-UniformVariable::UniformVariable(UniformType type, std::string name):
-type(type),
-name(name),
-offset(0) { }
-
 void UniformSpec::CreateFrom(GLuint programHandle) {
 	int uniformCount = 0;
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORMS, &uniformCount);
+
+	spdlog::info("Count: {}", uniformCount);
 
 	this->variables.reserve(uniformCount);
 
@@ -74,33 +71,25 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &bufferSize);
 	char uniformName[bufferSize + 1];
 
+	int offset = 0;
 	for (int i = 0; i < uniformCount; i++) {
 		int uniformSize = 0;
 		GLenum uniformType;
 		glGetActiveUniform(programHandle, i, bufferSize, nullptr, &uniformSize, &uniformType, uniformName);
 
 		if (IsUniformTypeSupported(uniformType)) {
-			this->variables.push_back({ GLEnumToUniformType(uniformType), std::string(uniformName) });
+			this->variables.push_back({ GLEnumToUniformType(uniformType), offset, std::string(uniformName)});
 		}
 		else {
 			spdlog::warn("Unsupported type: {}", uniformType);
-			this->variables.push_back({ UniformType::Unsupported, uniformName });
+			this->variables.push_back({ UniformType::Unsupported, offset, uniformName });
 		}
+
+		offset += UniformTypeSizes[(int) GLEnumToUniformType(uniformType)];
 	}
 }
 
 UniformSpec::UniformSpec() { }
-
-UniformSpec::UniformSpec(std::vector<UniformVariable> variables):
-variables(variables){
-	int offset = 0;
-	for (auto& var : variables) {
-		var.offset = offset;
-
-		offset += UniformTypeSizes[(int) var.type];
-	}
-}
-
 
 UniformSpec::UniformSpec(const ShaderProgram* program) {
 	GLuint handle = program->GetHandle();

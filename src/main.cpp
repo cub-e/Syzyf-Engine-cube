@@ -103,12 +103,12 @@ void InitScene() {
 
 	Texture2D* computeTexture = new Texture2D(textureSize, textureSize, TextureFormat::RGBA);
 
-	ComputeShader* comp = (ComputeShader*) ShaderBase::Load("./res/shaders/forwardplus/compute_frustums.comp");
+	ComputeShader* comp = (ComputeShader*) ShaderBase::Load("./res/shaders/forwardplus/fullscreenquad.comp");
 	ComputeShaderProgram* prog = new ComputeShaderProgram(comp);
 
 	glUseProgram(prog->GetHandle());
 
-	glBindImageTexture(0, computeTexture->GetHandle(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+	glBindImageTexture(0, computeTexture->GetHandle(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
 	glDispatchCompute(textureSize, textureSize, 1);
 	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
@@ -123,6 +123,11 @@ void InitScene() {
 	Mesh quadMesh = Mesh::Load("./res/models/fullscreenquad.obj", VertexSpec::Mesh);
 	Material* quadMat = new Material(quadProg);
 	quadMat->SetValue("uColor", glm::one<glm::vec3>());
+
+	glm::vec3 col = quadMat->GetValue<glm::vec3>("uColor");
+
+	spdlog::info("Color: ({}, {}, {})", col.x, col.y, col.z);
+
 	quadMat->SetValue("colorTex", computeTexture);
 
 	mainScene = new Scene();
