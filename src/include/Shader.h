@@ -11,6 +11,31 @@
 namespace fs = std::filesystem;
 
 class SceneGraphics;
+class ComputeShader;
+
+template<class T>
+concept ShaderLike = requires(T a) {
+	{ a.GetHandle() } -> std::same_as<GLuint>;
+	{ a.GetUniforms() } -> std::same_as<const UniformSpec&>;
+};
+
+
+class ComputeShaderProgram {
+private:
+	ComputeShader* computeShader;
+	UniformSpec uniforms;
+
+	GLuint handle;
+public:	
+	ComputeShaderProgram(ComputeShader* computeShader);
+
+	GLuint GetHandle() const;
+	const UniformSpec& GetUniforms() const;
+};
+
+template <ShaderLike T_ShaderProg>
+class ShaderVariableStorage;
+typedef ShaderVariableStorage<ComputeShaderProgram> DispatchData;
 
 class ShaderProgram;
 
@@ -132,20 +157,16 @@ public:
 	const VertexSpec& GetVertexSpec() const;
 };
 
-class ComputeShaderProgram {
-private:
-	ComputeShader* computeShader;
-	UniformSpec uniforms;
-
-	GLuint handle;
-public:	
-	ComputeShaderProgram(ComputeShader* computeShader);
-
-	GLuint GetHandle() const;
-	const UniformSpec& GetUniforms() const;
-};
-
 class ComputeShaderDispatch {
 private:
+	DispatchData* dispatchData;
 	ComputeShaderProgram* program;
+public:
+	ComputeShaderDispatch(ComputeShader* compShader);
+	ComputeShaderDispatch(ComputeShaderProgram* program);
+
+	void Dispatch(int groupsX, int groupsY, int groupsZ) const;
+
+	DispatchData* GetData();
+	ComputeShaderProgram* GetProgram();
 };

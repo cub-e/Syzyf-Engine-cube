@@ -4,88 +4,102 @@
 
 #include <Shader.h>
 
-unsigned int UniformTypeSizes[] {
-	1 * sizeof(GLfloat),
-	2 * sizeof(GLfloat),
-	3 * sizeof(GLfloat),
-	4 * sizeof(GLfloat),
-	1 * sizeof(GLuint),
-	2 * sizeof(GLuint),
-	3 * sizeof(GLuint),
-	4 * sizeof(GLuint),
-	9 * sizeof(GLfloat),
-	16 * sizeof(GLfloat),
-	sizeof(Texture2D*),
-	sizeof(Cubemap*),
-	0
+struct UniformTypeInfo {
+	UniformType type;
+	int size;
 };
 
-bool IsUniformTypeSupported(GLenum type) {
-	return (
-		type == GL_UNSIGNED_INT
-		||
-		type == GL_FLOAT
-		||
-		(type >= GL_FLOAT_VEC2 && type <= GL_FLOAT_VEC4)
-		||
-		(type >= GL_UNSIGNED_INT_VEC2 && type <= GL_UNSIGNED_INT_VEC4)
-		||
-		type == GL_FLOAT_MAT3
-		||
-		type == GL_FLOAT_MAT4
-		||
-		type == GL_SAMPLER_2D
-		||
-		type == GL_SAMPLER_CUBE
-	);
-}
-
-UniformType GLEnumToUniformType(GLenum type) {
-	const static std::map<GLenum, UniformType> dict {
-		{ GL_FLOAT, UniformType::Float1 },
-		{ GL_FLOAT_VEC2, UniformType::Float2 },
-		{ GL_FLOAT_VEC3, UniformType::Float3 },
-		{ GL_FLOAT_VEC4, UniformType::Float4 },
-		{ GL_UNSIGNED_INT, UniformType::Uint1 },
-		{ GL_UNSIGNED_INT_VEC2, UniformType::Uint2 },
-		{ GL_UNSIGNED_INT_VEC3, UniformType::Uint3 },
-		{ GL_UNSIGNED_INT_VEC4, UniformType::Uint4 },
-		{ GL_FLOAT_MAT3, UniformType::Matrix3x3 },
-		{ GL_FLOAT_MAT4, UniformType::Matrix4x4 },
-		{ GL_SAMPLER_2D, UniformType::Sampler2D },
-		{ GL_SAMPLER_CUBE, UniformType::Cubemap },
+UniformTypeInfo GetUniformInfo(GLenum type) {
+	const static std::map<GLenum, UniformTypeInfo> dict {
+		{ GL_FLOAT, { UniformType::Float1, 1 * sizeof(GLfloat)} },
+		{ GL_FLOAT_VEC2, { UniformType::Float2, 2 * sizeof(GLfloat)} },
+		{ GL_FLOAT_VEC3, { UniformType::Float3, 3 * sizeof(GLfloat)} },
+		{ GL_FLOAT_VEC4, { UniformType::Float4, 4 * sizeof(GLfloat)} },
+		{ GL_UNSIGNED_INT, { UniformType::Uint1, 1 * sizeof(GLuint)} },
+		{ GL_UNSIGNED_INT_VEC2, { UniformType::Uint2, 2 * sizeof(GLuint)} },
+		{ GL_UNSIGNED_INT_VEC3, { UniformType::Uint3, 3 * sizeof(GLuint)} },
+		{ GL_UNSIGNED_INT_VEC4, { UniformType::Uint4, 4 * sizeof(GLuint)} },
+		{ GL_FLOAT_MAT3, { UniformType::Matrix3x3, 9 * sizeof(GLfloat)} },
+		{ GL_FLOAT_MAT4, { UniformType::Matrix4x4, 16 * sizeof(GLfloat)} },
+		{ GL_SAMPLER_2D, { UniformType::Sampler2D, sizeof(Texture2D*)} },
+		{ GL_SAMPLER_CUBE, { UniformType::Cubemap, sizeof(Cubemap*)} },
+		{ GL_IMAGE_2D, { UniformType::Image2D, sizeof(Texture2D*)} },
 	};
 
-	return dict.at(type);
+	if (dict.contains(type)) {
+		return dict.at(type);
+	}
+
+	return { UniformType::Unsupported, 0 };
 }
 
 void UniformSpec::CreateFrom(GLuint programHandle) {
 	int uniformCount = 0;
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORMS, &uniformCount);
 
-	spdlog::info("Count: {}", uniformCount);
-
 	this->variables.reserve(uniformCount);
 
 	int bufferSize = 0;
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &bufferSize);
-	char uniformName[bufferSize + 1];
+	char uniformName[bufferSize ];
 
-	int offset = 0;
+	this->variablesBufferLength = 0;
 	for (int i = 0; i < uniformCount; i++) {
 		int uniformSize = 0;
 		GLenum uniformType;
 		glGetActiveUniform(programHandle, i, bufferSize, nullptr, &uniformSize, &uniformType, uniformName);
 
-		if (IsUniformTypeSupported(uniformType)) {
-			this->variables.push_back({ GLEnumToUniformType(uniformType), offset, std::string(uniformName)});
-		}
-		else {
-			spdlog::warn("Unsupported type: {}", uniformType);
-			this->variables.push_back({ UniformType::Unsupported, offset, uniformName });
-		}
+		UniformTypeInfo info = GetUniformInfo(uniformType);
 
-		offset += UniformTypeSizes[(int) GLEnumToUniformType(uniformType)];
+		this->variables.push_back({ info.type, this->variablesBufferLength, uniformName });
+
+		this->variablesBufferLength += info.size;
+	}
+
+	int uniformBufferCount = 0;
+	glGetProgramInterfaceiv(programHandle, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &uniformBufferCount);
+
+	for (int i = 0; i < uniformBufferCount; i++) {
+		struct {
+			int nameLength;
+			int bufferSize;
+			int computeBuffer;
+		} propValues;
+
+		GLenum bufferProps[] {
+			GL_NAME_LENGTH,
+			GL_BUFFER_DATA_SIZE,
+			GL_REFERENCED_BY_COMPUTE_SHADER
+		};
+
+		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, i, 3, bufferProps, 3, nullptr, (int*) &propValues);
+
+		char nameBuf[propValues.nameLength];
+
+		glGetProgramResourceName(programHandle, GL_UNIFORM_BLOCK, i, propValues.nameLength, nullptr, nameBuf);
+
+		spdlog::info("Uniform buffer {}: name {}, size {}, compute {}", i, std::string(nameBuf), propValues.bufferSize, (bool) propValues.computeBuffer);
+
+		if (propValues.computeBuffer || i >= 2) {
+			this->uniformBuffers.push_back({ std::string(nameBuf), i, propValues.bufferSize });
+		}
+	}
+
+	int storageBufferCount = 0;
+	glGetProgramInterfaceiv(programHandle, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &storageBufferCount);
+
+	for (int i = 0; i < storageBufferCount; i++) {
+		GLenum nameProp = GL_NAME_LENGTH;
+		int nameLength = 0;
+
+		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, i, 1, &nameProp, 1, nullptr, &nameLength);
+
+		char nameBuf[nameLength];
+		glGetProgramResourceName(programHandle, GL_SHADER_STORAGE_BLOCK, i, nameLength, nullptr, nameBuf);
+
+		spdlog::info("Buffer {}: {}", i, std::string(nameBuf));
+
+		this->storageBuffers.push_back({ std::string(nameBuf) });
 	}
 }
 
@@ -104,21 +118,31 @@ UniformSpec::UniformSpec(const ComputeShaderProgram* program) {
 }
 
 unsigned int UniformSpec::GetBufferSize() const {
-	unsigned int size = 0;
-
-	for (const auto& var : this->variables) {
-		size += UniformTypeSizes[(int) var.type];
-	}
-
-	return size;
+	return this->variablesBufferLength;
 }
 
 unsigned int UniformSpec::VariableCount() const {
 	return this->variables.size();
 }
 
+unsigned int UniformSpec::UniformBuffersCount() const {
+	return this->uniformBuffers.size();
+}
+
+unsigned int UniformSpec::StorageBuffersCount() const {
+	return this->storageBuffers.size();
+}
+
 const UniformVariable& UniformSpec::VariableAt(int index) const {
 	return this->variables.at(index);
+}
+
+const UniformBuffer& UniformSpec::UniformBufferAt(int index) const {
+	return this->uniformBuffers.at(index);
+}
+
+const ShaderStorageBuffer& UniformSpec::StorageBufferAt(int index) const {
+	return this->storageBuffers.at(index);
 }
 
 const UniformVariable& UniformSpec::operator[](int index) const {

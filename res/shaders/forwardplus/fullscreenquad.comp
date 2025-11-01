@@ -2,6 +2,11 @@
 
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
+layout (std140, binding = 0) uniform FullScreenQuadParams {
+	float lowerSide;
+	float upperSide;
+} Params;
+
 layout(rgba32f, binding = 0) uniform image2D imgOutput;
 
 void main() {
@@ -10,8 +15,8 @@ void main() {
 	
     vec2 uv = vec2(texelCoord) / gl_NumWorkGroups.xy;
 
-    value.r = float(uv.x > 0.3 && uv.x < 0.8);
-    value.g = float(uv.y > 0.3 && uv.y < 0.8);
+    value.r = float(uv.x > Params.lowerSide && uv.x < Params.upperSide);
+    value.g = float(uv.y > Params.lowerSide && uv.y < Params.upperSide);
 	
     imageStore(imgOutput, texelCoord, value);
 }

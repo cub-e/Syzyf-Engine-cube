@@ -36,8 +36,31 @@ bool MagFilterValid(GLenum magFilter) {
 	);
 }
 
+GLenum Texture::TextureFormatToGL(TextureFormat format) {
+	static GLenum glFormats[] {
+		GL_RED,
+		GL_RG,
+		GL_RGB,
+		GL_RGBA,
+		GL_R32F,
+		GL_RG32F,
+		GL_RGB32F,
+		GL_RGBA32F,
+	};
+
+	if ((int) format > 0 && (int) format < sizeof(glFormats) / sizeof(GLenum)) {
+		return glFormats[(int) format];
+	}
+
+	return GL_RED;
+}
+
 GLuint Texture::GetHandle() {
 	return this->handle;
+}
+
+TextureFormat Texture::GetFormat() {
+	return this->format;
 }
 
 GLenum Texture::GetWrapModeU() const {
@@ -153,14 +176,6 @@ void Texture::Update() {
 template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureFormat format) {
 	stbi_set_flip_vertically_on_load(true);
 	
-	static GLenum glFormats[] {
-		0,
-		GL_RED,
-		GL_RG,
-		GL_RGB,
-		GL_RGBA
-	};
-
 	fs::directory_entry textureFile(texturePath);
 
 	if (!textureFile.exists() || !textureFile.is_regular_file()) {
@@ -181,7 +196,7 @@ template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureForm
 
 	glBindTexture(GL_TEXTURE_2D, textureHandle);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, glFormats[(int) format], width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
+	glTexImage2D(GL_TEXTURE_2D, 0, TextureFormatToGL(format), width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData);
 	
 	stbi_image_free(textureData);
 	
@@ -189,6 +204,7 @@ template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureForm
 	
 	Texture2D* result = new Texture2D();
 	result->handle = textureHandle;
+	result->format = format;
 	
 	result->SetWrapModeU(GL_CLAMP_TO_EDGE);
 	result->SetWrapModeV(GL_CLAMP_TO_EDGE);
@@ -202,14 +218,6 @@ template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureForm
 
 template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat format) {
 	stbi_set_flip_vertically_on_load(false);
-
-	static GLenum glFormats[] {
-		0,
-		GL_RED,
-		GL_RG,
-		GL_RGB,
-		GL_RGBA
-	};
 
 	static std::string cubeSides[] {
 		"_right",
@@ -253,7 +261,7 @@ template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat f
 	
 		glTexImage2D(
 			GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
-			0, glFormats[(int) format], width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData
+			0, TextureFormatToGL(format), width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, textureData
 		);
 		
 		stbi_image_free(textureData);
@@ -263,7 +271,8 @@ template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat f
 
 	Cubemap* result = new Cubemap();
 	result->handle = textureHandle;
-	
+	result->format = format;
+
 	result->SetWrapModeU(GL_CLAMP_TO_EDGE);
 	result->SetWrapModeV(GL_CLAMP_TO_EDGE);
 	result->SetWrapModeW(GL_CLAMP_TO_EDGE);
@@ -276,19 +285,13 @@ template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat f
 }
 
 Texture2D::Texture2D(unsigned int width, unsigned int height, TextureFormat format) {
-	static GLenum glFormats[] {
-		0,
-		GL_R32F,
-		GL_RG32F,
-		GL_RGB32F,
-		GL_RGBA32F,
-	};
+	this->format = format;
 
 	glGenTextures(1, &this->handle);
 
 	glBindTexture(GL_TEXTURE_2D, this->handle);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, glFormats[(int) format], width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, TextureFormatToGL(format), width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
 
 	this->SetWrapModeU(GL_CLAMP_TO_EDGE);
 	this->SetWrapModeV(GL_CLAMP_TO_EDGE);

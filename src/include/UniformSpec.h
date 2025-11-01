@@ -53,6 +53,7 @@ enum class UniformType {
 	Matrix4x4,
 	Sampler2D,
 	Cubemap,
+	Image2D,
 	Unsupported
 };
 
@@ -60,8 +61,16 @@ struct UniformVariable {
 	UniformType type;
 	int offset;
 	std::string name;
+};
 
-	UniformVariable(UniformType type, std::string name);
+struct UniformBuffer {
+	std::string name;
+	int binding;
+	int size;
+};
+
+struct ShaderStorageBuffer {
+	std::string name;
 };
 
 class IncompatibleUniformTypeException : public std::runtime_error {
@@ -72,6 +81,9 @@ class IncompatibleUniformTypeException : public std::runtime_error {
 class UniformSpec {
 private:
 	std::vector<UniformVariable> variables;
+	int variablesBufferLength;
+	std::vector<UniformBuffer> uniformBuffers;
+	std::vector<ShaderStorageBuffer> storageBuffers;
 	void CreateFrom(GLuint programHandle);
 public:
 	UniformSpec();
@@ -80,7 +92,12 @@ public:
 
 	unsigned int GetBufferSize() const;
 	unsigned int VariableCount() const;
+	unsigned int UniformBuffersCount() const;
+	unsigned int StorageBuffersCount() const;
+
 	const UniformVariable& VariableAt(int index) const;
+	const UniformBuffer& UniformBufferAt(int index) const;
+	const ShaderStorageBuffer& StorageBufferAt(int index) const;
 
 	const UniformVariable& operator[](int index) const;
 };

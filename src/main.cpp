@@ -101,16 +101,16 @@ public:
 void InitScene() {
 	const unsigned int textureSize = 512;
 
-	Texture2D* computeTexture = new Texture2D(textureSize, textureSize, TextureFormat::RGBA);
+	Texture2D* computeTexture = new Texture2D(textureSize, textureSize, TextureFormat::RGBAFloat);
+	computeTexture->SetMagFilter(GL_NEAREST);
 
 	ComputeShader* comp = (ComputeShader*) ShaderBase::Load("./res/shaders/forwardplus/fullscreenquad.comp");
-	ComputeShaderProgram* prog = new ComputeShaderProgram(comp);
+	ComputeShaderDispatch* quadDispatch = new ComputeShaderDispatch(comp);
 
-	glUseProgram(prog->GetHandle());
+	quadDispatch->GetData()->SetValue("imgOutput", computeTexture);
+	quadDispatch->GetData()->SetUniformBuffer("FullScreenQuadParams", glm::vec2(0.2f, 0.7f));
 
-	glBindImageTexture(0, computeTexture->GetHandle(), 0, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
-	glDispatchCompute(textureSize, textureSize, 1);
-	glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+	quadDispatch->Dispatch(textureSize, textureSize, 1);
 
 	ShaderProgram* quadProg = ShaderProgram::Build()
 	.WithVertexShader(
@@ -120,15 +120,19 @@ void InitScene() {
 		(PixelShader*) ShaderBase::Load("./res/shaders/basic.frag")
 	).Link();
 
+	float offset = 1.0f;
+	GLuint bufHandle = 0;
+
+	glGenBuffers(1, &bufHandle);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufHandle);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float), &offset, GL_STATIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 	Mesh quadMesh = Mesh::Load("./res/models/fullscreenquad.obj", VertexSpec::Mesh);
 	Material* quadMat = new Material(quadProg);
 	quadMat->SetValue("uColor", glm::one<glm::vec3>());
-
-	glm::vec3 col = quadMat->GetValue<glm::vec3>("uColor");
-
-	spdlog::info("Color: ({}, {}, {})", col.x, col.y, col.z);
-
 	quadMat->SetValue("colorTex", computeTexture);
+	quadMat->BindStorageBuffer("in_Offsets", bufHandle);
 
 	mainScene = new Scene();
 	SceneNode* quadObject = mainScene->CreateNode();

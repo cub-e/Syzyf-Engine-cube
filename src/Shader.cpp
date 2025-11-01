@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include <PreComp.h>
+#include <Material.h>
 
 #include <spdlog/spdlog.h>
 
@@ -387,8 +388,6 @@ const VertexSpec& ShaderProgram::GetVertexSpec() const {
 ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
 	assert(computeShader);
 
-	this->uniforms = UniformSpec(this);
-	
 	this->handle = glCreateProgram();
 	glAttachShader(this->handle, computeShader->GetHandle());
 
@@ -403,6 +402,8 @@ ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
 
 		spdlog::error("Error linking compute shader program:\n{}", compileMsg);
 	}
+
+	this->uniforms = UniformSpec(this);	
 }
 
 GLuint ComputeShaderProgram::GetHandle() const {
@@ -411,4 +412,29 @@ GLuint ComputeShaderProgram::GetHandle() const {
 
 const UniformSpec& ComputeShaderProgram::GetUniforms() const {
 	return this->uniforms;
+}
+
+ComputeShaderDispatch::ComputeShaderDispatch(ComputeShader* compShader):
+ComputeShaderDispatch(new ComputeShaderProgram(compShader)) { }
+
+ComputeShaderDispatch::ComputeShaderDispatch(ComputeShaderProgram* program) {
+	this->program = program;
+	this->dispatchData = new DispatchData(program);
+}
+
+void ComputeShaderDispatch::Dispatch(int groupsX, int groupsY, int groupsZ) const {
+	glUseProgram(this->program->GetHandle());
+
+	this->dispatchData->Bind();
+
+	glDispatchCompute(groupsX, groupsY, groupsZ);
+
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+}
+
+DispatchData* ComputeShaderDispatch::GetData() {
+	return this->dispatchData;
+}
+ComputeShaderProgram* ComputeShaderDispatch::GetProgram() {
+	return this->program;
 }

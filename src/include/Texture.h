@@ -16,10 +16,14 @@ enum class TextureType {
 };
 
 enum class TextureFormat {
-	Grayscale = 1,
+	Grayscale = 0,
 	RG,
 	RGB,
-	RGBA
+	RGBA,
+	GrayscaleFloat,
+	RGFloat,
+	RGBFloat,
+	RGBAFloat
 };
 
 class Texture {
@@ -33,6 +37,8 @@ protected:
 	GLuint handle;
 	bool dirty;
 
+	TextureFormat format;
+
 	TextureInfoBit<GLenum> wrapU;
 	TextureInfoBit<GLenum> wrapV;
 	TextureInfoBit<GLenum> minFilter;
@@ -42,9 +48,14 @@ public:
 	template <class T_Tex>
 	static T_Tex* Load(fs::path texturePath, TextureFormat format) = delete;
 
+	virtual ~Texture() = default;
+
 	virtual constexpr TextureType GetType() const = 0;
 
+	static GLenum TextureFormatToGL(TextureFormat format);
+
 	GLuint GetHandle();
+	TextureFormat GetFormat();
 
 	GLenum GetWrapModeU() const;
 	void SetWrapModeU(GLenum wrapMode);
@@ -66,7 +77,7 @@ public:
 class Texture2D : public Texture {
 public:
 	Texture2D() = default;
-	Texture2D(unsigned int width, unsigned int height, TextureFormat format);
+	Texture2D(unsigned int width, unsigned int height, TextureFormat format = TextureFormat::RGBA);
 
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;
