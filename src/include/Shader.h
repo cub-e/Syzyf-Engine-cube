@@ -35,7 +35,7 @@ public:
 
 template <ShaderLike T_ShaderProg>
 class ShaderVariableStorage;
-typedef ShaderVariableStorage<ComputeShaderProgram> DispatchData;
+typedef ShaderVariableStorage<ComputeShaderProgram> ComputeDispatchData;
 
 class ShaderProgram;
 
@@ -159,7 +159,7 @@ public:
 
 class ComputeShaderDispatch {
 private:
-	DispatchData* dispatchData;
+	ComputeDispatchData* dispatchData;
 	ComputeShaderProgram* program;
 public:
 	ComputeShaderDispatch(ComputeShader* compShader);
@@ -167,6 +167,6 @@ public:
 
 	void Dispatch(int groupsX, int groupsY, int groupsZ) const;
 
-	DispatchData* GetData();
+	ComputeDispatchData* GetData();
 	ComputeShaderProgram* GetProgram();
 };

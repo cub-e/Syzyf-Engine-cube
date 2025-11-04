@@ -67,7 +67,7 @@ public:
 };
 
 typedef ShaderVariableStorage<ShaderProgram> Material;
-typedef ShaderVariableStorage<ComputeShaderProgram> DispatchData;
+typedef ShaderVariableStorage<ComputeShaderProgram> ComputeDispatchData;
 
 template<Blittable T>
 static inline bool IsUniformOfRightType(UniformType type) {

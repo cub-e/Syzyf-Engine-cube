@@ -419,7 +419,7 @@ ComputeShaderDispatch(new ComputeShaderProgram(compShader)) { }
 
 ComputeShaderDispatch::ComputeShaderDispatch(ComputeShaderProgram* program) {
 	this->program = program;
-	this->dispatchData = new DispatchData(program);
+	this->dispatchData = new ComputeDispatchData(program);
 }
 
 void ComputeShaderDispatch::Dispatch(int groupsX, int groupsY, int groupsZ) const {
@@ -432,7 +432,7 @@ void ComputeShaderDispatch::Dispatch(int groupsX, int groupsY, int groupsZ) cons
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }
 
-DispatchData* ComputeShaderDispatch::GetData() {
+ComputeDispatchData* ComputeShaderDispatch::GetData() {
 	return this->dispatchData;
 }
 ComputeShaderProgram* ComputeShaderDispatch::GetProgram() {
