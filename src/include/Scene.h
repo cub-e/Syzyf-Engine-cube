@@ -380,6 +380,8 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 
 	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(params...);
 	
+	created->node = node;
+	
 	node->objects.push_back(created);
 
 	TryCreateAwakeable(created);
