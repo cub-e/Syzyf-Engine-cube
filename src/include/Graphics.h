@@ -2,7 +2,9 @@
 
 #include <vector>
 #include <glad/glad.h>
+#include <glm/glm.hpp>
 
+struct ShaderGlobalUniforms;
 class MeshRenderer;
 class Scene;
 
@@ -19,10 +21,23 @@ private:
 	
 	std::vector<RenderNode> currentRenders;
 	GLuint globalUniformsBuffer;
+	
+	glm::vec2 screenResolution;
+	
+	GLuint depthPrepassFramebuffer;
+	GLuint depthPrepassDepthTexture;
+
+	GLuint colorPassFramebuffer;
+	GLuint colorPassOutputTexture;
 
 	SceneGraphics();
+
+	void RenderObjects(const ShaderGlobalUniforms& globalUniforms);
+	void RenderFullscreenFrameQuad();
+
 	void Render();
 public:
+	void UpdateScreenResolution(glm::vec2 newResolution);
 	void DrawMesh(MeshRenderer* renderer);
 	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
 };

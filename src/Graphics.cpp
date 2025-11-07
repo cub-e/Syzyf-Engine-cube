@@ -11,7 +11,11 @@
 
 SceneGraphics::SceneGraphics():
 currentRenders(),
-globalUniformsBuffer(0) {
+globalUniformsBuffer(0),
+depthPrepassFramebuffer(0),
+depthPrepassDepthTexture(0),
+colorPassFramebuffer(0),
+colorPassOutputTexture(0) {
 	// currentRenders.reserve(64);
 	// currentRenders.reserve()
 
@@ -23,26 +27,53 @@ globalUniformsBuffer(0) {
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 }
 
-void SceneGraphics::Render() {
-	Camera* mainCamera = Camera::GetMainCamera();
+void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
+	if (this->screenResolution != newResolution) {
+		this->screenResolution = newResolution;
 
-	if (!mainCamera) {
-		return;
+		if (!this->depthPrepassDepthTexture) {
+			glGenTextures(1, &this->depthPrepassDepthTexture);
+			glBindTexture(GL_TEXTURE_2D, this->depthPrepassDepthTexture);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+
+		if (!this->colorPassOutputTexture) {
+			glGenTextures(1, &this->colorPassOutputTexture);
+			glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glBindTexture(GL_TEXTURE_2D, 0);
+		}
+		
+		glBindTexture(GL_TEXTURE_2D, this->depthPrepassDepthTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, newResolution.x, newResolution.y, 0,  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+		
+		glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, newResolution.x, newResolution.y, 0,  GL_RGBA, GL_UNSIGNED_BYTE, nullptr);		
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+
+		if (!this->depthPrepassFramebuffer) {
+			glGenFramebuffers(1, &this->depthPrepassFramebuffer);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, this->depthPrepassFramebuffer);
+
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthPrepassDepthTexture, 0);
+		}
+		if (!this->colorPassFramebuffer) {
+			glGenFramebuffers(1, &this->colorPassFramebuffer);
+
+			glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer);
+
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->colorPassOutputTexture, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthPrepassDepthTexture, 0);
+		}
 	}
-	
-	ShaderGlobalUniforms globalUniforms;
+}
 
-	globalUniforms.Global_ViewMatrix = mainCamera->ViewMatrix();
-	globalUniforms.Global_ProjectionMatrix = mainCamera->ProjectionMatrix();
-	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
-	globalUniforms.Global_Time = (float) glfwGetTime();
-
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
-
-	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
-	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(globalUniforms), &globalUniforms);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
+void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 	Material* currentMat = nullptr;
 	Mesh currentMesh;
 
@@ -51,7 +82,6 @@ void SceneGraphics::Render() {
 	ShaderObjectUniforms objectUniforms;
 
 	for (auto node : this->currentRenders) {
-	// for (RenderNode node = this->currentRenders[0]; node.nextIndex >= 0; node = this->currentRenders[node.nextIndex]) {
 		Material* mat = node.renderer->GetMaterial();
 		Mesh mesh = node.renderer->GetMesh();
 	
@@ -82,21 +112,85 @@ void SceneGraphics::Render() {
 		currentMat = mat;
 		currentMesh = mesh;
 	}
+}
+
+void SceneGraphics::Render() {
+	Camera* mainCamera = Camera::GetMainCamera();
+
+	if (!mainCamera) {
+		return;
+	}
+		
+	glViewport(0, 0, this->screenResolution.x, this->screenResolution.y);
+	
+	ShaderGlobalUniforms globalUniforms;
+	globalUniforms.Global_ViewMatrix = mainCamera->ViewMatrix();
+	globalUniforms.Global_ProjectionMatrix = mainCamera->ProjectionMatrix();
+	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
+	globalUniforms.Global_Time = (float) glfwGetTime();
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
+
+	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
+	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(globalUniforms), &globalUniforms);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->depthPrepassFramebuffer);
+
+	glClear(GL_DEPTH_BUFFER_BIT);
+
+	glDepthFunc(GL_LESS);
+
+	RenderObjects(globalUniforms);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer);
+
+	glDepthFunc(GL_LEQUAL);
+
+	RenderObjects(globalUniforms);
 
 	Skybox* sky = Skybox::GetCurrentSkybox();
 
 	if (sky) {
-		glDepthFunc(GL_LEQUAL);
 		sky->GetSKyMaterial()->Bind();
 		glBindVertexArray(sky->GetSkyMesh()->GetHandle());
 		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
-		glDepthFunc(GL_LESS);
 	}
+
+	RenderFullscreenFrameQuad();
 
 	glBindVertexArray(0);
 	glUseProgram(0);
 
 	this->currentRenders.clear();
+}
+
+void SceneGraphics::RenderFullscreenFrameQuad() {
+	static ShaderProgram* quadProg = ShaderProgram::Build()
+	.WithVertexShader(
+		(VertexShader*) ShaderBase::Load("./res/shaders/fullscreen.vert")
+	)
+	.WithPixelShader(
+		(PixelShader*) ShaderBase::Load("./res/shaders/blit.frag")
+	).Link();
+
+	static Mesh quadMesh = Mesh::Load("./res/models/fullscreenquad.obj", VertexSpec::Mesh);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glDisable(GL_DEPTH_TEST);
+
+	glBindVertexArray(quadMesh.GetHandle());
+
+	glUseProgram(quadProg->GetHandle());
+
+	glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture);
+	
+	glDrawElements(GL_TRIANGLES, quadMesh.GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
+	
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	glEnable(GL_DEPTH_TEST);
 }
 
 void SceneGraphics::DrawMesh(MeshRenderer* renderer) {
