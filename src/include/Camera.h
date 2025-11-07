@@ -6,12 +6,19 @@
 class Camera : public GameObject {
 public:
 	struct Perspective {
+		Perspective() = default;
+		Perspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane);
+
 		float fovyDegrees = 0;
 		float aspectRatio = 0;
 		float nearPlane = 0;
 		float farPlane = 0;
 	};
 	struct Orthographic {
+		Orthographic() = default;
+		Orthographic(float left, float right, float top, float bottom);
+		Orthographic(glm::vec2 viewportSize);
+
 		float left = 0;
 		float right = 0;
 		float top = 0;

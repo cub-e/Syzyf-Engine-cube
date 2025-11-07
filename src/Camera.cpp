@@ -4,6 +4,24 @@
 
 Camera* Camera::mainCamera = nullptr;
 
+Camera::Perspective::Perspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane):
+fovyDegrees(fovyDegrees),
+aspectRatio(aspectRatio),
+nearPlane(nearPlane),
+farPlane(farPlane) { }
+
+Camera::Orthographic::Orthographic(float left, float right, float top, float bottom):
+left(left),
+right(right),
+top(top),
+bottom(bottom) {}
+
+Camera::Orthographic::Orthographic(glm::vec2 viewportSize):
+left(viewportSize.x / 2.0f),
+right(-viewportSize.x / 2.0f),
+top(viewportSize.y / 2.0f),
+bottom(-viewportSize.y / 2.0f) { }
+
 Camera::Camera(Perspective perspectiveData):
 type(CameraType::Perspective),
 perspectiveData(perspectiveData),
