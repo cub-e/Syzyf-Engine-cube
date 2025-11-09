@@ -5,32 +5,32 @@
 #include <Shader.h>
 
 struct UniformTypeInfo {
-	UniformType type;
+	UniformSpec::UniformType type;
 	int size;
 };
 
 UniformTypeInfo GetUniformInfo(GLenum type) {
 	const static std::map<GLenum, UniformTypeInfo> dict {
-		{ GL_FLOAT, { UniformType::Float1, 1 * sizeof(GLfloat)} },
-		{ GL_FLOAT_VEC2, { UniformType::Float2, 2 * sizeof(GLfloat)} },
-		{ GL_FLOAT_VEC3, { UniformType::Float3, 3 * sizeof(GLfloat)} },
-		{ GL_FLOAT_VEC4, { UniformType::Float4, 4 * sizeof(GLfloat)} },
-		{ GL_UNSIGNED_INT, { UniformType::Uint1, 1 * sizeof(GLuint)} },
-		{ GL_UNSIGNED_INT_VEC2, { UniformType::Uint2, 2 * sizeof(GLuint)} },
-		{ GL_UNSIGNED_INT_VEC3, { UniformType::Uint3, 3 * sizeof(GLuint)} },
-		{ GL_UNSIGNED_INT_VEC4, { UniformType::Uint4, 4 * sizeof(GLuint)} },
-		{ GL_FLOAT_MAT3, { UniformType::Matrix3x3, 9 * sizeof(GLfloat)} },
-		{ GL_FLOAT_MAT4, { UniformType::Matrix4x4, 16 * sizeof(GLfloat)} },
-		{ GL_SAMPLER_2D, { UniformType::Sampler2D, sizeof(Texture2D*)} },
-		{ GL_SAMPLER_CUBE, { UniformType::Cubemap, sizeof(Cubemap*)} },
-		{ GL_IMAGE_2D, { UniformType::Image2D, sizeof(Texture2D*)} },
+		{ GL_FLOAT, { UniformSpec::UniformType::Float1, 1 * sizeof(GLfloat)} },
+		{ GL_FLOAT_VEC2, { UniformSpec::UniformType::Float2, 2 * sizeof(GLfloat)} },
+		{ GL_FLOAT_VEC3, { UniformSpec::UniformType::Float3, 3 * sizeof(GLfloat)} },
+		{ GL_FLOAT_VEC4, { UniformSpec::UniformType::Float4, 4 * sizeof(GLfloat)} },
+		{ GL_UNSIGNED_INT, { UniformSpec::UniformType::Uint1, 1 * sizeof(GLuint)} },
+		{ GL_UNSIGNED_INT_VEC2, { UniformSpec::UniformType::Uint2, 2 * sizeof(GLuint)} },
+		{ GL_UNSIGNED_INT_VEC3, { UniformSpec::UniformType::Uint3, 3 * sizeof(GLuint)} },
+		{ GL_UNSIGNED_INT_VEC4, { UniformSpec::UniformType::Uint4, 4 * sizeof(GLuint)} },
+		{ GL_FLOAT_MAT3, { UniformSpec::UniformType::Matrix3x3, 9 * sizeof(GLfloat)} },
+		{ GL_FLOAT_MAT4, { UniformSpec::UniformType::Matrix4x4, 16 * sizeof(GLfloat)} },
+		{ GL_SAMPLER_2D, { UniformSpec::UniformType::Sampler2D, sizeof(Texture2D*)} },
+		{ GL_SAMPLER_CUBE, { UniformSpec::UniformType::Cubemap, sizeof(Cubemap*)} },
+		{ GL_IMAGE_2D, { UniformSpec::UniformType::Image2D, sizeof(Texture2D*)} },
 	};
 
 	if (dict.contains(type)) {
 		return dict.at(type);
 	}
 
-	return { UniformType::Unsupported, 0 };
+	return { UniformSpec::UniformType::Unsupported, 0 };
 }
 
 void UniformSpec::CreateFrom(GLuint programHandle) {
@@ -133,18 +133,18 @@ unsigned int UniformSpec::StorageBuffersCount() const {
 	return this->storageBuffers.size();
 }
 
-const UniformVariable& UniformSpec::VariableAt(int index) const {
+const UniformSpec::UniformVariableSpec& UniformSpec::VariableAt(int index) const {
 	return this->variables.at(index);
 }
 
-const UniformBuffer& UniformSpec::UniformBufferAt(int index) const {
+const UniformSpec::UniformBufferSpec& UniformSpec::UniformBufferAt(int index) const {
 	return this->uniformBuffers.at(index);
 }
 
-const ShaderStorageBuffer& UniformSpec::StorageBufferAt(int index) const {
+const UniformSpec::ShaderStorageBufferSpec& UniformSpec::StorageBufferAt(int index) const {
 	return this->storageBuffers.at(index);
 }
 
-const UniformVariable& UniformSpec::operator[](int index) const {
+const UniformSpec::UniformVariableSpec& UniformSpec::operator[](int index) const {
 	return VariableAt(index);
 }

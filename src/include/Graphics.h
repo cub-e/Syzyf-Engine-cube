@@ -24,6 +24,8 @@ private:
 	
 	glm::vec2 screenResolution;
 	
+	GLuint gridFrustumsBuffer;
+
 	GLuint depthPrepassFramebuffer;
 	GLuint depthPrepassDepthTexture;
 

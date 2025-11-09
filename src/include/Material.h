@@ -70,12 +70,12 @@ typedef ShaderVariableStorage<ShaderProgram> Material;
 typedef ShaderVariableStorage<ComputeShaderProgram> ComputeDispatchData;
 
 template<Blittable T>
-static inline bool IsUniformOfRightType(UniformType type) {
+static inline bool IsUniformOfRightType(UniformSpec::UniformSpec::UniformType type) {
 	return false;
 }
 
 template<TextureClass T>
-static inline bool IsUniformOfRightType(UniformType type) {
+static inline bool IsUniformOfRightType(UniformSpec::UniformSpec::UniformType type) {
 	return false;
 }
 
@@ -92,34 +92,34 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 		int offset = uniforms[i].offset;
 
 		switch (uniforms[i].type) {
-		case UniformType::Float1:
+		case UniformSpec::UniformType::Float1:
 			glUniform1f(i, GetValue<float>(i));
 			break;
-		case UniformType::Float2:
+		case UniformSpec::UniformType::Float2:
 			glUniform2fv(i, 1, &GetValue<glm::vec2>(i)[0]);
 			break;
-		case UniformType::Float3:
+		case UniformSpec::UniformType::Float3:
 			glUniform3fv(i, 1, &GetValue<glm::vec3>(i)[0]);
 			break;
-		case UniformType::Float4:
+		case UniformSpec::UniformType::Float4:
 			glUniform4fv(i, 1, &GetValue<glm::vec4>(i)[0]);
 			break;
-		case UniformType::Uint1:
+		case UniformSpec::UniformType::Uint1:
 			glUniform1ui(i, GetValue<unsigned int>(i));
 			break;
-		case UniformType::Uint2:
+		case UniformSpec::UniformType::Uint2:
 			glUniform2uiv(i, 1, &GetValue<glm::uvec2>(i)[0]);
 			break;
-		case UniformType::Uint3:
+		case UniformSpec::UniformType::Uint3:
 			glUniform3uiv(i, 1, &GetValue<glm::uvec3>(i)[0]);
 			break;
-		case UniformType::Matrix3x3:
+		case UniformSpec::UniformType::Matrix3x3:
 			glUniformMatrix3fv(i, 1, false, &GetValue<glm::mat3>(i)[0][0]);
 			break;
-		case UniformType::Matrix4x4:
+		case UniformSpec::UniformType::Matrix4x4:
 			glUniformMatrix4fv(i, 1, false, &GetValue<glm::mat4>(i)[0][0]);
 			break;
-		case UniformType::Sampler2D:
+		case UniformSpec::UniformType::Sampler2D:
 		{
 			Texture2D* imageTex = GetValue<Texture2D>(i);
 
@@ -141,7 +141,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 
 			break;
 		}
-		case UniformType::Cubemap:
+		case UniformSpec::UniformType::Cubemap:
 		{
 			Cubemap* cubeTex = GetValue<Cubemap>(i);
 
@@ -163,7 +163,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 
 			break;
 		}
-		case UniformType::Image2D:
+		case UniformSpec::UniformType::Image2D:
 		{
 			Texture2D* imageTex = GetValue<Texture2D>(i);
 
@@ -345,7 +345,7 @@ T_BufferRep ShaderVariableStorage<T_ShaderProg>::GetUniformBuffer(int uniformBuf
 	
 	if (uniformBufferIndex < 0 || uniformBufferIndex >= this->shader->GetUniforms().UniformBuffersCount()) {
 		void* storageBuffer = this->uniformBuffers[uniformBufferIndex].bufferData;
-		UniformBuffer bufferSpec = this->shader->GetUniforms().UniformBufferAt(uniformBufferIndex);
+		UniformSpec::UniformBufferSpec bufferSpec = this->shader->GetUniforms().UniformBufferAt(uniformBufferIndex);
 	
 		memcpy(&result, storageBuffer, sizeof(T_ShaderProg) < bufferSpec.size ? sizeof(T_ShaderProg) : bufferSpec.size);
 	}
@@ -375,7 +375,7 @@ void ShaderVariableStorage<T_ShaderProg>::SetUniformBuffer(int uniformBufferInde
 	}
 
 	void* storageBuffer = this->uniformBuffers[uniformBufferIndex].bufferData;
-	UniformBuffer bufferSpec = this->shader->GetUniforms().UniformBufferAt(uniformBufferIndex);
+	UniformSpec::UniformBufferSpec bufferSpec = this->shader->GetUniforms().UniformBufferAt(uniformBufferIndex);
 
 	memcpy(storageBuffer, &data, sizeof(T_ShaderProg) < bufferSpec.size ? sizeof(T_ShaderProg) : bufferSpec.size);
 }
@@ -424,39 +424,39 @@ void ShaderVariableStorage<T_ShaderProg>::BindStorageBuffer(int storageBufferInd
 	this->storageBuffers[storageBufferIndex].bufferHandle = bufferHandle;
 }
 
-template<> inline bool IsUniformOfRightType<float>(UniformType type) {
-	return type == UniformType::Float1;
+template<> inline bool IsUniformOfRightType<float>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Float1;
 }
-template<> inline bool IsUniformOfRightType<glm::vec2>(UniformType type) {
-	return type == UniformType::Float2;
+template<> inline bool IsUniformOfRightType<glm::vec2>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Float2;
 }
-template<> inline bool IsUniformOfRightType<glm::vec3>(UniformType type) {
-	return type == UniformType::Float3;
+template<> inline bool IsUniformOfRightType<glm::vec3>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Float3;
 }
-template<> inline bool IsUniformOfRightType<glm::vec4>(UniformType type) {
-	return type == UniformType::Float4;
+template<> inline bool IsUniformOfRightType<glm::vec4>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Float4;
 }
-template<> inline bool IsUniformOfRightType<unsigned int>(UniformType type) {
-	return type == UniformType::Uint1;
+template<> inline bool IsUniformOfRightType<unsigned int>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Uint1;
 }
-template<> inline bool IsUniformOfRightType<glm::uvec2>(UniformType type) {
-	return type == UniformType::Uint2;
+template<> inline bool IsUniformOfRightType<glm::uvec2>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Uint2;
 }
-template<> inline bool IsUniformOfRightType<glm::uvec3>(UniformType type) {
-	return type == UniformType::Uint3;
+template<> inline bool IsUniformOfRightType<glm::uvec3>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Uint3;
 }
-template<> inline bool IsUniformOfRightType<glm::uvec4>(UniformType type) {
-	return type == UniformType::Uint4;
+template<> inline bool IsUniformOfRightType<glm::uvec4>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Uint4;
 }
-template<> inline bool IsUniformOfRightType<glm::mat3>(UniformType type) {
-	return type == UniformType::Matrix3x3;
+template<> inline bool IsUniformOfRightType<glm::mat3>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Matrix3x3;
 }
-template<> inline bool IsUniformOfRightType<glm::mat4>(UniformType type) {
-	return type == UniformType::Matrix4x4;
+template<> inline bool IsUniformOfRightType<glm::mat4>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Matrix4x4;
 }
-template<> inline bool IsUniformOfRightType<Texture2D>(UniformType type) {
-	return type == UniformType::Sampler2D || type == UniformType::Image2D;
+template<> inline bool IsUniformOfRightType<Texture2D>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Image2D;
 }
-template<> inline bool IsUniformOfRightType<Cubemap>(UniformType type) {
-	return type == UniformType::Cubemap;
+template<> inline bool IsUniformOfRightType<Cubemap>(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Cubemap;
 }

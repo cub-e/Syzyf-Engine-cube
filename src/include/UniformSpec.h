@@ -40,50 +40,45 @@ concept TextureClass = (
 	std::derived_from<T, Texture>
 );
 
-enum class UniformType {
-	Float1,
-	Float2,
-	Float3,
-	Float4,
-	Uint1,
-	Uint2,
-	Uint3,
-	Uint4,
-	Matrix3x3,
-	Matrix4x4,
-	Sampler2D,
-	Cubemap,
-	Image2D,
-	Unsupported
-};
-
-struct UniformVariable {
-	UniformType type;
-	int offset;
-	std::string name;
-};
-
-struct UniformBuffer {
-	std::string name;
-	int binding;
-	int size;
-};
-
-struct ShaderStorageBuffer {
-	std::string name;
-};
-
-class IncompatibleUniformTypeException : public std::runtime_error {
-	template<Blittable T>
-	IncompatibleUniformTypeException(const UniformVariable& variable);
-};
-
 class UniformSpec {
+public:
+	enum class UniformType {
+		Float1,
+		Float2,
+		Float3,
+		Float4,
+		Uint1,
+		Uint2,
+		Uint3,
+		Uint4,
+		Matrix3x3,
+		Matrix4x4,
+		Sampler2D,
+		Cubemap,
+		Image2D,
+		Unsupported
+	};
+	
+	struct UniformVariableSpec {
+		UniformType type;
+		int offset;
+		std::string name;
+	};
+	
+	struct UniformBufferSpec {
+		std::string name;
+		int binding;
+		int size;
+	};
+	
+	struct ShaderStorageBufferSpec {
+		std::string name;
+	};
 private:
-	std::vector<UniformVariable> variables;
+	std::vector<UniformVariableSpec> variables;
 	int variablesBufferLength;
-	std::vector<UniformBuffer> uniformBuffers;
-	std::vector<ShaderStorageBuffer> storageBuffers;
+	std::vector<UniformBufferSpec> uniformBuffers;
+	std::vector<ShaderStorageBufferSpec> storageBuffers;
 	void CreateFrom(GLuint programHandle);
 public:
 	UniformSpec();
@@ -95,9 +90,9 @@ public:
 	unsigned int UniformBuffersCount() const;
 	unsigned int StorageBuffersCount() const;
 
-	const UniformVariable& VariableAt(int index) const;
-	const UniformBuffer& UniformBufferAt(int index) const;
-	const ShaderStorageBuffer& StorageBufferAt(int index) const;
+	const UniformVariableSpec& VariableAt(int index) const;
+	const UniformBufferSpec& UniformBufferAt(int index) const;
+	const ShaderStorageBufferSpec& StorageBufferAt(int index) const;
 
-	const UniformVariable& operator[](int index) const;
+	const UniformVariableSpec& operator[](int index) const;
 };
