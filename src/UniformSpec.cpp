@@ -89,17 +89,56 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 	glGetProgramInterfaceiv(programHandle, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &storageBufferCount);
 
 	for (int i = 0; i < storageBufferCount; i++) {
-		GLenum nameProp = GL_NAME_LENGTH;
-		int nameLength = 0;
+		struct {
+			int nameLength;
+			int bufferVariableCount;
+		} propValues;
 
-		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, i, 1, &nameProp, 1, nullptr, &nameLength);
+		GLenum bufferProps[] {
+			GL_NAME_LENGTH,
+			GL_NUM_ACTIVE_VARIABLES,
+		};
 
-		char nameBuf[nameLength];
-		glGetProgramResourceName(programHandle, GL_SHADER_STORAGE_BLOCK, i, nameLength, nullptr, nameBuf);
+		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, i, 2, bufferProps, 2, nullptr, (int*) &propValues);
 
-		spdlog::info("Buffer {}: {}", i, std::string(nameBuf));
+		char nameBuf[propValues.nameLength];
+		glGetProgramResourceName(programHandle, GL_SHADER_STORAGE_BLOCK, i, propValues.nameLength, nullptr, nameBuf);
 
-		this->storageBuffers.push_back({ std::string(nameBuf) });
+		spdlog::info("Buffer {}: name {}, variable count {}", i, std::string(nameBuf), propValues.bufferVariableCount);
+
+		this->storageBuffers.push_back({ std::string(nameBuf), 0 });
+
+		GLint bufferVars[propValues.bufferVariableCount];
+
+		bufferProps[0] = GL_ACTIVE_VARIABLES;
+		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, i, 1, bufferProps, propValues.bufferVariableCount, nullptr, bufferVars);
+
+		struct {
+			int nameLength;
+			int offset;
+			int arraySize;
+			int arrayStride;
+			int topLevelArrayStride;
+		} varPropValues;
+		GLenum variableProps[] {
+			GL_NAME_LENGTH,
+			GL_OFFSET,
+			GL_ARRAY_SIZE,
+			GL_ARRAY_STRIDE,
+			GL_TOP_LEVEL_ARRAY_STRIDE
+		};
+
+		for (int varIndex = 0; varIndex < propValues.bufferVariableCount; varIndex++) {
+			glGetProgramResourceiv(programHandle, GL_BUFFER_VARIABLE, bufferVars[varIndex], 5, variableProps, 5, nullptr, (int*) &varPropValues);
+
+			char varNameBuf[varPropValues.nameLength];
+			
+			glGetProgramResourceName(programHandle, GL_BUFFER_VARIABLE, bufferVars[varIndex], varPropValues.nameLength, nullptr, varNameBuf);
+
+			spdlog::info(" variable {}: name {}, index {}, offset {}, arraySize {}, arrayStride {}", 
+				varIndex, std::string(varNameBuf), bufferVars[varIndex], varPropValues.offset, varPropValues.arraySize, varPropValues.arraySize == 0 ? varPropValues.arrayStride : varPropValues.topLevelArrayStride
+			);
+		}
 	}
 }
 

@@ -73,6 +73,7 @@ public:
 	
 	struct ShaderStorageBufferSpec {
 		std::string name;
+		int stride;
 	};
 private:
 	std::vector<UniformVariableSpec> variables;

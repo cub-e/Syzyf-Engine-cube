@@ -22,6 +22,11 @@ layout (std430, binding = 0) buffer out_Frustums {
 	Frustum frustums[];
 };
 
+layout (std430, binding = 0) buffer out_Test {
+	vec2 bep;
+	float testing[];
+};
+
 vec4 ClipToView(in vec4 clip) {
 	vec4 view = Global_InverseProjection * clip;
 	view /= view.w;
