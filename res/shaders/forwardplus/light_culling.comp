@@ -1,0 +1,74 @@
+#version 460
+
+#define BLOCK_SIZE 16
+
+layout (local_size_x = BLOCK_SIZE, local_size_y = BLOCK_SIZE, local_size_z = 1) in;
+
+struct Plane {
+	vec3 normal;
+	float offset;
+};
+
+struct Frustum {
+	Plane planes[4];   // left, right, top, bottom frustum planes.
+};
+
+layout (std140, binding = 0) uniform ScreenToViewParams {
+	mat4 Global_InverseProjection;
+	vec2 Global_ScreenDimentions;
+};
+
+layout (std430, binding = 0) buffer in_Frustums {
+	Frustum frustums[];
+};
+
+vec4 ClipToView(in vec4 clip) {
+	vec4 view = Global_InverseProjection * clip;
+	view /= view.w;
+	
+	return view;
+}
+
+void MemoryBarrierWithSync() {
+	groupMemoryBarrier();
+	barrier();
+}
+
+uniform sampler2D depthTexture;
+layout(rg32f, binding = 1) uniform image2D testTexture;
+
+shared uint uMinDepth;
+shared uint uMaxDepth;
+shared Frustum groupFrustum;
+
+void main() {
+	const uvec3 groupID = gl_WorkGroupID;
+	const uvec3 groupThreadID = gl_LocalInvocationID;
+	const uvec3 dispatchThreadID = gl_GlobalInvocationID;
+	const uint groupIndex = gl_LocalInvocationID.y * gl_WorkGroupSize.x + gl_LocalInvocationID.x;
+	const uvec3 numThreadGroups = gl_NumWorkGroups;
+	const uvec3 numThreads = gl_NumWorkGroups * gl_WorkGroupSize;
+
+	ivec2 texCoord = ivec2(dispatchThreadID.xy);
+	float fDepth = texelFetch(depthTexture, texCoord, 0).x;
+
+	uint uDepth = floatBitsToUint(fDepth);
+
+	if (groupIndex == 0) {
+		uMinDepth = 0xFFFFFFFF;
+		uMaxDepth = 0;
+		groupFrustum = frustums[groupID.y * numThreadGroups.x + groupID.x];
+	}
+
+	MemoryBarrierWithSync();
+
+	atomicMin(uMinDepth, uDepth);
+	atomicMax(uMaxDepth, uDepth);
+
+	MemoryBarrierWithSync();
+
+	float fMinDepth = uintBitsToFloat(uMinDepth);
+	float fMaxDepth = uintBitsToFloat(uMaxDepth);
+
+	imageStore(testTexture, texCoord, vec4(fMinDepth, fMaxDepth, 0.0, 0.0));
+}

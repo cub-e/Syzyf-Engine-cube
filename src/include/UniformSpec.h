@@ -62,6 +62,7 @@ public:
 	struct UniformVariableSpec {
 		UniformType type;
 		int offset;
+		int binding;
 		std::string name;
 	};
 	
@@ -73,6 +74,7 @@ public:
 	
 	struct ShaderStorageBufferSpec {
 		std::string name;
+		int binding;
 		int stride;
 	};
 private:

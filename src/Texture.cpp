@@ -37,7 +37,9 @@ bool MagFilterValid(GLenum magFilter) {
 }
 
 Texture::~Texture() {
-	glDeleteTextures(1, &this->handle);
+	if (this->owning) {
+		glDeleteTextures(1, &this->handle);
+	}
 }
 
 GLenum Texture::TextureFormatToGL(TextureFormat format) {
@@ -276,6 +278,7 @@ template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat f
 	Cubemap* result = new Cubemap();
 	result->handle = textureHandle;
 	result->format = format;
+	result->owning = true;
 
 	result->SetWrapModeU(GL_CLAMP_TO_EDGE);
 	result->SetWrapModeV(GL_CLAMP_TO_EDGE);
@@ -290,6 +293,7 @@ template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat f
 
 Texture2D::Texture2D(unsigned int width, unsigned int height, TextureFormat format) {
 	this->format = format;
+	this->owning = true;
 
 	glGenTextures(1, &this->handle);
 
@@ -305,6 +309,18 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, TextureFormat form
 	this->Update();
 
 	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+Texture2D::Texture2D(GLuint handle, TextureFormat format, bool mipmapped) {
+	this->handle = handle;
+
+	glGetTextureParameteriv(this->handle, GL_TEXTURE_WRAP_S, (int*) &this->wrapU.value);
+	glGetTextureParameteriv(this->handle, GL_TEXTURE_WRAP_T, (int*) &this->wrapV.value);
+	glGetTextureParameteriv(this->handle, GL_TEXTURE_MIN_FILTER, (int*) &this->minFilter.value);
+	glGetTextureParameteriv(this->handle, GL_TEXTURE_MAG_FILTER, (int*) &this->magFilter.value);
+
+	this->mipmapped.value = mipmapped;
+	this->format = format;
 }
 
 Texture2D* Texture2D::Load(fs::path texturePath, TextureFormat format) {

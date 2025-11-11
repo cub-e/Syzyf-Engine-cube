@@ -201,16 +201,16 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	delete[] buf;
 
 	int compileSuccess;
-	char compileMsg[512];
-
+	
 	glGetShaderiv(shaderHandle, GL_COMPILE_STATUS, &compileSuccess);
 
 	if (!compileSuccess) {
 		int logLength = 0;
 		glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &logLength);
+		char compileMsg[logLength];
 		glGetShaderInfoLog(shaderHandle, logLength, nullptr, compileMsg);
 
-		spdlog::error("Error compiling shader {}:\n{}", filePath.string(), compileMsg);
+		spdlog::error("Error compiling shader {}:\n{}", filePath.string(), std::string(compileMsg));
 
 		int sourceLength = 0;
 		glGetShaderiv(shaderHandle, GL_SHADER_SOURCE_LENGTH, &sourceLength);

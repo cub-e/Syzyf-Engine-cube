@@ -7,6 +7,7 @@
 struct ShaderGlobalUniforms;
 class MeshRenderer;
 class Scene;
+class ComputeShaderDispatch;
 
 class SceneGraphics {
 	friend class Scene;
@@ -16,7 +17,6 @@ private:
 		unsigned int mode;
 		int nextIndex;
 		int instanceCount;
-
 	};
 	
 	std::vector<RenderNode> currentRenders;
@@ -25,6 +25,9 @@ private:
 	glm::vec2 screenResolution;
 	
 	GLuint gridFrustumsBuffer;
+	ComputeShaderDispatch* gridFrustumComputationShader;
+	ComputeShaderDispatch* lightCullingShader;
+	bool shouldRecalculateFrustums;
 
 	GLuint depthPrepassFramebuffer;
 	GLuint depthPrepassDepthTexture;

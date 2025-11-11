@@ -36,6 +36,7 @@ protected:
 
 	GLuint handle;
 	bool dirty;
+	bool owning;
 
 	TextureFormat format;
 
@@ -46,7 +47,12 @@ protected:
 	TextureInfoBit<bool> mipmapped;
 public:
 	template <class T_Tex>
+		requires (std::derived_from<T_Tex, Texture>)
 	static T_Tex* Load(fs::path texturePath, TextureFormat format) = delete;
+
+	template <class T_Tex>
+		requires (std::derived_from<T_Tex, Texture>)
+	static T_Tex Wrap(GLuint handle);
 
 	virtual ~Texture();
 
@@ -78,6 +84,7 @@ class Texture2D : public Texture {
 public:
 	Texture2D() = default;
 	Texture2D(unsigned int width, unsigned int height, TextureFormat format = TextureFormat::RGBA);
+	Texture2D(GLuint handle, TextureFormat format, bool mipmapped);
 
 	static Texture2D* Load(fs::path texturePath, TextureFormat format);
 
@@ -102,3 +109,15 @@ public:
 
 template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureFormat format);
 template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat format);
+
+template <class T_Tex>
+	requires (std::derived_from<T_Tex, Texture>)
+T_Tex Texture::Wrap(GLuint handle) {
+	T_Tex result;
+
+	result.handle = handle;
+	result.dirty = false;
+	result.owning = false;
+
+	return result;
+}

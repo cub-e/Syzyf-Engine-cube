@@ -1,6 +1,7 @@
 #include <UniformSpec.h>
 
 #include <glad/glad.h>
+#include <cmath>
 
 #include <Shader.h>
 
@@ -33,6 +34,10 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 	return { UniformSpec::UniformType::Unsupported, 0 };
 }
 
+bool IsTextureType(UniformSpec::UniformType type) {
+	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Cubemap || type == UniformSpec::UniformType::Image2D;
+}
+
 void UniformSpec::CreateFrom(GLuint programHandle) {
 	int uniformCount = 0;
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORMS, &uniformCount);
@@ -41,9 +46,10 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 	int bufferSize = 0;
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &bufferSize);
-	char uniformName[bufferSize ];
+	char uniformName[bufferSize];
 
 	this->variablesBufferLength = 0;
+	int textureCount = 0;
 	for (int i = 0; i < uniformCount; i++) {
 		int uniformSize = 0;
 		GLenum uniformType;
@@ -51,9 +57,40 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		UniformTypeInfo info = GetUniformInfo(uniformType);
 
-		this->variables.push_back({ info.type, this->variablesBufferLength, uniformName });
+		GLenum locationProp = GL_LOCATION;
+		int uniformLocation = -1;
+
+		if (IsTextureType(info.type)) {
+			glGetUniformiv(programHandle, i, &uniformLocation);
+			textureCount++;
+		}
+		
+		// glGetProgramResourceiv(programHandle, GL_UNIFORM, i, 1, &locationProp, 1, nullptr, &uniformLocation);
+
+		spdlog::info("Uniform variable {}: name {}, binding {}", i, std::string(uniformName), uniformLocation);
+
+		this->variables.push_back({ info.type, this->variablesBufferLength, uniformLocation, uniformName });
 
 		this->variablesBufferLength += info.size;
+	}
+
+	bool textureBindings[textureCount];
+
+	for (int i = 0; i < this->variables.size(); i++) {
+		textureBindings[i] = true;
+
+		if (this->variables[i].binding < this->variables.size()) {
+			textureBindings[this->variables[i].binding] = false;
+		}
+	}
+
+	int textureBindingIndex = 0;
+
+	for (int i = 0; i < this->variables.size(); i++) {
+		spdlog::info("Variable {} type: {} binding: {}", i, IsTextureType(this->variables[i].type), this->variables[i].binding);
+		if (IsTextureType(this->variables[i].type) && this->variables[i].binding < 0) {
+			spdlog::info("Variable {} needs rebinding!", i);
+		}
 	}
 
 	int uniformBufferCount = 0;
@@ -78,7 +115,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		glGetProgramResourceName(programHandle, GL_UNIFORM_BLOCK, i, propValues.nameLength, nullptr, nameBuf);
 
-		spdlog::info("Uniform buffer {}: name {}, size {}, compute {}", i, std::string(nameBuf), propValues.bufferSize, (bool) propValues.computeBuffer);
+		// spdlog::info("Uniform buffer {}: name {}, size {}, compute {}", i, std::string(nameBuf), propValues.bufferSize, (bool) propValues.computeBuffer);
 
 		if (propValues.computeBuffer || i >= 2) {
 			this->uniformBuffers.push_back({ std::string(nameBuf), i, propValues.bufferSize });
@@ -104,7 +141,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		char nameBuf[propValues.nameLength];
 		glGetProgramResourceName(programHandle, GL_SHADER_STORAGE_BLOCK, i, propValues.nameLength, nullptr, nameBuf);
 
-		spdlog::info("Buffer {}: name {}, variable count {}", i, std::string(nameBuf), propValues.bufferVariableCount);
+		// spdlog::info("Buffer {}: name {}, variable count {}", i, std::string(nameBuf), propValues.bufferVariableCount);
 
 		this->storageBuffers.push_back({ std::string(nameBuf), 0 });
 
@@ -135,9 +172,9 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 			
 			glGetProgramResourceName(programHandle, GL_BUFFER_VARIABLE, bufferVars[varIndex], varPropValues.nameLength, nullptr, varNameBuf);
 
-			spdlog::info(" variable {}: name {}, index {}, offset {}, arraySize {}, arrayStride {}", 
-				varIndex, std::string(varNameBuf), bufferVars[varIndex], varPropValues.offset, varPropValues.arraySize, varPropValues.arraySize == 0 ? varPropValues.arrayStride : varPropValues.topLevelArrayStride
-			);
+			// spdlog::info(" variable {}: name {}, index {}, offset {}, arraySize {}, arrayStride {}", 
+			// 	varIndex, std::string(varNameBuf), bufferVars[varIndex], varPropValues.offset, varPropValues.arraySize, varPropValues.arraySize == 0 ? varPropValues.arrayStride : varPropValues.topLevelArrayStride
+			// );
 		}
 	}
 }

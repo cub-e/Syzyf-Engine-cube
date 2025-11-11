@@ -86,7 +86,6 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 	const UniformSpec& uniforms = this->shader->GetUniforms();
 
 	int samplerIndex = 0;
-	int imageIndex = 0;
 
 	for (unsigned int i = 0; i < uniforms.VariableCount(); i++) {
 		int offset = uniforms[i].offset;
@@ -168,6 +167,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 			Texture2D* imageTex = GetValue<Texture2D>(i);
 
 			GLuint imageTexHandle = 0;
+			GLenum imageFormat = GL_RGBA32F;
 
 			if (imageTex) {
 				if (imageTex->IsDirty()) {
@@ -175,11 +175,14 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 				}
 				
 				imageTexHandle = imageTex->GetHandle();
+				imageFormat = Texture::TextureFormatToGL(imageTex->GetFormat());
+
+				glUniform1i(i, samplerIndex);
 			}
 			
-			glBindImageTexture(imageIndex, imageTexHandle, 0, false, 0, GL_READ_WRITE, Texture::TextureFormatToGL(imageTex->GetFormat()));
+			glBindImageTexture(samplerIndex, imageTexHandle, 0, false, 0, GL_READ_WRITE, imageFormat);
 
-			imageIndex++;
+			samplerIndex++;
 
 			break;
 		}

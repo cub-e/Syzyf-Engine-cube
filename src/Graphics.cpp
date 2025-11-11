@@ -10,13 +10,16 @@
 
 #include <GLFW/glfw3.h>
 
+static Texture2D* testTexture;
+
 SceneGraphics::SceneGraphics():
 currentRenders(),
 globalUniformsBuffer(0),
 depthPrepassFramebuffer(0),
 depthPrepassDepthTexture(0),
 colorPassFramebuffer(0),
-colorPassOutputTexture(0) {
+colorPassOutputTexture(0),
+shouldRecalculateFrustums(false) {
 	// currentRenders.reserve(64);
 	// currentRenders.reserve()
 
@@ -26,6 +29,9 @@ colorPassOutputTexture(0) {
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
+
+	this->gridFrustumComputationShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/forwardplus/compute_frustums.comp"));
+	this->lightCullingShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/forwardplus/light_culling.comp"));
 }
 
 void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
@@ -71,6 +77,17 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->colorPassOutputTexture, 0);
 			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthPrepassDepthTexture, 0);
 		}
+
+		if (!this->gridFrustumsBuffer) {
+			glGenBuffers(1, &this->gridFrustumsBuffer);
+
+			this->gridFrustumComputationShader->GetData()->BindStorageBuffer(0, this->gridFrustumsBuffer);
+			this->lightCullingShader->GetData()->BindStorageBuffer(0, this->gridFrustumsBuffer);
+		}
+
+		this->shouldRecalculateFrustums = true;
+
+		testTexture = new Texture2D(this->screenResolution.x, this->screenResolution.y, TextureFormat::RGFloat);
 	}
 }
 
@@ -123,12 +140,41 @@ void SceneGraphics::Render() {
 	}
 		
 	glViewport(0, 0, this->screenResolution.x, this->screenResolution.y);
-	
+
 	ShaderGlobalUniforms globalUniforms;
 	globalUniforms.Global_ViewMatrix = mainCamera->ViewMatrix();
 	globalUniforms.Global_ProjectionMatrix = mainCamera->ProjectionMatrix();
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_Time = (float) glfwGetTime();
+
+	if (shouldRecalculateFrustums) {
+		const int FrustumSize = 64;
+		const int FrustumGridSize = 16;
+
+		shouldRecalculateFrustums = false;
+
+		struct {
+			glm::mat4 inverseProjection;
+			glm::vec2 screenSize;
+		} screenToViewParams;
+
+		screenToViewParams.inverseProjection = glm::inverse(globalUniforms.Global_ProjectionMatrix);
+		screenToViewParams.screenSize = this->screenResolution;
+
+		int gridSizeX = std::ceil(this->screenResolution.x / FrustumGridSize);
+		int gridSizeY = std::ceil(this->screenResolution.y / FrustumGridSize);
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->gridFrustumsBuffer);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, FrustumSize * gridSizeX * gridSizeY, nullptr, GL_STATIC_DRAW);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+		this->gridFrustumComputationShader->GetData()->SetUniformBuffer(0, &screenToViewParams);
+		this->gridFrustumComputationShader->Dispatch(
+			std::ceil((float) gridSizeX / FrustumGridSize),
+			std::ceil((float) gridSizeY / FrustumGridSize),
+			1
+		);
+	}
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 
@@ -143,6 +189,17 @@ void SceneGraphics::Render() {
 	glDepthFunc(GL_LESS);
 
 	RenderObjects(globalUniforms);
+
+	Texture2D depthTexture = Texture::Wrap<Texture2D>(this->depthPrepassDepthTexture);
+
+	this->lightCullingShader->GetData()->SetValue("depthTexture", &depthTexture);
+	this->lightCullingShader->GetData()->SetValue("testTexture", testTexture);
+
+	this->lightCullingShader->Dispatch(
+		std::ceil(this->screenResolution.x / 16),
+		std::ceil(this->screenResolution.y / 16),
+		1
+	);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer);
 
@@ -185,6 +242,7 @@ void SceneGraphics::RenderFullscreenFrameQuad() {
 
 	glUseProgram(quadProg->GetHandle());
 
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture);
 	
 	glDrawElements(GL_TRIANGLES, quadMesh->GetTriangleCount() * 3, GL_UNSIGNED_INT, nullptr);
