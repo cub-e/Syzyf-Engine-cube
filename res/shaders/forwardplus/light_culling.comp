@@ -60,7 +60,7 @@ layout (std140, binding = 3) uniform ScreenToViewParams {
 layout (std430, binding = 0) buffer in_Frustums {
 	Frustum frustums[];
 };
-layout (std430, binding = 3) buffer LightInfo {
+layout (std430, binding = 1) buffer LightInfo {
 	vec4 Light_AmbientLight;
 	int Light_LightCount;
 	Light Light_LightsList[];
@@ -77,9 +77,9 @@ layout (std430, binding = 4) buffer LightIndexCounter {
 };
 
 uniform sampler2D depthTexture;
-layout(rg32ui, binding = 1) uniform uimage2D Light_OpaqueLightGrid;
-layout(rg32ui, binding = 2) uniform uimage2D Light_TransparentLightGrid;
-layout(rg32f, binding = 3) uniform image2D testTexture;
+layout(rg32ui, binding = 5) uniform uimage2D Light_OpaqueLightGrid;
+layout(rg32ui, binding = 6) uniform uimage2D Light_TransparentLightGrid;
+layout(rg32f, binding = 7) uniform image2D testTexture;
 
 shared uint uMinDepth;
 shared uint uMaxDepth;
@@ -193,8 +193,6 @@ void main() {
 
 	float fMinDepth = uintBitsToFloat(uMinDepth);
 	float fMaxDepth = uintBitsToFloat(uMaxDepth);
-
-	imageStore(testTexture, texCoord, vec4(fMinDepth, fMaxDepth, 0.0, 0.0));
 
 	float minDepthVS = ClipToView(vec4(0.0, 0.0, fMinDepth, 1.0)).z;
 	float maxDepthVS = ClipToView(vec4(0.0, 0.0, fMaxDepth, 1.0)).z;

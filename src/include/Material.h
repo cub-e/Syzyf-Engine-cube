@@ -53,9 +53,11 @@ public:
 	T_BufferRep GetUniformBuffer(int uniformBufferBinding);
 
 	template<typename T_BufferRep>
-	void SetUniformBuffer(const std::string& uniformBufferName, const T_BufferRep& data);
+		// requires (!std::is_pointer<T_BufferRep>)
+	void SetUniformBuffer(const std::string& uniformBufferName, const T_BufferRep* data);
 	template<typename T_BufferRep>
-	void SetUniformBuffer(int uniformBufferBinding, const T_BufferRep& data);
+		// requires (!std::is_pointer<T_BufferRep>)
+	void SetUniformBuffer(int uniformBufferBinding, const T_BufferRep* data);
 
 	GLuint GetStorageBuffer(const std::string& storageBufferName);
 	GLuint GetStorageBuffer(int storageBufferIndex);
@@ -364,7 +366,7 @@ T_BufferRep ShaderVariableStorage<T_ShaderProg>::GetUniformBuffer(int uniformBuf
 		void* storageBuffer = this->uniformBuffers[bufferIndexInStorage].bufferData;
 		UniformSpec::UniformBufferSpec bufferSpec = this->shader->GetUniforms().UniformBufferAt(bufferIndexInStorage);
 	
-		memcpy(&result, storageBuffer, sizeof(T_ShaderProg) < bufferSpec.size ? sizeof(T_ShaderProg) : bufferSpec.size);
+		memcpy(&result, storageBuffer, sizeof(T_BufferRep) < bufferSpec.size ? sizeof(T_BufferRep) : bufferSpec.size);
 	}
 
 	return result;
@@ -372,7 +374,7 @@ T_BufferRep ShaderVariableStorage<T_ShaderProg>::GetUniformBuffer(int uniformBuf
 
 template <ShaderLike T_ShaderProg>
 template<typename T_BufferRep>
-void ShaderVariableStorage<T_ShaderProg>::SetUniformBuffer(const std::string& uniformBufferName, const T_BufferRep& data) {
+void ShaderVariableStorage<T_ShaderProg>::SetUniformBuffer(const std::string& uniformBufferName, const T_BufferRep* data) {
 	UniformSpec spec = this->shader->GetUniforms();
 
 	for (int i = 0; i < spec.UniformBuffersCount(); i++) {
@@ -386,7 +388,7 @@ void ShaderVariableStorage<T_ShaderProg>::SetUniformBuffer(const std::string& un
 
 template <ShaderLike T_ShaderProg>
 template<typename T_BufferRep>
-void ShaderVariableStorage<T_ShaderProg>::SetUniformBuffer(int uniformBufferBinding, const T_BufferRep& data) {
+void ShaderVariableStorage<T_ShaderProg>::SetUniformBuffer(int uniformBufferBinding, const T_BufferRep* data) {
 	if (uniformBufferBinding < 0) {
 		return;
 	}
@@ -407,7 +409,7 @@ void ShaderVariableStorage<T_ShaderProg>::SetUniformBuffer(int uniformBufferBind
 	void* storageBuffer = this->uniformBuffers[bufferIndexInStorage].bufferData;
 	UniformSpec::UniformBufferSpec bufferSpec = this->shader->GetUniforms().UniformBufferAt(bufferIndexInStorage);
 
-	memcpy(storageBuffer, &data, sizeof(T_ShaderProg) < bufferSpec.size ? sizeof(T_ShaderProg) : bufferSpec.size);
+	memcpy(storageBuffer, data, sizeof(T_BufferRep) < bufferSpec.size ? sizeof(T_BufferRep) : bufferSpec.size);
 }
 
 template <ShaderLike T_ShaderProg>

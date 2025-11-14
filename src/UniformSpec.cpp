@@ -70,9 +70,11 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		spdlog::info("Uniform variable {}: name {}, binding {}", i, std::string(uniformName), uniformLocation);
 
-		this->variables.push_back({ info.type, this->variablesBufferLength, uniformLocation, uniformName });
-
-		this->variablesBufferLength += info.size;
+		// if (IsTextureType(info.type) || uniformLocation >= 0) {
+			this->variables.push_back({ info.type, this->variablesBufferLength, uniformLocation, uniformName });
+	
+			this->variablesBufferLength += info.size;
+		// }
 	}
 
 	// bool textureBindings[textureCount];
@@ -118,7 +120,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		glGetProgramResourceName(programHandle, GL_UNIFORM_BLOCK, i, propValues.nameLength, nullptr, nameBuf);
 
-		spdlog::info("Uniform buffer {}: name {}, size {}, compute {}", i, std::string(nameBuf), propValues.bufferSize, (bool) propValues.computeBuffer);
+		spdlog::info("Uniform buffer {}: name {}, binding {}, size {}, compute {}", i, std::string(nameBuf), propValues.binding, propValues.bufferSize, (bool) propValues.computeBuffer);
 
 		if (propValues.computeBuffer || i >= 2) {
 			this->uniformBuffers.push_back({ std::string(nameBuf), propValues.binding, propValues.bufferSize });

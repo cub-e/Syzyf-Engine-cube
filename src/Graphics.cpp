@@ -132,6 +132,8 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 	}
 }
 
+uint emptyBuffer = 0;
+
 void SceneGraphics::Render() {
 	Camera* mainCamera = Camera::GetMainCamera();
 
@@ -192,6 +194,22 @@ void SceneGraphics::Render() {
 
 	Texture2D depthTexture = Texture::Wrap<Texture2D>(this->depthPrepassDepthTexture);
 
+	if (!emptyBuffer) {
+		glGenBuffers(1, &emptyBuffer);
+
+		char empty[100] { 0 };
+
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, emptyBuffer);
+		glBufferData(GL_SHADER_STORAGE_BUFFER, 100, empty, GL_STATIC_DRAW);
+		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	}
+
+	this->lightCullingShader->GetData()->BindStorageBuffer(0, this->gridFrustumsBuffer);
+	this->lightCullingShader->GetData()->BindStorageBuffer(1, emptyBuffer);
+	this->lightCullingShader->GetData()->BindStorageBuffer(2, emptyBuffer);
+	this->lightCullingShader->GetData()->BindStorageBuffer(3, emptyBuffer);
+	this->lightCullingShader->GetData()->BindStorageBuffer(4, emptyBuffer);
+	
 	this->lightCullingShader->GetData()->SetValue("depthTexture", &depthTexture);
 	this->lightCullingShader->GetData()->SetValue("testTexture", testTexture);
 
