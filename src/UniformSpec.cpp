@@ -74,24 +74,24 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		this->variablesBufferLength += info.size;
 	}
 
-	bool textureBindings[textureCount];
+	// bool textureBindings[textureCount];
 
-	for (int i = 0; i < this->variables.size(); i++) {
-		textureBindings[i] = true;
+	// for (int i = 0; i < this->variables.size(); i++) {
+		// textureBindings[i] = true;
 
-		if (this->variables[i].binding < this->variables.size()) {
-			textureBindings[this->variables[i].binding] = false;
-		}
-	}
+		// if (this->variables[i].binding < this->variables.size()) {
+			// textureBindings[this->variables[i].binding] = false;
+		// }
+	// }
 
-	int textureBindingIndex = 0;
+	// int textureBindingIndex = 0;
 
-	for (int i = 0; i < this->variables.size(); i++) {
-		spdlog::info("Variable {} type: {} binding: {}", i, IsTextureType(this->variables[i].type), this->variables[i].binding);
-		if (IsTextureType(this->variables[i].type) && this->variables[i].binding < 0) {
-			spdlog::info("Variable {} needs rebinding!", i);
-		}
-	}
+	// for (int i = 0; i < this->variables.size(); i++) {
+		// spdlog::info("Variable {} type: {} binding: {}", i, IsTextureType(this->variables[i].type), this->variables[i].binding);
+		// if (IsTextureType(this->variables[i].type) && this->variables[i].binding < 0) {
+			// spdlog::info("Variable {} needs rebinding!", i);
+		// }
+	// }
 
 	int uniformBufferCount = 0;
 	glGetProgramInterfaceiv(programHandle, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &uniformBufferCount);
@@ -101,24 +101,26 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 			int nameLength;
 			int bufferSize;
 			int computeBuffer;
+			int binding;
 		} propValues;
 
 		GLenum bufferProps[] {
 			GL_NAME_LENGTH,
 			GL_BUFFER_DATA_SIZE,
-			GL_REFERENCED_BY_COMPUTE_SHADER
+			GL_REFERENCED_BY_COMPUTE_SHADER,
+			GL_BUFFER_BINDING
 		};
 
-		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, i, 3, bufferProps, 3, nullptr, (int*) &propValues);
+		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, i, 4, bufferProps, 4, nullptr, (int*) &propValues);
 
 		char nameBuf[propValues.nameLength];
 
 		glGetProgramResourceName(programHandle, GL_UNIFORM_BLOCK, i, propValues.nameLength, nullptr, nameBuf);
 
-		// spdlog::info("Uniform buffer {}: name {}, size {}, compute {}", i, std::string(nameBuf), propValues.bufferSize, (bool) propValues.computeBuffer);
+		spdlog::info("Uniform buffer {}: name {}, size {}, compute {}", i, std::string(nameBuf), propValues.bufferSize, (bool) propValues.computeBuffer);
 
 		if (propValues.computeBuffer || i >= 2) {
-			this->uniformBuffers.push_back({ std::string(nameBuf), i, propValues.bufferSize });
+			this->uniformBuffers.push_back({ std::string(nameBuf), propValues.binding, propValues.bufferSize });
 		}
 	}
 

@@ -51,16 +51,9 @@ struct ShaderVariantInfo {
 };
 
 struct ShaderGlobalUniforms {
-	struct Light {
-		glm::vec4 positionAndType;
-		glm::vec4 directionAndFov;
-		glm::vec4 colorAndStrength;
-	};
-
 	glm::mat4 Global_ViewMatrix;
 	glm::mat4 Global_ProjectionMatrix;
 	glm::mat4 Global_VPMatrix;
-	Light Global_LightInfo;
 	float Global_Time;
 	float _pad[3];
 };

@@ -147,19 +147,19 @@ void SceneGraphics::Render() {
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_Time = (float) glfwGetTime();
 
+	struct {
+		glm::mat4 inverseProjection;
+		glm::vec2 screenSize;
+	} screenToViewParams;
+
+	screenToViewParams.inverseProjection = glm::inverse(globalUniforms.Global_ProjectionMatrix);
+	screenToViewParams.screenSize = this->screenResolution;
+
 	if (shouldRecalculateFrustums) {
 		const int FrustumSize = 64;
 		const int FrustumGridSize = 16;
 
 		shouldRecalculateFrustums = false;
-
-		struct {
-			glm::mat4 inverseProjection;
-			glm::vec2 screenSize;
-		} screenToViewParams;
-
-		screenToViewParams.inverseProjection = glm::inverse(globalUniforms.Global_ProjectionMatrix);
-		screenToViewParams.screenSize = this->screenResolution;
 
 		int gridSizeX = std::ceil(this->screenResolution.x / FrustumGridSize);
 		int gridSizeY = std::ceil(this->screenResolution.y / FrustumGridSize);
@@ -194,6 +194,9 @@ void SceneGraphics::Render() {
 
 	this->lightCullingShader->GetData()->SetValue("depthTexture", &depthTexture);
 	this->lightCullingShader->GetData()->SetValue("testTexture", testTexture);
+
+	this->lightCullingShader->GetData()->SetUniformBuffer(0, &globalUniforms);
+	this->lightCullingShader->GetData()->SetUniformBuffer(3, &screenToViewParams);
 
 	this->lightCullingShader->Dispatch(
 		std::ceil(this->screenResolution.x / 16),
