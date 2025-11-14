@@ -56,6 +56,7 @@ public:
 		Sampler2D,
 		Cubemap,
 		Image2D,
+		UImage2D,
 		Unsupported
 	};
 	

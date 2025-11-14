@@ -25,6 +25,7 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 		{ GL_SAMPLER_2D, { UniformSpec::UniformType::Sampler2D, sizeof(Texture2D*)} },
 		{ GL_SAMPLER_CUBE, { UniformSpec::UniformType::Cubemap, sizeof(Cubemap*)} },
 		{ GL_IMAGE_2D, { UniformSpec::UniformType::Image2D, sizeof(Texture2D*)} },
+		{ GL_UNSIGNED_INT_IMAGE_2D, { UniformSpec::UniformType::UImage2D, sizeof(Texture2D*)} },
 	};
 
 	if (dict.contains(type)) {
@@ -35,7 +36,7 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 }
 
 bool IsTextureType(UniformSpec::UniformType type) {
-	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Cubemap || type == UniformSpec::UniformType::Image2D;
+	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Cubemap || type == UniformSpec::UniformType::Image2D || type == UniformSpec::UniformType::UImage2D;
 }
 
 void UniformSpec::CreateFrom(GLuint programHandle) {
@@ -131,19 +132,21 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		struct {
 			int nameLength;
 			int bufferVariableCount;
+			int binding;
 		} propValues;
 
 		GLenum bufferProps[] {
 			GL_NAME_LENGTH,
 			GL_NUM_ACTIVE_VARIABLES,
+			GL_BUFFER_BINDING,
 		};
 
-		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, i, 2, bufferProps, 2, nullptr, (int*) &propValues);
+		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, i, 3, bufferProps, 3, nullptr, (int*) &propValues);
 
 		char nameBuf[propValues.nameLength];
 		glGetProgramResourceName(programHandle, GL_SHADER_STORAGE_BLOCK, i, propValues.nameLength, nullptr, nameBuf);
 
-		// spdlog::info("Buffer {}: name {}, variable count {}", i, std::string(nameBuf), propValues.bufferVariableCount);
+		spdlog::info("Buffer {}: name {}, binding {}, variable count {}", i, std::string(nameBuf), propValues.binding, propValues.bufferVariableCount);
 
 		this->storageBuffers.push_back({ std::string(nameBuf), 0 });
 
@@ -174,9 +177,9 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 			
 			glGetProgramResourceName(programHandle, GL_BUFFER_VARIABLE, bufferVars[varIndex], varPropValues.nameLength, nullptr, varNameBuf);
 
-			// spdlog::info(" variable {}: name {}, index {}, offset {}, arraySize {}, arrayStride {}", 
-			// 	varIndex, std::string(varNameBuf), bufferVars[varIndex], varPropValues.offset, varPropValues.arraySize, varPropValues.arraySize == 0 ? varPropValues.arrayStride : varPropValues.topLevelArrayStride
-			// );
+			spdlog::info(" variable {}: name {}, index {}, offset {}, arraySize {}, arrayStride {}", 
+				varIndex, std::string(varNameBuf), bufferVars[varIndex], varPropValues.offset, varPropValues.arraySize, varPropValues.arraySize == 0 ? varPropValues.arrayStride : varPropValues.topLevelArrayStride
+			);
 		}
 	}
 }

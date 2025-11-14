@@ -163,6 +163,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 			break;
 		}
 		case UniformSpec::UniformType::Image2D:
+		case UniformSpec::UniformType::UImage2D:
 		{
 			Texture2D* imageTex = GetValue<Texture2D>(i);
 
