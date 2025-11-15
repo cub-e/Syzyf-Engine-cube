@@ -94,31 +94,31 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 
 		switch (uniforms[i].type) {
 		case UniformSpec::UniformType::Float1:
-			glUniform1f(i, GetValue<float>(i));
+			glUniform1f(uniforms[i].binding, GetValue<float>(i));
 			break;
 		case UniformSpec::UniformType::Float2:
-			glUniform2fv(i, 1, &GetValue<glm::vec2>(i)[0]);
+			glUniform2fv(uniforms[i].binding, 1, &GetValue<glm::vec2>(i)[0]);
 			break;
 		case UniformSpec::UniformType::Float3:
-			glUniform3fv(i, 1, &GetValue<glm::vec3>(i)[0]);
+			glUniform3fv(uniforms[i].binding, 1, &GetValue<glm::vec3>(i)[0]);
 			break;
 		case UniformSpec::UniformType::Float4:
-			glUniform4fv(i, 1, &GetValue<glm::vec4>(i)[0]);
+			glUniform4fv(uniforms[i].binding, 1, &GetValue<glm::vec4>(i)[0]);
 			break;
 		case UniformSpec::UniformType::Uint1:
-			glUniform1ui(i, GetValue<unsigned int>(i));
+			glUniform1ui(uniforms[i].binding, GetValue<unsigned int>(i));
 			break;
 		case UniformSpec::UniformType::Uint2:
-			glUniform2uiv(i, 1, &GetValue<glm::uvec2>(i)[0]);
+			glUniform2uiv(uniforms[i].binding, 1, &GetValue<glm::uvec2>(i)[0]);
 			break;
 		case UniformSpec::UniformType::Uint3:
-			glUniform3uiv(i, 1, &GetValue<glm::uvec3>(i)[0]);
+			glUniform3uiv(uniforms[i].binding, 1, &GetValue<glm::uvec3>(i)[0]);
 			break;
 		case UniformSpec::UniformType::Matrix3x3:
-			glUniformMatrix3fv(i, 1, false, &GetValue<glm::mat3>(i)[0][0]);
+			glUniformMatrix3fv(uniforms[i].binding, 1, false, &GetValue<glm::mat3>(i)[0][0]);
 			break;
 		case UniformSpec::UniformType::Matrix4x4:
-			glUniformMatrix4fv(i, 1, false, &GetValue<glm::mat4>(i)[0][0]);
+			glUniformMatrix4fv(uniforms[i].binding, 1, false, &GetValue<glm::mat4>(i)[0][0]);
 			break;
 		case UniformSpec::UniformType::Sampler2D:
 		{
@@ -136,7 +136,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 			
 			glActiveTexture(GL_TEXTURE0 + samplerIndex);
 			glBindTexture(GL_TEXTURE_2D, imageTexHandle);
-			glUniform1i(i, samplerIndex);
+			glUniform1i(uniforms[i].binding, samplerIndex);
 
 			samplerIndex++;
 
@@ -158,7 +158,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 			
 			glActiveTexture(GL_TEXTURE0 + samplerIndex);
 			glBindTexture(GL_TEXTURE_CUBE_MAP, cubeTexHandle);
-			glUniform1i(i, samplerIndex);
+			glUniform1i(uniforms[i].binding, samplerIndex);
 
 			samplerIndex++;
 
@@ -180,7 +180,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 				imageTexHandle = imageTex->GetHandle();
 				imageFormat = Texture::TextureFormatToGL(imageTex->GetFormat());
 
-				glUniform1i(i, samplerIndex);
+				glUniform1i(uniforms[i].binding, samplerIndex);
 			}
 			
 			glBindImageTexture(samplerIndex, imageTexHandle, 0, false, 0, GL_READ_WRITE, imageFormat);
@@ -249,13 +249,25 @@ const T_ShaderProg* ShaderVariableStorage<T_ShaderProg>::GetShader() const {
 template <ShaderLike T_ShaderProg>
 template<Blittable T>
 T ShaderVariableStorage<T_ShaderProg>::GetValue(const std::string& uniformName) const {
-	return GetValue<T>(glGetUniformLocation(this->shader->GetHandle(), uniformName.c_str()));
+	for (int i = 0; i < this->shader->GetUniforms().VariableCount(); i++) {
+		if (this->shader->GetUniforms()[i].name == uniformName) {
+			return GetValue<T>(i);
+		}
+	}
+
+	return T{};
 }
 
 template <ShaderLike T_ShaderProg>
 template<TextureClass T>
 T* ShaderVariableStorage<T_ShaderProg>::GetValue(const std::string& uniformName) const {
-	return GetValue<T>(glGetUniformLocation(this->shader->GetHandle(), uniformName.c_str()));
+	for (int i = 0; i < this->shader->GetUniforms().VariableCount(); i++) {
+		if (this->shader->GetUniforms()[i].name == uniformName) {
+			return GetValue<T>(i);
+		}
+	}
+
+	return nullptr;
 }
 
 template <ShaderLike T_ShaderProg>
@@ -289,13 +301,21 @@ T* ShaderVariableStorage<T_ShaderProg>::GetValue(unsigned int uniformIndex) cons
 template <ShaderLike T_ShaderProg>
 template<Blittable T>
 void ShaderVariableStorage<T_ShaderProg>::SetValue(const std::string& uniformName, const T& value) {
-	SetValue<T>(glGetUniformLocation(this->shader->GetHandle(), uniformName.c_str()), value);
+	for (int i = 0; i < this->shader->GetUniforms().VariableCount(); i++) {
+		if (this->shader->GetUniforms()[i].name == uniformName) {
+			SetValue<T>(i, value);
+		}
+	}
 }
 
 template <ShaderLike T_ShaderProg>
 template<TextureClass T>
 void ShaderVariableStorage<T_ShaderProg>::SetValue(const std::string& uniformName, T* value) {
-	SetValue<T>(glGetUniformLocation(this->shader->GetHandle(), uniformName.c_str()), value);
+	for (int i = 0; i < this->shader->GetUniforms().VariableCount(); i++) {
+		if (this->shader->GetUniforms()[i].name == uniformName) {
+			SetValue<T>(i, value);
+		}
+	}
 }
 
 template <ShaderLike T_ShaderProg>
