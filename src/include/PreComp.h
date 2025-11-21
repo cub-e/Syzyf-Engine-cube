@@ -6,4 +6,5 @@ namespace Regex {
 	extern const std::regex shaderUniformRegex;
 	extern const std::regex shaderInputRegex;
 	extern const std::regex shaderHeaderRegex;
+	extern const std::regex shaderIncludeRegex;
 }

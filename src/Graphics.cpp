@@ -10,6 +10,9 @@
 #include <Light.h>
 #include <Texture.h>
 
+#include "../res/shaders/shared/shared.h"
+#include "../res/shaders/shared/uniforms.h"
+
 #include <GLFW/glfw3.h>
 
 #define LIGHT_GRID_SIZE 16

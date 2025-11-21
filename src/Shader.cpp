@@ -20,47 +20,6 @@ ShaderBase::~ShaderBase() {
 	glDeleteShader(this->handle);
 }
 
-const std::string versionHeader =
-"#version 460\n"
-;
-
-const std::string definesHeader = 
-"#define IN_POSITION location=0\n"
-"#define IN_NORMAL location=1\n"
-"#define IN_BINORMAL location=2\n"
-"#define IN_TANGENT location=3\n"
-"#define IN_UV1 location=4\n"
-"#define IN_UV2 location=5\n"
-"#define IN_COLOR location=6\n"
-;
-
-const std::string builtinUniformsHeader =
-"struct Light {\n"
-"	vec3 position;\n"
-"	uint type;\n"
-"	vec3 direction;\n"
-"	float range;\n"
-"	vec3 color;\n"
-"	float strength;\n"
-"	float spotlightAngle;\n"
-"	float intensity;\n"
-"	float attenuation;\n"
-"	uint enabled;\n"
-"};\n"
-"layout (std140, binding = 0) uniform GlobalUniforms\n"
-"{\n"
-"	mat4 Global_ViewMatrix;\n"
-"	mat4 Global_ProjectionMatrix;\n"
-"	mat4 Global_VPMatrix;\n"
-"	float Global_Time;\n"
-"};\n"
-"layout (std140, binding = 1) uniform ObjectUniforms\n"
-"{\n"
-"	mat4 Object_ModelMatrix;\n"
-"	mat4 Object_MVPMatrix;\n"
-"};\n"
-;
-
 char* LoadFile(const fs::path& filePath, GLenum& shaderType) {
 	fs::directory_entry shaderFile(filePath);
 
@@ -150,58 +109,60 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 
 	int versionOffset = VersionPresent(shaderCode);
 
-	if (shaderType == GL_VERTEX_SHADER) {
-		const char* shaderCodeParts[4];
-		int shaderCodeLengths[4] {-1, -1, -1, -1};
-	
-		if (versionOffset > 0) {
-			shaderCodeParts[0] = buf;
-			shaderCodeLengths[0] = versionOffset;
-		}
-		else {
-			shaderCodeParts[0] = versionHeader.c_str();
-		}
-	
-		shaderCodeParts[1] = definesHeader.c_str();
-		shaderCodeParts[2] = builtinUniformsHeader.c_str();
-		shaderCodeParts[3] = buf + versionOffset;
-	
-		glShaderSource(shaderHandle, 4, shaderCodeParts, shaderCodeLengths);
-	}
-	else if (shaderType == GL_COMPUTE_SHADER) {
-		const char* shaderCodeParts[2];
-		int shaderCodeLengths[2] {-1, -1};
+	auto codeBegin = std::sregex_iterator(shaderCode.begin(), shaderCode.end(), Regex::shaderIncludeRegex);
+	auto codeEnd = std::sregex_iterator();
 
-		if (versionOffset > 0) {
-			shaderCodeParts[0] = buf;
-			shaderCodeLengths[0] = versionOffset;
-		}
-		else {
-			shaderCodeParts[0] = versionHeader.c_str();
+	int includeCount = 0;
+
+	for (auto i = codeBegin; i != codeEnd; ++i) {
+		includeCount++;
+		spdlog::info((*i).position());
+	}
+
+	char* splicesStrings[includeCount * 2 + 1];
+	int splicesLengths[includeCount * 2 + 1];
+
+	int pointer = 0;
+
+	int matchIndex = 0;
+	for (auto match = codeBegin; match != codeEnd; ++match) {
+		splicesStrings[matchIndex] = buf + pointer;
+		splicesLengths[matchIndex] = (*match).position() - pointer;
+
+		GLenum _;
+
+		fs::path includeFilePath = fs::path((*match)[1].str());
+
+		if (includeFilePath.is_relative()) {
+			includeFilePath = filePath.parent_path() / fs::path((*match)[1].str());
+	
+			if (!fs::exists(includeFilePath)) {
+				includeFilePath = BaseShaderPath / fs::path((*match)[1].str());
+			}
+	
+			if (!fs::exists(includeFilePath)) {
+				includeFilePath = BaseShaderPath / fs::path((*match)[1].str());
+			}
 		}
 
-		shaderCodeParts[1] = buf + versionOffset;
+		if (!fs::exists(includeFilePath)) {
+			spdlog::error("File {} included in {} doesn't exist", (*match)[1].str(), filePath.string());
 
-		glShaderSource(shaderHandle, 2, shaderCodeParts, shaderCodeLengths);
-	}
-	else {
-		const char* shaderCodeParts[3];
-		int shaderCodeLengths[3] {-1, -1, -1};
-	
-		if (versionOffset > 0) {
-			shaderCodeParts[0] = buf;
-			shaderCodeLengths[0] = versionOffset;
+			*((int *) 0) = 0;
 		}
-		else {
-			shaderCodeParts[0] = versionHeader.c_str();
-		}
-	
-		shaderCodeParts[1] = builtinUniformsHeader.c_str();
-		shaderCodeParts[2] = buf + versionOffset;
-	
-		glShaderSource(shaderHandle, 3, shaderCodeParts, shaderCodeLengths);
+
+		splicesStrings[matchIndex + 1] = LoadFile(includeFilePath, _);
+		splicesLengths[matchIndex + 1] = -1;
+
+		pointer = (*match).position() + (*match).length();
+		matchIndex += 2;
 	}
-	
+
+	splicesStrings[includeCount * 2] = buf + pointer;
+	splicesLengths[includeCount * 2] = -1;
+
+	glShaderSource(shaderHandle, includeCount * 2 + 1, splicesStrings, splicesLengths);
+
 	glCompileShader(shaderHandle);
 
 	delete[] buf;
@@ -234,6 +195,8 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 
 		spdlog::error("Shader source: \n{}", outss.str());
 
+		*((int *) 0) = 0;
+		
 		return nullptr;
 
 		// throw shader::shader_compilation_exception(path_to_file, compile_msg);

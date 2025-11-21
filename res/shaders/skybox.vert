@@ -1,5 +1,8 @@
 #version 460
 
+#include "shared/shared.h"
+#include "shared/uniforms.h"
+
 layout (IN_POSITION) in vec3 vPos;
 
 out vec3 pTexCoords;

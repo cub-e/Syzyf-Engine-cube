@@ -19,6 +19,7 @@ concept ShaderLike = requires(T a) {
 	{ a.GetUniforms() } -> std::same_as<const UniformSpec&>;
 };
 
+const fs::path BaseShaderPath{"./res/shaders"};
 
 class ComputeShaderProgram {
 private:
@@ -48,19 +49,6 @@ struct ShaderVariantInfo {
 	std::vector<ShaderVariantPoint> variantPoints;
 
 	ShaderVariantInfo(std::initializer_list<ShaderVariantPoint> variantPoints);
-};
-
-struct ShaderGlobalUniforms {
-	glm::mat4 Global_ViewMatrix;
-	glm::mat4 Global_ProjectionMatrix;
-	glm::mat4 Global_VPMatrix;
-	float Global_Time;
-	float _pad[3];
-};
-
-struct ShaderObjectUniforms {
-	glm::mat4 Object_ModelMatrix;
-	glm::mat4 Object_MVPMatrix;
 };
 
 class ShaderBase {
