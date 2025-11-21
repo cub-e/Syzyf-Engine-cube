@@ -139,7 +139,7 @@ Scene::Scene() :
 updateable(),
 renderable(),
 root(new SceneNode(this)),
-graphics(new SceneGraphics()) { }
+graphics(new SceneGraphics(this)) { }
 
 void Scene::MessageReceiver::Message() {
 	(*this->objPtr.*this->methodPtr)();

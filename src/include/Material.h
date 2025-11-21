@@ -182,7 +182,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() {
 
 				glUniform1i(uniforms[i].binding, samplerIndex);
 			}
-			
+
 			glBindImageTexture(samplerIndex, imageTexHandle, 0, false, 0, GL_READ_WRITE, imageFormat);
 
 			samplerIndex++;
@@ -503,7 +503,7 @@ template<> inline bool IsUniformOfRightType<glm::mat4>(UniformSpec::UniformType 
 	return type == UniformSpec::UniformType::Matrix4x4;
 }
 template<> inline bool IsUniformOfRightType<Texture2D>(UniformSpec::UniformType type) {
-	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Image2D;
+	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Image2D || type == UniformSpec::UniformType::UImage2D;
 }
 template<> inline bool IsUniformOfRightType<Cubemap>(UniformSpec::UniformType type) {
 	return type == UniformSpec::UniformType::Cubemap;

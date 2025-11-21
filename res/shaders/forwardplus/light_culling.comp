@@ -182,6 +182,13 @@ void main() {
 		uMinDepth = 0xFFFFFFFF;
 		uMaxDepth = 0;
 		groupFrustum = frustums[groupID.y * numThreadGroups.x + groupID.x];
+		o_LightCount = 0;
+		t_LightCount = 0;
+
+		if (groupID == vec3(0, 0, 0)) {
+			Light_OpaqueLightIndexCounter = 0;
+			Light_TransparentLightIndexCounter = 0;
+		}
 	}
 
 	MemoryBarrierWithSync();
@@ -250,6 +257,7 @@ void main() {
 
 		t_LightIndexStartOffset = atomicAdd(Light_TransparentLightIndexCounter, t_LightCount);
 		imageStore(Light_TransparentLightGrid, ivec2(groupID.xy), uvec4(t_LightIndexStartOffset, t_LightCount, 0, 0));
+		imageStore(testTexture, ivec2(groupID.xy), vec4(t_LightIndexStartOffset, t_LightCount, 0.0, 0.0));
 	}
 
 	MemoryBarrierWithSync();

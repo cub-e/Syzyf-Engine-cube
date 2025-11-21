@@ -8,6 +8,7 @@ struct ShaderGlobalUniforms;
 class MeshRenderer;
 class Scene;
 class ComputeShaderDispatch;
+class Texture2D;
 
 class SceneGraphics {
 	friend class Scene;
@@ -19,12 +20,20 @@ private:
 		int instanceCount;
 	};
 	
+	Scene* scene;
+
 	std::vector<RenderNode> currentRenders;
 	GLuint globalUniformsBuffer;
 	
 	glm::vec2 screenResolution;
 	
 	GLuint gridFrustumsBuffer;
+	GLuint lightsBuffer;
+	GLuint opaqueLightIndexList;
+	GLuint transparentLightIndexList;
+	GLuint lightIndexCounter;
+	Texture2D* opaqueLightsGrid;
+	Texture2D* transparentLightsGrid;
 	ComputeShaderDispatch* gridFrustumComputationShader;
 	ComputeShaderDispatch* lightCullingShader;
 	bool shouldRecalculateFrustums;
@@ -35,7 +44,7 @@ private:
 	GLuint colorPassFramebuffer;
 	GLuint colorPassOutputTexture;
 
-	SceneGraphics();
+	SceneGraphics(Scene* scene);
 
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms);
 	void RenderFullscreenFrameQuad();

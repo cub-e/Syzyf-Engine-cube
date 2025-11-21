@@ -51,16 +51,16 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &uniformNameBufferSize);
 	char uniformName[uniformNameBufferSize];
 
-	spdlog::info(" Uniform buffer count = {}", uniformBufferCount);
-	spdlog::info(" Uniform variable count = {}", uniformVariablesCount);
-	spdlog::info(" Storage buffer count = {}", storageBufferCount);
+	// spdlog::info("┬─Uniform buffer count = {}", uniformBufferCount);
+	// spdlog::info("├─Uniform variable count = {}", uniformVariablesCount);
+	// spdlog::info("├─Storage buffer count = {}", storageBufferCount);
 
 	bool freeUniforms[uniformVariablesCount];
 	for (int i = 0; i < uniformVariablesCount; i++) {
 		freeUniforms[i] = true;
 	}
 
-	spdlog::info(" Uniform buffer info:");
+	spdlog::info("┬┬─Uniform buffers [{}]:", uniformBufferCount);
 	for (int uniformBufferIndex = 0; uniformBufferIndex < uniformBufferCount; uniformBufferIndex++) {
 		struct {
 			int nameLength;
@@ -84,11 +84,13 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		glGetProgramResourceName(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, propValues.nameLength, nullptr, nameBuf);
 
-		spdlog::info("  Buffer no {} : {}", uniformBufferIndex, std::string(nameBuf));
-		spdlog::info("   Size = {}", propValues.bufferSize);
-		spdlog::info("   In compute shader = {}", (bool) propValues.computeBuffer);
-		spdlog::info("   Binding = {}", propValues.binding);
-		spdlog::info("   Variables count = {}", propValues.variablesCount);
+		bool isLast = uniformBufferIndex == uniformBufferCount - 1;
+
+		spdlog::info("│{}┬─Buffer no {} : {}", isLast ? "└" : "├", uniformBufferIndex, std::string(nameBuf));
+		spdlog::info("│{}├──Size = {}", isLast ? " " : "│", propValues.bufferSize);
+		spdlog::info("│{}├──In compute shader = {}", isLast ? " " : "│", (bool) propValues.computeBuffer);
+		spdlog::info("│{}├──Binding = {}", isLast ? " " : "│", propValues.binding);
+		spdlog::info("│{}└┬─Variables count = {}", isLast ? " " : "│", propValues.variablesCount);
 
 		GLint bufferVariables[propValues.variablesCount];
 		GLenum variableProp = GL_ACTIVE_VARIABLES;
@@ -104,9 +106,11 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 			GLenum uniformType;
 			glGetActiveUniform(programHandle, bufferVariable, uniformNameBufferSize, nullptr, &uniformSize, &uniformType, uniformName);
 
-			spdlog::info("    Uniform variable no {} : {}", bufferVariableIndex, std::string(uniformName));
-			spdlog::info("     Type: {:x}", uniformType);
-			spdlog::info("     Size: {:x}", uniformSize);
+			bool isLastVariable = bufferVariableIndex == propValues.variablesCount - 1;
+
+			spdlog::info("│{} {}┬─Uniform variable no {} : {}", isLast ? " " : "│", isLastVariable ? "└" : "├", bufferVariableIndex, std::string(uniformName));
+			spdlog::info("│{} {}├──Type: {:x}", isLast ? " " : "│", isLastVariable ? " " : "│", uniformType);
+			spdlog::info("│{} {}└──Size: {:x}", isLast ? " " : "│", isLastVariable ? " " : "│", uniformSize);
 		}
 
 		if (propValues.computeBuffer || uniformBufferIndex >= 2) {
@@ -115,7 +119,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 	}
 
 	this->variablesBufferLength = 0;
-	spdlog::info(" Uniform variables info:");
+	spdlog::info("├┬─Uniform variables [{}]:", uniformVariablesCount);
 	for (int uniformVariableIndex = 0; uniformVariableIndex < uniformVariablesCount; uniformVariableIndex++) {
 		if (!freeUniforms[uniformVariableIndex]) {
 			continue;
@@ -125,9 +129,12 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		GLenum uniformType;
 		glGetActiveUniform(programHandle, uniformVariableIndex, uniformNameBufferSize, nullptr, &uniformSize, &uniformType, uniformName);
 
-		spdlog::info("  Uniform variable no {} : {}", uniformVariableIndex, std::string(uniformName));
-		spdlog::info("   Type: {:x}", uniformType);
-		spdlog::info("   Size: {}", uniformSize);
+		bool isLast = uniformVariableIndex == uniformVariablesCount - 1;
+
+		spdlog::info("│{}┬─Uniform variable no {} : {}", isLast ? "└" : "├", uniformVariableIndex, std::string(uniformName));
+		spdlog::info("│{}├──Type: {:x}", isLast ? " " : "│", uniformType);
+		spdlog::info("│{}├──Bind: {}", isLast ? " " : "│", glGetUniformLocation(programHandle, uniformName));
+		spdlog::info("│{}└──Size: {}", isLast ? " " : "│", uniformSize);
 
 		UniformTypeInfo info = GetUniformInfo(uniformType);
 
@@ -136,7 +143,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		this->variablesBufferLength += info.size;
 	}
 
-	spdlog::info(" Storage buffers info:");
+	spdlog::info("└{}─Storage buffers [{}]:", storageBufferCount ? "┬" : "─", storageBufferCount);
 	for (int storageBufferIndex = 0; storageBufferIndex < storageBufferCount; storageBufferIndex++) {
 		struct {
 			int nameLength;
@@ -155,7 +162,45 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		char nameBuf[propValues.nameLength];
 		glGetProgramResourceName(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, propValues.nameLength, nullptr, nameBuf);
 
-		spdlog::info("  Buffer no {} : {}", storageBufferIndex, std::string(nameBuf));
+		bool isLast = storageBufferIndex == storageBufferCount - 1;
+
+		spdlog::info(" {}┬─Buffer no {} : {}", isLast ? "└" : "├", storageBufferIndex, std::string(nameBuf));
+
+		GLint bufferVars[propValues.bufferVariableCount];
+		GLenum variableProp = GL_ACTIVE_VARIABLES;
+
+		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, 1, &variableProp, sizeof(bufferVars) / sizeof(GLint), nullptr, bufferVars);
+
+		struct {
+			int nameLength;
+			int offset;
+			int arraySize;
+			int arrayStride;
+			int topLevelArrayStride;
+		} varPropValues;
+		GLenum variableProps[] {
+			GL_NAME_LENGTH,
+			GL_OFFSET,
+			GL_ARRAY_SIZE,
+			GL_ARRAY_STRIDE,
+			GL_TOP_LEVEL_ARRAY_STRIDE
+		};
+
+		for (int bufVarIndex = 0; bufVarIndex <  propValues.bufferVariableCount; bufVarIndex++) {
+			glGetProgramResourceiv(programHandle, GL_BUFFER_VARIABLE, bufferVars[bufVarIndex], sizeof(variableProps) / sizeof(GLenum), variableProps, sizeof(variableProps) / sizeof(GLenum), nullptr, (int*) &varPropValues);
+
+			char varNameBuf[varPropValues.nameLength];
+			
+			glGetProgramResourceName(programHandle, GL_BUFFER_VARIABLE, bufferVars[bufVarIndex], varPropValues.nameLength, nullptr, varNameBuf);
+
+			bool isLastVariable = bufVarIndex == propValues.bufferVariableCount - 1;
+
+			spdlog::info(" {}{}┬─Variable {} : {}", isLast ? " " : "│", isLastVariable ? "└" : "├", bufVarIndex, std::string(varNameBuf));
+			spdlog::info(" {}{}├──Offset: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.offset);
+			spdlog::info(" {}{}├──Array size: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.arraySize);
+			spdlog::info(" {}{}├──Array stride: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.arrayStride);
+			spdlog::info(" {}{}└──Top level array stride: {}", isLast ? " " : "│", isLastVariable ? " " : "│", varPropValues.topLevelArrayStride);
+		}
 
 		this->storageBuffers.push_back({ std::string(nameBuf), propValues.binding, 0 });
 	}

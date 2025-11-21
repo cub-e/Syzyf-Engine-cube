@@ -117,7 +117,8 @@ Light::LightRep Light::GetShaderRepresentation() const {
 	result.spotlightAngle = this->spotlightAngle;
 	result.intensity = this->intensity;
 	result.attenuation = this->attenuation;
-	result.enabled = this->IsEnabled();
+	// result.enabled = this->IsEnabled();
+	result.enabled = 1;
 
 	return result;
 }

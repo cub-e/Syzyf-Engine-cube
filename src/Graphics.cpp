@@ -7,18 +7,29 @@
 #include <Camera.h>
 #include <Skybox.h>
 #include <Resources.h>
+#include <Light.h>
+#include <Texture.h>
 
 #include <GLFW/glfw3.h>
 
+#define LIGHT_GRID_SIZE 16
+
 static Texture2D* testTexture;
 
-SceneGraphics::SceneGraphics():
+SceneGraphics::SceneGraphics(Scene* scene):
+scene(scene),
 currentRenders(),
 globalUniformsBuffer(0),
 depthPrepassFramebuffer(0),
 depthPrepassDepthTexture(0),
 colorPassFramebuffer(0),
 colorPassOutputTexture(0),
+lightsBuffer(0),
+opaqueLightIndexList(0),
+transparentLightIndexList(0),
+lightIndexCounter(0),
+opaqueLightsGrid(0),
+transparentLightsGrid(0),
 shouldRecalculateFrustums(false) {
 	// currentRenders.reserve(64);
 	// currentRenders.reserve()
@@ -29,6 +40,27 @@ shouldRecalculateFrustums(false) {
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
+
+	glGenBuffers(1, &this->lightsBuffer);
+	// glNamedBufferData(this->lightsBuffer, 32 + sizeof(Light::LightRep), nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(Light::LightRep), nullptr, GL_DYNAMIC_DRAW);
+
+	glGenBuffers(1, &this->opaqueLightIndexList);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->opaqueLightIndexList);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, (1920*1080) / (LIGHT_GRID_SIZE*LIGHT_GRID_SIZE) * sizeof(unsigned int), nullptr, GL_STATIC_READ);
+	// glNamedBufferData(this->opaqueLightIndexList, (1920*1080) / (LIGHT_GRID_SIZE*LIGHT_GRID_SIZE) * sizeof(unsigned int), nullptr, GL_STATIC_READ);
+
+	glGenBuffers(1, &this->transparentLightIndexList);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->transparentLightIndexList);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, (1920*1080) / (LIGHT_GRID_SIZE*LIGHT_GRID_SIZE) * sizeof(unsigned int), nullptr, GL_STATIC_READ);
+
+	unsigned int countersData[2] {0, 0};
+	glGenBuffers(1, &this->lightIndexCounter);
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightIndexCounter);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(countersData), countersData, GL_STATIC_READ);
+	
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
 	this->gridFrustumComputationShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/forwardplus/compute_frustums.comp"));
 	this->lightCullingShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/forwardplus/light_culling.comp"));
@@ -87,6 +119,17 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 
 		this->shouldRecalculateFrustums = true;
 
+		if (this->opaqueLightsGrid) {
+			// glGenTextures(1, &this->opaqueLightsGrid);
+			delete this->opaqueLightsGrid;
+		}
+		if (this->transparentLightsGrid) {
+			delete this->opaqueLightsGrid;
+		}
+		
+		this->opaqueLightsGrid = new Texture2D(std::ceil((float) newResolution.x / LIGHT_GRID_SIZE), std::ceil((float) newResolution.y / LIGHT_GRID_SIZE), TextureFormat::RGUInt);
+		this->transparentLightsGrid = new Texture2D(std::ceil((float) newResolution.x / LIGHT_GRID_SIZE), std::ceil((float) newResolution.y / LIGHT_GRID_SIZE), TextureFormat::RGUInt);
+		
 		testTexture = new Texture2D(this->screenResolution.x, this->screenResolution.y, TextureFormat::RGFloat);
 	}
 }
@@ -109,7 +152,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		glBindBufferBase(GL_UNIFORM_BUFFER, 1, node.renderer->GetUniformBufferHandle());
 
 		glBindBuffer(GL_UNIFORM_BUFFER, node.renderer->GetUniformBufferHandle());
-		glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(objectUniforms), &objectUniforms);
+		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STATIC_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 		// if (mat != currentMat) {
@@ -131,8 +174,6 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		currentMesh = mesh;
 	}
 }
-
-uint emptyBuffer = 0;
 
 void SceneGraphics::Render() {
 	Camera* mainCamera = Camera::GetMainCamera();
@@ -184,6 +225,19 @@ void SceneGraphics::Render() {
 	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(globalUniforms), &globalUniforms);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
+	
+	glm::vec4 ambientLight{1.0, 1.0, 1.0, 1.0};
+	int lightsCount = 1;
+
+	Light::LightRep l = (*this->scene->GetSceneLights().begin())->GetShaderRepresentation();
+
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ambientLight), &ambientLight);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightsCount), &lightsCount);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 32, sizeof(l), &l);
+
+	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
 	glBindFramebuffer(GL_FRAMEBUFFER, this->depthPrepassFramebuffer);
 
 	glClear(GL_DEPTH_BUFFER_BIT);
@@ -194,23 +248,15 @@ void SceneGraphics::Render() {
 
 	Texture2D depthTexture = Texture::Wrap<Texture2D>(this->depthPrepassDepthTexture);
 
-	if (!emptyBuffer) {
-		glGenBuffers(1, &emptyBuffer);
-
-		char empty[100] { 0 };
-
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, emptyBuffer);
-		glBufferData(GL_SHADER_STORAGE_BUFFER, 100, empty, GL_STATIC_DRAW);
-		glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-	}
-
 	this->lightCullingShader->GetData()->BindStorageBuffer(0, this->gridFrustumsBuffer);
-	this->lightCullingShader->GetData()->BindStorageBuffer(1, 0);
-	this->lightCullingShader->GetData()->BindStorageBuffer(2, 0);
-	this->lightCullingShader->GetData()->BindStorageBuffer(3, 0);
-	this->lightCullingShader->GetData()->BindStorageBuffer(4, 0);
+	this->lightCullingShader->GetData()->BindStorageBuffer(1, this->lightsBuffer);
+	this->lightCullingShader->GetData()->BindStorageBuffer(2, this->opaqueLightIndexList);
+	this->lightCullingShader->GetData()->BindStorageBuffer(3, this->transparentLightIndexList);
+	this->lightCullingShader->GetData()->BindStorageBuffer(4, this->lightIndexCounter);
 	
 	this->lightCullingShader->GetData()->SetValue("depthTexture", &depthTexture);
+	this->lightCullingShader->GetData()->SetValue("Light_OpaqueLightGrid", this->opaqueLightsGrid);
+	this->lightCullingShader->GetData()->SetValue("Light_TransparentLightGrid", this->transparentLightsGrid);
 	this->lightCullingShader->GetData()->SetValue("testTexture", testTexture);
 
 	this->lightCullingShader->GetData()->SetUniformBuffer(0, &globalUniforms);

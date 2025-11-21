@@ -52,6 +52,10 @@ GLenum Texture::TextureFormatToGL(TextureFormat format) {
 		GL_RG32F,
 		GL_RGB32F,
 		GL_RGBA32F,
+		GL_R32UI,
+		GL_RG32UI,
+		GL_RGB32UI,
+		GL_RGBA32UI
 	};
 
 	if ((int) format > 0 && (int) format < sizeof(glFormats) / sizeof(GLenum)) {
@@ -295,11 +299,33 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, TextureFormat form
 	this->format = format;
 	this->owning = true;
 
+	const GLenum formats[] {
+		GL_RED,
+		GL_RG,
+		GL_RGB,
+		GL_RGBA
+	};
+
+	const GLenum formatsInt[] {
+		GL_RED_INTEGER,
+		GL_RG_INTEGER,
+		GL_RGB_INTEGER,
+		GL_RGBA_INTEGER
+	};
+
+	const GLenum pixelTypes[] {
+		GL_UNSIGNED_BYTE,
+		GL_FLOAT,
+		GL_UNSIGNED_INT
+	};
+
 	glGenTextures(1, &this->handle);
 
 	glBindTexture(GL_TEXTURE_2D, this->handle);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, TextureFormatToGL(format), width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+	int textureType = pixelTypes[((int) format) / 4];
+
+	glTexImage2D(GL_TEXTURE_2D, 0, TextureFormatToGL(format), width, height, 0, textureType == GL_UNSIGNED_INT ? formatsInt[(int) format % 4] : formats[(int) format % 4], pixelTypes[(int) format / 4], nullptr);
 
 	this->SetWrapModeU(GL_CLAMP_TO_EDGE);
 	this->SetWrapModeV(GL_CLAMP_TO_EDGE);

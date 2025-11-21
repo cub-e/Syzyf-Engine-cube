@@ -24,6 +24,7 @@
 #include <Camera.h>
 #include <Skybox.h>
 #include <Resources.h>
+#include <Light.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -246,6 +247,9 @@ void InitScene() {
 
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
 
+	SceneNode* lightObject = mainScene->CreateNode();
+	Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 1.0, 1.0));
+
 	auto skyboxObject = mainScene->CreateNode();
 	skyboxObject->AddObject<Skybox>(skyMat);
 }
@@ -320,7 +324,7 @@ bool InitProgram() {
 		glDebugMessageCallback(glDebugOutput, nullptr);
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, true);
 	}
-	
+
 	glEnable(GL_DEPTH_TEST);
 	
 	if (err) {

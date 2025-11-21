@@ -23,7 +23,11 @@ enum class TextureFormat {
 	GrayscaleFloat,
 	RGFloat,
 	RGBFloat,
-	RGBAFloat
+	RGBAFloat,
+	RUInt,
+	RGUInt,
+	RGBUInt,
+	RGBAUInt
 };
 
 class Texture {
@@ -53,6 +57,10 @@ public:
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)
 	static T_Tex Wrap(GLuint handle);
+
+	template <class T_Tex>
+		requires (std::derived_from<T_Tex, Texture>)
+	static T_Tex Wrap(GLuint handle, TextureFormat format);
 
 	virtual ~Texture();
 
@@ -119,5 +127,8 @@ T_Tex Texture::Wrap(GLuint handle) {
 	result.dirty = false;
 	result.owning = false;
 
+	// result.format = TextureFormat::RGUInt;
+
 	return result;
 }
+
