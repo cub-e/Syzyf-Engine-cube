@@ -1,3 +1,5 @@
+#ifndef SHADER_SHARED_H
+
 #ifdef __cplusplus
 
 #pragma once
@@ -29,13 +31,16 @@ struct Light {
 	vec3 direction;
 	float range;
 	vec3 color;
-	float strength;
 	float spotlightAngle;
 	float intensity;
 	float attenuation;
 	uint enabled;
+	uint _padding;
 };
 
 #ifdef vec3
 #undef vec3
+#endif
+
+#define SHADER_SHARED_H
 #endif

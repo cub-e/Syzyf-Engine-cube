@@ -1,3 +1,5 @@
+#ifndef SHADER_UNIFORMS_H
+
 #ifdef __cplusplus
 
 #pragma once
@@ -32,4 +34,7 @@ UNIFORM_DECL(1) ShaderObjectUniforms
 
 #ifdef UNIFORM_DECL
 #undef UNIFORM_DECL
+#endif
+
+#define SHADER_UNIFORMS_H
 #endif
