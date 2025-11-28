@@ -43,7 +43,7 @@ shouldRecalculateFrustums(false) {
 
 	glGenBuffers(1, &this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(Light::LightRep), nullptr, GL_DYNAMIC_DRAW);
+	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep), nullptr, GL_DYNAMIC_DRAW);
 
 	glGenBuffers(1, &this->opaqueLightIndexList);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->opaqueLightIndexList);
@@ -219,7 +219,7 @@ void SceneGraphics::Render() {
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
-	glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(globalUniforms), &globalUniforms);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(globalUniforms), &globalUniforms, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
@@ -227,7 +227,7 @@ void SceneGraphics::Render() {
 	glm::vec4 ambientLight{1.0, 1.0, 1.0, 1.0};
 	int lightsCount = 1;
 
-	Light::LightRep l = (*this->scene->GetSceneLights().begin())->GetShaderRepresentation();
+	ShaderLightRep l = (*this->scene->GetSceneLights().begin())->GetShaderRepresentation();
 
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ambientLight), &ambientLight);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightsCount), &lightsCount);

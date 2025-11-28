@@ -2,28 +2,14 @@
 
 #include <GameObject.h>
 
+#include "../res/shaders/shared/shared.h"
+
 class Light : public GameObject {
 public:
 	enum class LightType {
 		Point = 0,
 		Spot = 1,
 		Directional = 2
-	};
-
-	struct LightRep {
-		glm::vec3 position;
-		unsigned int type;
-
-		glm::vec3 direction;
-		float range;
-
-		glm::vec3 color;
-		float spotlightAngle;
-
-		float intensity;
-		float attenuation;
-		uint enabled;
-		uint _padding;
 	};
 
 	struct PointLight {
@@ -81,5 +67,5 @@ public:
 	void SetIntensity(float intensity);
 	void SetAttenuation(float attenuation);
 
-	LightRep GetShaderRepresentation() const;
+	ShaderLightRep GetShaderRepresentation() const;
 };

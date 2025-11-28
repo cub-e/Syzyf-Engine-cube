@@ -106,8 +106,8 @@ void Light::SetAttenuation(float attenuation) {
 	this->attenuation = attenuation;
 }
 
-Light::LightRep Light::GetShaderRepresentation() const {
-	Light::LightRep result;
+ShaderLightRep Light::GetShaderRepresentation() const {
+	ShaderLightRep result;
 	
 	result.position = this->GlobalTransform().Position();
 	result.type = (unsigned int) this->type;
@@ -117,8 +117,7 @@ Light::LightRep Light::GetShaderRepresentation() const {
 	result.spotlightAngle = this->spotlightAngle;
 	result.intensity = this->intensity;
 	result.attenuation = this->attenuation;
-	// result.enabled = this->IsEnabled();
-	result.enabled = 1;
+	result.enabled = this->IsEnabled();
 
 	return result;
 }
