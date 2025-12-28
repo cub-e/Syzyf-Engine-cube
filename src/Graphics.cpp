@@ -9,6 +9,7 @@
 #include <Resources.h>
 #include <Light.h>
 #include <Texture.h>
+#include <LightSystem.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -158,7 +159,7 @@ void SceneGraphics::Render() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 	
 	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.05};
-	auto lightList = this->scene->GetSceneLights();
+	std::vector<Light*> lightList = *this->scene->GetComponent<LightSystem>()->GetAllObjects();
 
 	int lightIndex = 0;
 	for (const auto& l : lightList) {

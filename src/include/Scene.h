@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 
 class GameObject;
+class SceneComponent;
 class Light;
 
 typedef void (GameObject::*MessageMethod)();
@@ -115,7 +116,7 @@ private:
 
 	std::list<MessageReceiver> updateable;
 	std::list<MessageReceiver> renderable;
-	std::list<const Light*> sceneLights;
+	std::vector<SceneComponent*> components;
 	SceneNode* root;
 
 	SceneGraphics* graphics;
@@ -160,9 +161,6 @@ private:
 		requires std::derived_from<T_GO, GameObject> && Disableable<T_GO>
 	bool TryCreateDisableable(T_GO* object);
 
-	template<class T_GO>
-	bool TryAddLight(T_GO* object);
-
 	void DeleteObjectInternal(GameObject* obj);
 	void DeleteNodeInternal(SceneNode* node);
 public:
@@ -195,13 +193,28 @@ public:
 		requires std::derived_from<T_GO, GameObject> && Updateable<T_GO> && Renderable<T_GO>
 	std::vector<T_GO*> FindObjectsOfType();
 
-	const std::list<const Light*> GetSceneLights() const;
+	template<class T_SC>
+		requires std::derived_from<T_SC, SceneComponent>
+	T_SC* GetComponent();
+
+	template<class T_SC>
+		requires std::derived_from<T_SC, SceneComponent>
+	bool TryGetComponent(T_SC*& component);
+
+	template<class T_SC>
+		requires std::derived_from<T_SC, SceneComponent>
+	T_SC* GetOrCreateComponent();
+
+	template<class T_SC>
+		requires std::derived_from<T_SC, SceneComponent>
+	T_SC* AddComponent();
 
 	void Update();
 	void Render();
 };
 
 #include <GameObject.h>
+#include <GameObjectSystem.h>
 
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
@@ -376,14 +389,6 @@ bool Scene::TryCreateRenderable(T_GO* object) {
 	return true;
 }
 
-template<class T_GO>
-bool Scene::TryAddLight(T_GO* object) {
-	return false;
-}
-
-template<>
-bool Scene::TryAddLight<Light>(Light* object);
-
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
@@ -403,7 +408,14 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	TryCreateEnableable(created);
 	TryCreateUpdateable(created);
 	TryCreateRenderable(created);
-	TryAddLight(created);
+
+	for (SceneComponent* component : this->components) {
+		GameObjectSystem<T_GO>* sys = dynamic_cast<GameObjectSystem<T_GO>*>(component);
+
+		if (sys) {
+			sys->RegisterObject(created);
+		}
+	}
 
 	return created;
 }
@@ -471,4 +483,55 @@ std::vector<T_GO*> Scene::FindObjectsOfType() {
 	}
 
 	return result;
+}
+
+// This way of checking for a component present is flawed
+// If component A derives from component B, then one can add them in order B -> A just fine
+// But if you add B first, then A will successfuly get casted to B and the scene will assume it was already added
+// Might be tough to avoid it without reflection tho
+template<class T_SC>
+	requires std::derived_from<T_SC, SceneComponent>
+T_SC* Scene::GetComponent() {
+	for (SceneComponent* component : this->components) {
+		T_SC* result = dynamic_cast<T_SC*>(component);
+
+		if (result) {
+			return result;
+		}
+	}
+
+	return nullptr;
+}
+
+template<class T_SC>
+	requires std::derived_from<T_SC, SceneComponent>
+bool Scene::TryGetComponent(T_SC*& component) {
+	component = GetComponent<T_SC>();
+
+	return component != nullptr;
+}
+
+template<class T_SC>
+	requires std::derived_from<T_SC, SceneComponent>
+T_SC* Scene::GetOrCreateComponent() {
+	T_SC* component = GetComponent<T_SC>();
+
+	if (component == nullptr) {
+		return AddComponent<T_SC>();
+	}
+}
+
+template<class T_SC>
+	requires std::derived_from<T_SC, SceneComponent>
+T_SC* Scene::AddComponent() {
+	T_SC* component = GetComponent<T_SC>();
+
+	if (component == nullptr) {
+		component = new T_SC(this);
+		
+		this->components.push_back(component);
+
+	}
+	
+	return component;
 }
