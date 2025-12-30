@@ -25,6 +25,7 @@ SceneGraphics::SceneGraphics(Scene* scene):
 scene(scene),
 currentRenders(),
 globalUniformsBuffer(0),
+objectUniformsBuffer(0),
 depthPrepassFramebuffer(0),
 depthPrepassDepthTexture(0),
 colorPassFramebuffer(0),
@@ -36,6 +37,13 @@ lightsBuffer(0) {
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	
 	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
+
+	glGenBuffers(1, &this->objectUniformsBuffer);
+	glBindBuffer(GL_UNIFORM_BUFFER, this->objectUniformsBuffer);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderObjectUniforms), nullptr, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);	
 
 	glGenBuffers(1, &this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
@@ -104,9 +112,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		objectUniforms.Object_MVPMatrix = globalUniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
 
-		glBindBufferBase(GL_UNIFORM_BUFFER, 1, node.renderer->GetUniformBufferHandle());
-		
-		glBindBuffer(GL_UNIFORM_BUFFER, node.renderer->GetUniformBufferHandle());
+		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 

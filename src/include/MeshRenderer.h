@@ -11,9 +11,6 @@ private:
 	Mesh* mesh;
 	std::vector<Material*> materials;
 
-	GLuint uniformBufferHandle;
-	bool dirty;
-
 	void ResetUniformBuffer();
 public:
 	MeshRenderer();
@@ -21,8 +18,6 @@ public:
 
 	Mesh* GetMesh();
 	void SetMesh(Mesh* newMesh);
-
-	GLuint GetUniformBufferHandle();
 
 	Material* GetMaterial(int materialIndex = 0);
 

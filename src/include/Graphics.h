@@ -30,6 +30,7 @@ private:
 
 	std::vector<RenderNode> currentRenders;
 	GLuint globalUniformsBuffer;
+	GLuint objectUniformsBuffer;
 	
 	glm::vec2 screenResolution;
 	

@@ -5,35 +5,12 @@
 
 MeshRenderer::MeshRenderer():
 mesh(),
-materials(0),
-uniformBufferHandle(0),
-dirty(false) {
-	ResetUniformBuffer();
-}
+materials(0) { }
 
 MeshRenderer::MeshRenderer(Mesh* mesh, Material* material):
-materials(),
-uniformBufferHandle(0),
-dirty(true) {
+materials() {
 	SetMesh(mesh);
 	SetMaterial(material);
-
-	ResetUniformBuffer();
-}
-
-void MeshRenderer::ResetUniformBuffer() {
-	if (this->uniformBufferHandle) {
-		glDeleteBuffers(1, &this->uniformBufferHandle);
-	}
-
-	glGenBuffers(1, &this->uniformBufferHandle);
-	glBindBuffer(GL_UNIFORM_BUFFER, this->uniformBufferHandle);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(glm::mat4) * 2, nullptr, GL_STATIC_DRAW);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-}
-
-GLuint MeshRenderer::GetUniformBufferHandle() {
-	return this->uniformBufferHandle;
 }
 
 Mesh* MeshRenderer::GetMesh() {
@@ -43,8 +20,6 @@ Mesh* MeshRenderer::GetMesh() {
 void MeshRenderer::SetMesh(Mesh* newMesh) {
 	this->mesh = newMesh;
 	
-	this->dirty = true;
-
 	if (this->mesh == nullptr) {
 		return;
 	}
@@ -72,8 +47,6 @@ void MeshRenderer::SetMaterial(Material* newMaterial, int materialIndex) {
 	}
 
 	this->materials[materialIndex] = newMaterial;
-
-	this->dirty = true;
 }
 
 void MeshRenderer::Render() const {
