@@ -203,14 +203,30 @@ void Scene::DeleteNode(SceneNode* node) {
 }
 
 void Scene::Update() {
+	for (auto& component: this->components) {
+		component->OnPreUpdate();
+	}
+
 	for (auto& msgObject : this->updateable) {
 		msgObject.Message();
+	}
+
+	for (auto& component: this->components) {
+		component->OnPostUpdate();
 	}
 }
 
 void Scene::Render() {
+	for (auto& component: this->components) {
+		component->OnPreRender();
+	}
+
 	for (auto& msgObject : this->renderable) {
 		msgObject.Message();
+	}
+
+	for (auto& component: this->components) {
+		component->OnPostRender();
 	}
 
 	this->graphics->Render();
