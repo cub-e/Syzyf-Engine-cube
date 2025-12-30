@@ -25,7 +25,7 @@ private:
 public:
 	ShaderVariableStorage(T_ShaderProg* shader);
 	
-	void Bind();
+	void Bind() const;
 
 	template<Blittable T>
 	T GetValue(const std::string& uniformName) const;
@@ -82,7 +82,7 @@ static inline bool IsUniformOfRightType(UniformSpec::UniformSpec::UniformType ty
 }
 
 template <ShaderLike T_ShaderProg>
-void ShaderVariableStorage<T_ShaderProg>::Bind() {
+void ShaderVariableStorage<T_ShaderProg>::Bind() const {
 	glUseProgram(this->shader->GetHandle());
 
 	const UniformSpec& uniforms = this->shader->GetUniforms();

@@ -5,7 +5,6 @@
 #include <glad/glad.h>
 
 #include <VertexSpec.h>
-#include <Graphics.h>
 
 namespace fs = std::filesystem;
 

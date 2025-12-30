@@ -4,6 +4,9 @@
 #include <glad/glad.h>
 #include <glm/glm.hpp>
 
+#include <Mesh.h>
+#include <Material.h>
+
 struct ShaderGlobalUniforms;
 class MeshRenderer;
 class Scene;
@@ -20,10 +23,10 @@ class SceneGraphics {
 	friend class Scene;
 private:
 	struct RenderNode {
-		MeshRenderer* renderer;
-		unsigned int mode;
-		int nextIndex;
-		int instanceCount;
+		const Mesh::SubMesh* mesh;
+		const Material* material;
+		const unsigned int instanceCount;
+		const glm::mat4 transformation;
 	};
 	
 	Scene* scene;
@@ -50,7 +53,11 @@ private:
 	void Render();
 public:
 	void UpdateScreenResolution(glm::vec2 newResolution);
+	
 	void DrawMesh(MeshRenderer* renderer);
+	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation);
+	
 	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
+	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount);
 };
 

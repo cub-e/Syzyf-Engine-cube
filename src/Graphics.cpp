@@ -108,7 +108,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 	ShaderObjectUniforms objectUniforms;
 
 	for (auto node : this->currentRenders) {
-		objectUniforms.Object_ModelMatrix = node.renderer->GlobalTransform();
+		objectUniforms.Object_ModelMatrix = node.transformation;
 		objectUniforms.Object_MVPMatrix = globalUniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
 
@@ -116,28 +116,27 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-		Mesh* mesh = node.renderer->GetMesh();
+		const Mesh::SubMesh* mesh = node.mesh;
 		
-		for (const Mesh::SubMesh& subMesh : mesh->GetSubMeshes()) {
-			Material* mat = node.renderer->GetMaterial(subMesh.GetMaterialIndex());
+		const Material* mat = node.material;
 
-			if (!mat) {
-				continue;
-			}
-
-			mat->Bind();
-			
-			glBindVertexArray(subMesh.GetVertexArrayHandle());
-
-			if (node.instanceCount <= 0) {
-				glDrawElements(subMesh.GetDrawMode(), subMesh.GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-			}
-			else {
-				glDrawElementsInstanced(subMesh.GetDrawMode(), subMesh.GetVertexCount(), GL_UNSIGNED_INT, nullptr, node.instanceCount);
-			}
-
-			glBindVertexArray(0);
+		if (!mat) {
+			continue;
 		}
+
+		mat->Bind();
+		
+		glBindVertexArray(mesh->GetVertexArrayHandle());
+
+		if (node.instanceCount <= 0) {
+			glDrawElements(mesh->GetDrawMode(), mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+		}
+		else {
+			glDrawElementsInstanced(mesh->GetDrawMode(), mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, node.instanceCount);
+		}
+
+		glBindVertexArray(0);
+		
 	}
 }
 
@@ -253,11 +252,29 @@ void SceneGraphics::DrawMesh(MeshRenderer* renderer) {
 	DrawMeshInstanced(renderer, 0);
 }
 
+void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation) {
+	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0);
+}
+
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
+	// for (const Mesh::SubMesh& mesh : renderer->GetMesh()->GetSubMeshes()) {
+	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
+		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
+
+		this->currentRenders.push_back(RenderNode(
+			mesh,
+			renderer->GetMaterial(mesh->GetMaterialIndex()),
+			instanceCount,
+			renderer->GlobalTransform()
+		));
+	}
+}
+
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount) {
 	this->currentRenders.push_back(RenderNode(
-		renderer,
-		GL_TRIANGLES,
-		-1,
-		instanceCount
+		&mesh->SubMeshAt(subMeshIndex),
+		material,
+		instanceCount,
+		transformation
 	));
 }
