@@ -58,7 +58,7 @@ private:
 	std::vector<SubMesh> subMeshes;
 	// std::map<std::string, MeshPart> parts;
 	
-	int materialCount;
+	unsigned int materialCount;
 	unsigned int vertexCount;
 	float* vertexData;
 	unsigned int vertexStride;
@@ -66,9 +66,9 @@ private:
 public:
 	Mesh() = default;
 
-	int GetMaterialsCount() const;
+	unsigned int GetMaterialsCount() const;
 
-	int GetSubMeshCount() const;
+	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;
 
 	const SubMesh& SubMeshAt(unsigned int index) const;

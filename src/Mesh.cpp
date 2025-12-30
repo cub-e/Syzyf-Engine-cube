@@ -120,11 +120,11 @@ unsigned int Mesh::SubMesh::GetFaceCount() const {
 	return this->faceCount;
 }
 
-int Mesh::GetMaterialsCount() const {
+unsigned int Mesh::GetMaterialsCount() const {
 	return this->materialCount;
 }
 
-int Mesh::GetSubMeshCount() const {
+unsigned int Mesh::GetSubMeshCount() const {
 	return this->subMeshes.size();
 }
 

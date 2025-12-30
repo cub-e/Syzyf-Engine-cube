@@ -50,7 +50,7 @@ void MeshRenderer::SetMesh(Mesh* newMesh) {
 	}
 
 	std::vector<Material*> newMaterials{newMesh->GetMaterialsCount()};
-	int materialsToCopy = std::min(newMesh->GetMaterialsCount(), (int) this->materials.size());
+	int materialsToCopy = std::min(newMesh->GetMaterialsCount(), (unsigned int) this->materials.size());
 	for (int i = 0; i < materialsToCopy; i++) {
 		newMaterials[i] = this->materials[i];
 	}
