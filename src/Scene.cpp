@@ -139,7 +139,7 @@ updateable(),
 renderable(),
 root(new SceneNode(this)),
 graphics(new SceneGraphics(this)) {
-	AddComponent<LightSystem>();
+	this->lightSystem = AddComponent<LightSystem>();
 }
 
 void Scene::MessageReceiver::Message() {
@@ -158,7 +158,7 @@ void Scene::DeleteObjectInternal(GameObject* obj) {
 	Light* objAsLight = dynamic_cast<Light*>(obj);
 
 	if (objAsLight) {
-		std::erase_if(*GetComponent<LightSystem>()->GetAllObjects(), [objAsLight](const Light* light) {
+		std::erase_if(*this->lightSystem->GetAllObjects(), [objAsLight](const Light* light) {
 			return light == objAsLight;
 		} );
 	}
@@ -188,6 +188,10 @@ SceneNode* Scene::CreateNode(SceneNode* parent) {
 
 SceneGraphics* Scene::GetGraphics() {
 	return this->graphics;
+}
+
+LightSystem* Scene::GetLightSystem() {
+	return this->lightSystem;
 }
 
 void Scene::DeleteObject(GameObject* obj) {

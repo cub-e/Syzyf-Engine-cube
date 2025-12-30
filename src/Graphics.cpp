@@ -160,7 +160,7 @@ void SceneGraphics::Render() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
 	
 	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.05};
-	std::vector<Light*> lightList = *this->scene->GetComponent<LightSystem>()->GetAllObjects();
+	std::vector<Light*> lightList = *this->scene->GetLightSystem()->GetAllObjects();
 
 	int lightIndex = 0;
 	for (const auto& l : lightList) {
