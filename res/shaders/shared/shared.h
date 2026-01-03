@@ -6,6 +6,13 @@
 
 #include <glm/glm.hpp>
 #define vec3 glm::vec3
+#define vec2 glm::vec2
+#define t_bool unsigned int
+#define mat4 glm::mat4
+
+#else
+
+#define t_bool uint
 
 #endif
 
@@ -50,13 +57,29 @@ struct Light {
 	float spotlightAngle;
 	float intensity;
 	float attenuation;
-	uint enabled;
-	uint _padding;
+	t_bool enabled;
+	int shadowAtlasIndex;
+};
+
+struct ShadowMapRegion {
+	mat4 viewTransform;
+	vec2 start;
+	vec2 end;
 };
 
 #ifdef vec3
 #undef vec3
 #endif
+
+#ifdef vec2
+#undef vec2
+#endif
+
+#ifdef mat4
+#undef mat4
+#endif
+
+#undef t_bool
 
 #define SHADER_SHARED_H
 #endif

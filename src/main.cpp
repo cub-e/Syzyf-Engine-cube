@@ -146,47 +146,6 @@ public:
 };
 
 void InitScene() {
-	// const unsigned int textureSize = 512;
-
-	// Texture2D* computeTexture = new Texture2D(textureSize, textureSize, TextureFormat::RGBAFloat);
-	// computeTexture->SetMagFilter(GL_NEAREST);
-
-	// ComputeShader* comp = (ComputeShader*) ShaderBase::Load("./res/shaders/forwardplus/fullscreenquad.comp");
-	// ComputeShaderDispatch* quadDispatch = new ComputeShaderDispatch(comp);
-
-	// quadDispatch->GetData()->SetValue("imgOutput", computeTexture);
-	// quadDispatch->GetData()->SetUniformBuffer("FullScreenQuadParams", glm::vec2(0.2f, 0.7f));
-
-	// quadDispatch->Dispatch(textureSize, textureSize, 1);
-
-	// ShaderProgram* quadProg = ShaderProgram::Build()
-	// .WithVertexShader(
-	// 	(VertexShader*) ShaderBase::Load("./res/shaders/basic.vert")
-	// )
-	// .WithPixelShader(
-	// 	(PixelShader*) ShaderBase::Load("./res/shaders/basic.frag")
-	// ).Link();
-
-	// float offset = 1.0f;
-	// GLuint bufHandle = 0;
-
-	// glGenBuffers(1, &bufHandle);
-	// glBindBuffer(GL_SHADER_STORAGE_BUFFER, bufHandle);
-	// glBufferData(GL_SHADER_STORAGE_BUFFER, sizeof(float), &offset, GL_STATIC_DRAW);
-	// glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	// Mesh quadMesh = Mesh::Load("./res/models/fullscreenquad.obj", VertexSpec::Mesh);
-	// Material* quadMat = new Material(quadProg);
-	// quadMat->SetValue("uColor", glm::one<glm::vec3>());
-	// quadMat->SetValue("colorTex", computeTexture);
-	// quadMat->BindStorageBuffer("in_Offsets", bufHandle);
-
-	// mainScene = new Scene();
-
-	// SceneNode* quadObject = mainScene->CreateNode();
-	// quadObject->AddObject<MeshRenderer>(quadMesh, quadMat);
-	// quadObject->AddObject<Camera>(Camera::Orthographic(glm::vec2(3.0f, 3.0f)));
-
 	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
@@ -212,83 +171,86 @@ void InitScene() {
 	).Link();
 
 	Mesh* floorMesh = Resources::Get<Mesh>("./res/models/floor.obj");
-
-	Material* floorMat = new Material(floorProg);
-	floorMat->SetValue<glm::vec3>("uColor", {1, 1, 1});
-
-	Mesh* cube = Resources::Get<Mesh>("./res/models/cube.obj");
-	Material* centerMat = new Material(meshProg);
-	Material* haloMat = new Material(haloProg);
-	Material* orbiterMat = new Material(meshProg);
+	Mesh* shadeMesh = Resources::Get<Mesh>("./res/models/shade.obj");
+	Mesh* cube = Resources::Get<Mesh>("./res/models/not_cube.obj");
 
 	Texture2D* stoneTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", TextureFormat::RGB);
 	stoneTex->SetMagFilter(GL_LINEAR);
 	stoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
-	Texture2D* invStoneTex = Resources::Get<Texture2D>("./res/textures/stone_inv.jpg", TextureFormat::RGB);
-	invStoneTex->SetMagFilter(GL_LINEAR);
-	invStoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+	Texture2D* floorTex = Resources::Get<Texture2D>("./res/textures/stone.jpg", TextureFormat::RGB);
+	floorTex->SetMagFilter(GL_LINEAR);
+	floorTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+	floorTex->SetWrapModeU(GL_REPEAT);
+	floorTex->SetWrapModeV(GL_REPEAT);
+
+	Texture2D* shadedTex = Resources::Get<Texture2D>("./res/testing/uwu.jpg", TextureFormat::RGB);
+
+	if (!shadedTex) {
+		shadedTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", TextureFormat::RGB);
+	}
+	shadedTex->SetMagFilter(GL_LINEAR);
+	shadedTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
 	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/skybox.jpg", TextureFormat::RGB);
+
+	Material* floorMat = new Material(meshProg);
+	floorMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
+	floorMat->SetValue<Texture2D>("colorTex", floorTex);
+
+	Material* shadeMat = new Material(floorProg);
+	shadeMat->SetValue<glm::vec3>("uColor", {0.0f, 0.8f, 0.0f});
+
+	Material* centerMat = new Material(meshProg);
+	Material* haloMat = new Material(haloProg);
+	Material* shadedMat = new Material(meshProg);
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
 	centerMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
 	centerMat->SetValue<Texture2D>("colorTex", stoneTex);
-	orbiterMat->SetValue<glm::vec3>("uColor", glm::vec3(0.0f, 0.5f, 1.0f));
-	orbiterMat->SetValue<Texture2D>("colorTex", invStoneTex);
+
+	shadedMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
+	shadedMat->SetValue<Texture2D>("colorTex", shadedTex);
 
 	mainScene = new Scene();
 	
 	auto floorObject = mainScene->CreateNode();
 	auto floorRenderer = floorObject->AddObject<MeshRenderer>(floorMesh, floorMat);
-	floorObject->LocalTransform().Scale() *= 30;
+	floorObject->LocalTransform().Scale() *= 100;
 	floorObject->LocalTransform().Position() = {0, -1, 0};
 
-	auto rendererObject = mainScene->CreateNode();
+	auto shadeNode = mainScene->CreateNode();
+	shadeNode->AddObject<MeshRenderer>(shadeMesh, shadeMat);
+	shadeNode->LocalTransform().Position() = {-10, 0, 0};
+	shadeNode->LocalTransform().Rotation() *= glm::angleAxis(glm::radians(90.0f), glm::vec3(0, 1, 0));
+
+	auto hiddenNode = mainScene->CreateNode();
+	hiddenNode->AddObject<MeshRenderer>(cube, shadedMat);
+	hiddenNode->LocalTransform().Position() = {-10, 0, 0};
+
+	auto notCubeNode = mainScene->CreateNode();
+	notCubeNode->GlobalTransform().Position() = glm::zero<glm::vec3>();
+	MeshRenderer* centerRenderer = notCubeNode->AddObject<MeshRenderer>(cube, centerMat);
+
 	auto cameraObject = mainScene->CreateNode();
-
-	MeshRenderer* centerRenderer = rendererObject->AddObject<MeshRenderer>(cube, centerMat);
-	centerRenderer->SetMaterial(haloMat, 1);
-	rendererObject->AddObject<AutoRotator>(1.0f);
-
-	auto rendererChildRotator = mainScene->CreateNode(rendererObject);
-	rendererChildRotator->AddObject<AutoRotator>(-2.0f);
-
-	for (int i = 0; i < 4; i++) {
-		auto rendererChild = mainScene->CreateNode(rendererChildRotator);
-
-		rendererChild->LocalTransform().Scale() = glm::vec3(0.3f);
-		rendererChild->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, 1.2f) * glm::angleAxis(glm::radians(90.0f * i), glm::vec3(0.0f, 1.0f, 0.0f));
-
-		rendererChild->AddObject<AutoRotator>(1.0f);
-		
-		rendererChild->AddObject<MeshRenderer>(cube, orbiterMat);
-	}
-
 	Camera* camera = cameraObject->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 1.0f, 100.0f));
+	camera->LocalTransform().Position() = glm::vec3(-10.0f, 0.0f, -10.0f);
 	cameraObject->AddObject<Mover>();
 
-	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
+	SceneNode* lightObject = mainScene->CreateNode();
+	Light* light = lightObject->AddObject<Light>(Light::DirectionalLight(glm::vec3(1, 1, 1), 1));
+	light->GlobalTransform().Position() = glm::zero<glm::vec3>();
+	light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(30.0f), glm::vec3(0, 1, 0));
+	light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(70.0f), glm::vec3(1, 0, 0));
+	light->SetShadowCasting(true);
 
-	SceneNode* lightObject = mainScene->CreateNode(cameraObject);
-	Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 100.0, 2.0));
-
-	for (int i = 0; i < 4; i++) {
-		auto lanternObj = mainScene->CreateNode();
-		Light* lantern = lanternObj->AddObject<Light>(Light::PointLight(glm::vec3(1.0, 1.0, 1.0), 100.0, 2.0));
-
-		lantern->LocalTransform().Position() = glm::vec3{
-			-6 + (i % 2) * 12,
-			0,
-			-6 + (i / 2) * 12
-		};
-
-		auto vis = mainScene->CreateNode(lanternObj);
-		vis->LocalTransform().Scale() *= 0.1;
-		MeshRenderer* visRenderer = vis->AddObject<MeshRenderer>(cube, centerMat);
-	}
+	SceneNode* spotLightNode = mainScene->CreateNode();
+	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(1, 1, 1), glm::radians(45.0f), 10, 1));
+	spotLight->GlobalTransform().Position() = {-10.0f, 0.8f, -3.0f};
+	spotLight->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(10.0f), glm::vec3(1, 0, 0));
+	spotLight->SetShadowCasting(true);
 
 	auto skyboxObject = mainScene->CreateNode();
 	skyboxObject->AddObject<Skybox>(skyMat);
@@ -366,6 +328,7 @@ bool InitProgram() {
 	}
 
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_CULL_FACE);
 	
 	if (err) {
 		spdlog::error("Failed to initialize OpenGL loader!");

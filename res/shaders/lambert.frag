@@ -1,5 +1,13 @@
 #version 460
 
+in VS_OUT {
+	vec3 worldPos;
+	vec3 viewPos;
+	vec3 normal;
+	vec3 tangent;
+	vec2 texcoords;
+} ps_in;
+
 #include "shared/shared.h"
 #include "shared/uniforms.h"
 
@@ -8,13 +16,6 @@
 #define SHADING_FUNCTION shadeLambert
 
 #include "shared/light.h"
-
-in VS_OUT {
-	vec3 worldPos;
-	vec3 normal;
-	vec3 tangent;
-	vec2 texcoords;
-} ps_in;
 
 uniform sampler2D colorTex;
 uniform vec3 uColor;

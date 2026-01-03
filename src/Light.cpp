@@ -1,4 +1,5 @@
 #include <Light.h>
+#include <Resources.h>
 
 Light::PointLight::PointLight(const glm::vec3& color, float range, float intensity, float attenuation):
 color(color),
@@ -25,6 +26,7 @@ range(lightInfo.range),
 spotlightAngle(0),
 intensity(lightInfo.intensity),
 attenuation(lightInfo.attenuation),
+shadowCasting(false),
 savedTransform(GlobalTransform()) { }
 
 Light::Light(Light::SpotLight lightInfo):
@@ -35,6 +37,7 @@ range(lightInfo.range),
 spotlightAngle(lightInfo.spotlightAngle),
 intensity(lightInfo.intensity),
 attenuation(lightInfo.attenuation),
+shadowCasting(false),
 savedTransform(GlobalTransform()) { }
 
 Light::Light(Light::DirectionalLight lightInfo):
@@ -45,6 +48,7 @@ range(0),
 spotlightAngle(0),
 intensity(lightInfo.intensity),
 attenuation(0),
+shadowCasting(false),
 savedTransform(GlobalTransform()) { }
 
 void Light::Set(Light::PointLight lightInfo) {
@@ -98,6 +102,10 @@ float Light::GetAttenuation() const {
 	return this->attenuation;
 }
 
+bool Light::IsShadowCasting() const {
+	return this->shadowCasting;
+}
+
 void Light::SetType(Light::LightType type) {
 	this->type = type;
 
@@ -128,6 +136,12 @@ void Light::SetAttenuation(float attenuation) {
 	this->dirty = true;
 }
 
+void Light::SetShadowCasting(bool shadowCasting) {
+	this->shadowCasting = shadowCasting;
+	
+	this->dirty = true;
+}
+
 bool Light::IsDirty() const {
 	return this->dirty || (this->savedTransform != GlobalTransform().Value());
 }
@@ -150,3 +164,19 @@ ShaderLightRep Light::GetShaderRepresentation() const {
 
 	return result;
 }
+
+#if LIGHTS_DRAW_GIZMOS
+	void Light::Render() {
+		static ShaderProgram* gizmoProg = ShaderProgram::Build()
+		.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/lit.vert"))
+		.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/halo.frag"))
+		.Link();
+
+		static Mesh* gizmoMesh = Resources::Get<Mesh>("./res/models/arrow.obj");
+		static Material* gizmoMaterial = new Material(gizmoProg);
+		gizmoMaterial->SetValue("uColor", glm::vec3(0, 1, 0));
+
+
+		GetScene()->GetGraphics()->DrawMesh(gizmoMesh, 0, gizmoMaterial, GlobalTransform());
+	}
+#endif

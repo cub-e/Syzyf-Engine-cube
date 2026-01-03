@@ -12,6 +12,7 @@ class MeshRenderer;
 class Scene;
 class ComputeShaderDispatch;
 class Texture2D;
+class Light;
 
 // struct RenderBatch {
 // 	Mesh* mesh;
@@ -21,6 +22,7 @@ class Texture2D;
 
 class SceneGraphics {
 	friend class Scene;
+	friend class LightSystem;
 private:
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
@@ -37,8 +39,6 @@ private:
 	
 	glm::vec2 screenResolution;
 	
-	GLuint lightsBuffer;
-
 	GLuint depthPrepassFramebuffer;
 	GLuint depthPrepassDepthTexture;
 
@@ -49,6 +49,8 @@ private:
 
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms);
 	void RenderFullscreenFrameQuad();
+
+	void BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms);
 
 	void Render();
 public:

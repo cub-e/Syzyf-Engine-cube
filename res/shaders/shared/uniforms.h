@@ -44,6 +44,10 @@ UNIFORM_DECL(1) ShaderObjectUniforms
 #undef vec4
 #endif
 
+#ifdef vec3
+#undef vec3
+#endif
+
 #ifdef UNIFORM_DECL
 #undef UNIFORM_DECL
 #endif

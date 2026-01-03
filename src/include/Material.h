@@ -206,7 +206,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() const {
 	for (unsigned int i = 0; i < uniforms.StorageBuffersCount(); i++) {
 		auto storageBufferData = storageBuffers[i];
 
-		glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, storageBufferData.bufferHandle);
+		// glBindBufferBase(GL_SHADER_STORAGE_BUFFER, i, storageBufferData.bufferHandle);
 	}
 }
 

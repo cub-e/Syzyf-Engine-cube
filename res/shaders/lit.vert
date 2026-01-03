@@ -10,6 +10,7 @@ layout (IN_UV1) in vec2 vUVCoords;
 
 out VS_OUT {
 	vec3 worldPos;
+	vec3 viewPos;
 	vec3 normal;
 	vec3 tangent;
 	vec2 texcoords;
@@ -19,6 +20,7 @@ void main() {
 	gl_Position = Object_MVPMatrix * vec4(vPos, 1.0);
 
 	vs_out.worldPos = (Object_ModelMatrix * vec4(vPos, 1.0)).xyz;
+	vs_out.viewPos = (Global_ViewMatrix * (Object_ModelMatrix * vec4(vPos, 1.0))).xyz;
 	vs_out.normal = Object_NormalModelMatrix * vNormal;
 	vs_out.tangent = Object_NormalModelMatrix * vTangent;
 	vs_out.texcoords = vUVCoords;

@@ -17,7 +17,6 @@
 #include <GLFW/glfw3.h>
 
 #define LIGHT_GRID_SIZE 16
-#define MAX_NUM_LIGHTS 128
 
 static Texture2D* testTexture;
 
@@ -29,8 +28,7 @@ objectUniformsBuffer(0),
 depthPrepassFramebuffer(0),
 depthPrepassDepthTexture(0),
 colorPassFramebuffer(0),
-colorPassOutputTexture(0),
-lightsBuffer(0) {
+colorPassOutputTexture(0) {
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_DYNAMIC_DRAW);
@@ -43,13 +41,7 @@ lightsBuffer(0) {
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderObjectUniforms), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);	
-
-	glGenBuffers(1, &this->lightsBuffer);
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
-	glBufferData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * MAX_NUM_LIGHTS, nullptr, GL_DYNAMIC_DRAW);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
 }
 
 void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
@@ -125,6 +117,10 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		}
 
 		mat->Bind();
+
+		glActiveTexture(GL_TEXTURE31);
+		glBindTexture(GL_TEXTURE_2D, this->scene->GetLightSystem()->shadowAtlasDepthTexture);
+		glUniform1i(glGetUniformLocation(mat->GetShader()->handle, "shadowMask"), 31);
 		
 		glBindVertexArray(mesh->GetVertexArrayHandle());
 
@@ -136,8 +132,15 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		}
 
 		glBindVertexArray(0);
-		
 	}
+}
+
+void SceneGraphics::BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms) {
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
+
+	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
+	glBufferData(GL_UNIFORM_BUFFER, sizeof(globalUniforms), &globalUniforms, GL_DYNAMIC_DRAW);
+	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 }
 
 void SceneGraphics::Render() {
@@ -156,38 +159,9 @@ void SceneGraphics::Render() {
 	globalUniforms.Global_CameraWorldPos = glm::vec4(mainCamera->GlobalTransform().Position().value, 0.0);
 	globalUniforms.Global_Time = (float) glfwGetTime();
 
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
+	BindGlobalUniformBuffer(globalUniforms);
 
-	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
-	glBufferData(GL_UNIFORM_BUFFER, sizeof(globalUniforms), &globalUniforms, GL_DYNAMIC_DRAW);
-	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
-	
-	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.05};
-	std::vector<Light*> lightList = *this->scene->GetLightSystem()->GetAllObjects();
-
-	int lightIndex = 0;
-	for (const auto& l : lightList) {
-		if (lightIndex >= MAX_NUM_LIGHTS) {
-			break;
-		}
-
-		if (l->IsDirty()) {
-			ShaderLightRep rep = l->GetShaderRepresentation();
-	
-			glBufferSubData(GL_SHADER_STORAGE_BUFFER, 32 + sizeof(ShaderLightRep) * lightIndex, sizeof(rep), &rep);
-		}
-
-		lightIndex++;
-	}
-
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ambientLight), &ambientLight);
-	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightIndex), &lightIndex);
-
-	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
-
-	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->lightsBuffer);
+	glCullFace(GL_BACK);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->depthPrepassFramebuffer);
 

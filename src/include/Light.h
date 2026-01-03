@@ -4,6 +4,8 @@
 
 #include "../res/shaders/shared/shared.h"
 
+#define LIGHTS_DRAW_GIZMOS true
+
 class Light : public GameObject {
 public:
 	enum class LightType {
@@ -47,6 +49,8 @@ private:
 	float intensity;
 	float attenuation;
 
+	bool shadowCasting;
+
 	mutable glm::mat4 savedTransform;
 public:
 	Light(PointLight lightInfo);
@@ -63,14 +67,20 @@ public:
 	float GetSpotlightAngle() const;
 	float GetIntensity() const;
 	float GetAttenuation() const;
+	bool IsShadowCasting() const;
 
 	void SetType(LightType type);
 	void SetColor(const glm::vec3& color);
 	void SetRange(float range);
 	void SetIntensity(float intensity);
 	void SetAttenuation(float attenuation);
+	void SetShadowCasting(bool shadowCasting);
 
 	bool IsDirty() const;
+
+#if LIGHTS_DRAW_GIZMOS
+	void Render();
+#endif
 
 	ShaderLightRep GetShaderRepresentation() const;
 };
