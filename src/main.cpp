@@ -242,7 +242,7 @@ void InitScene() {
 	SceneNode* lightObject = mainScene->CreateNode();
 	Light* light = lightObject->AddObject<Light>(Light::DirectionalLight(glm::vec3(1, 1, 1), 1));
 	light->GlobalTransform().Position() = glm::zero<glm::vec3>();
-	light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(30.0f), glm::vec3(0, 1, 0));
+	// light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(30.0f), glm::vec3(0, 1, 0));
 	light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(70.0f), glm::vec3(1, 0, 0));
 	light->SetShadowCasting(true);
 

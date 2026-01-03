@@ -72,9 +72,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 				(lightViewPos.y + 1) * 0.5
 			);
 
-			if (uvLocal.x < 0 || uvLocal.x > 1 || uvLocal.y < 0 || uvLocal.y > 1) {
-				continue;
-			}
+			uvLocal = clamp(uvLocal, 0, 1);
 
 			vec2 uv = mix(mask.start, mask.end, uvLocal);
 

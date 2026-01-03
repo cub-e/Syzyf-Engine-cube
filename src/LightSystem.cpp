@@ -141,22 +141,9 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 			}
 		}
 		
-		low.y *= 1.2f;
+		glm::vec3 lightPos = frustumCenter;
 
-		float lightOffset = low.z - 1;
-
-		glm::vec3 lightPos = frustumCenter + light->GlobalTransform().Forward() * lightOffset;
-
-		globalUniforms.Global_ViewMatrix = glm::lookAt(
-			lightPos,
-			frustumCenter,
-			glm::vec3(0, 1, 0)
-		);
-
-		low.z -= lightOffset;
-		high.z -= lightOffset;
-
-		globalUniforms.Global_ProjectionMatrix = glm::ortho(low.x, high.x, low.y, high.y, low.z, high.z);
+		globalUniforms.Global_ProjectionMatrix = glm::ortho(low.x, high.x, low.y, high.y, low.z, high.z + 1.0f);
 		globalUniforms.Global_CameraWorldPos = lightPos;
 		globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
