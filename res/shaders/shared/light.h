@@ -6,7 +6,7 @@
 
 // #include "shared/shared.h"
 
-#define DIRECTIONAL_LIGHT_CASCADE_COUNT 4
+#define DIRECTIONAL_LIGHT_CASCADE_COUNT 6
 
 layout (std430, binding = 1) buffer LightInfo {
 	vec4 Light_AmbientLight;
@@ -47,11 +47,13 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 			continue;
 		}
 
+		float shadowAmount = 0.0;
+
 		if (l.shadowAtlasIndex >= 0) {
 			ShadowMapRegion mask = Light_ShadowMapRegions[l.shadowAtlasIndex];
 			vec3 lightDir = normalize(l.position - worldPos);
 
-			float pixelDepth = -ps_in.viewPos.z / 100.0;
+			float pixelDepth = -ps_in.viewPos.z / Global_CameraFarPlane;
 
 			uint index = 0;
 
@@ -67,24 +69,30 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 			lightViewPos /= lightViewPos.w;
 			lightViewPos.z = (lightViewPos.z + 1) * 0.5;
 
+			vec2 texelSize = 1.0 / (textureSize(shadowMask, 0) * (mask.end.x - mask.start.x));
+			float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
+
 			vec2 uvLocal = vec2(
 				(lightViewPos.x + 1) * 0.5,
 				(lightViewPos.y + 1) * 0.5
 			);
 
-			uvLocal = clamp(uvLocal, 0, 1);
+			for (int x = -1; x <= 1; x++) {
+				for (int y = -1; y <= 1; y++) {
+					vec2 uvOffset = clamp(uvLocal + vec2(x, y) * texelSize, 0, 1);
 
-			vec2 uv = mix(mask.start, mask.end, uvLocal);
+					vec2 uv = mix(mask.start, mask.end, uvOffset);
 
-			float shadowZ = texture(shadowMask, uv).x;
-			float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
+					float shadowZ = texture(shadowMask, uv).x;
 
-			if (lightViewPos.z > shadowZ + bias) {
-				continue;
+					shadowAmount += lightViewPos.z - bias > shadowZ ? 1.0 : 0.0; 
+				}
 			}
+
+			shadowAmount /= 9.0;
 		}
 
-		result += SHADING_FUNCTION(l, mat, worldPos, normal, tangent);
+		result += (1.0 - shadowAmount) * SHADING_FUNCTION(l, mat, worldPos, normal, tangent);
 	}
 
 	return result;

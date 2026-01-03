@@ -158,6 +158,9 @@ void SceneGraphics::Render() {
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_CameraWorldPos = glm::vec4(mainCamera->GlobalTransform().Position().value, 0.0);
 	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_CameraFarPlane = mainCamera->GetFarPlane();
+	globalUniforms.Global_CameraNearPlane = mainCamera->GetNearPlane();
+	globalUniforms.Global_CameraFov = mainCamera->GetFovRad();
 
 	BindGlobalUniformBuffer(globalUniforms);
 

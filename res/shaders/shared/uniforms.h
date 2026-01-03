@@ -24,6 +24,9 @@ UNIFORM_DECL(0) ShaderGlobalUniforms
 	mat4 Global_VPMatrix;
 	vec3 Global_CameraWorldPos;
 	float Global_Time;
+	float Global_CameraNearPlane;
+	float Global_CameraFarPlane;
+	float Global_CameraFov;
 };
 UNIFORM_DECL(1) ShaderObjectUniforms
 {

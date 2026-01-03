@@ -12,7 +12,7 @@
 constexpr int MAX_NUM_LIGHTS = 128;
 constexpr int SHADOW_MAP_ATLAS_SIZE = 4096;
 
-constexpr int DIRECTIONAL_LIGHT_CASCADE_COUNT = 4;
+constexpr int DIRECTIONAL_LIGHT_CASCADE_COUNT = 6;
 
 LightSystem::LightSystem(Scene* scene):
 GameObjectSystem<Light>(scene),
@@ -62,6 +62,9 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 	globalUniforms.Global_CameraWorldPos = light->GlobalTransform().Position();
 	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_CameraFarPlane = 0;
+	globalUniforms.Global_CameraNearPlane = 0;
+	globalUniforms.Global_CameraFov = 0;
 
 	shadowmapRect.viewTransform = globalUniforms.Global_VPMatrix;
 	
@@ -79,6 +82,9 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 	ShaderGlobalUniforms globalUniforms;
 	
 	globalUniforms.Global_Time = (float) glfwGetTime();
+	globalUniforms.Global_CameraFarPlane = 0;
+	globalUniforms.Global_CameraNearPlane = 0;
+	globalUniforms.Global_CameraFov = 0;
 	
 	Camera* mainCamera = Camera::GetMainCamera();
 	
@@ -118,7 +124,7 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 		for (int i = 0; i < 8; i++) {
 			glm::vec4 worldSpaceFrustumCorner = invFrustumMatrix * frustumCorners[i];
 			worldSpaceFrustumCorner /= worldSpaceFrustumCorner.w;
-			
+
 			glm::vec3 lightSpaceFrustumCorner = globalUniforms.Global_ViewMatrix * worldSpaceFrustumCorner;
 
 			if (lightSpaceFrustumCorner.x > high.x) {
@@ -196,6 +202,8 @@ void LightSystem::OnPostRender() {
 	}
 
 	ShadowMapRegion rects[shadowmapTexturesCount];
+
+	
 
 	int shadowMapIndex = 0;
 	int sizeDivisor = 1 << (int) (
