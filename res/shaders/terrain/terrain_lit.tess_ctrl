@@ -1,0 +1,60 @@
+#version 460
+
+layout (vertices=3) out;
+
+#include "shared/shared.h"
+#include "shared/uniforms.h"
+
+in VS_OUT {
+	vec3 worldPos;
+	vec3 viewPos;
+	vec3 normal;
+	vec3 tangent;
+	vec2 texcoords;
+	vec2 heightmapCoords;
+} vs_out[];
+
+out VS_OUT {
+	vec3 worldPos;
+	vec3 viewPos;
+	vec3 normal;
+	vec3 tangent;
+	vec2 texcoords;
+	vec2 heightmapCoords;
+} ps_in[];
+
+float calcTessLevel(float dist0, float dist1) {
+    float avgDistance = (dist0 + dist1) / 2.0;
+
+    if (avgDistance <= 2.0) {
+        return 10.0;
+    }
+    else if (avgDistance <= 5.0) {
+        return 7.0;
+    }
+    else {
+        return 3.0;
+    }
+} 
+
+void main() {
+	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
+
+	ps_in[gl_InvocationID] = vs_out[gl_InvocationID];
+
+	float vertDist0 = distance(Global_CameraWorldPos, ps_in[0].worldPos);
+	float vertDist1 = distance(Global_CameraWorldPos, ps_in[1].worldPos);
+	float vertDist2 = distance(Global_CameraWorldPos, ps_in[2].worldPos);
+
+	if (gl_InvocationID == 0) {
+//		gl_TessLevelOuter[0] = calcTessLevel(vertDist1, vertDist2);
+//		gl_TessLevelOuter[1] = calcTessLevel(vertDist2, vertDist0);
+//		gl_TessLevelOuter[2] = calcTessLevel(vertDist0, vertDist1);
+
+		gl_TessLevelOuter[0] = 64;
+		gl_TessLevelOuter[1] = 64;
+		gl_TessLevelOuter[2] = 64;
+
+		gl_TessLevelInner[0] = gl_TessLevelOuter[2];
+	}
+}

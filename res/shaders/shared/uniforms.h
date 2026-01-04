@@ -9,7 +9,7 @@
 #define mat4 glm::mat4
 #define mat3 glm::mat3x4
 #define vec3 alignas(glm::vec4) glm::vec3
-#define UNIFORM_DECL(bindingPoint) struct
+#define UNIFORM_DECL(bindingPoint) struct alignas(4 * sizeof(float))
 
 #else
 

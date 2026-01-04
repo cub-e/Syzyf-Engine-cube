@@ -1,0 +1,28 @@
+#version 460
+
+layout (triangles, equal_spacing, ccw)
+
+uniform sampler2D heightMap;
+
+in VS_OUT {
+	vec3 worldPos;
+	vec3 viewPos;
+	vec3 normal;
+	vec3 tangent;
+	vec2 texcoords;
+} vs_out[];
+
+out VS_OUT {
+	vec3 worldPos;
+	vec3 viewPos;
+	vec3 normal;
+	vec3 tangent;
+	vec2 texcoords;
+} ps_in;
+
+void main() {
+	float u = gl_TessCoord.x;
+	float v = gl_TessCoord.y;
+
+	vec2 t00 = vs_out.
+}

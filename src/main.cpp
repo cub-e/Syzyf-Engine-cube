@@ -157,6 +157,7 @@ void InitScene() {
 	).WithPixelShader(
 		Resources::Get<PixelShader>("./res/shaders/halo.frag")
 	).Link();
+	haloProg->SetCastsShadows(false);
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/skybox.vert")
@@ -165,6 +166,18 @@ void InitScene() {
 	).Link();
 
 	ShaderProgram* floorProg = ShaderProgram::Build().WithVertexShader(
+		Resources::Get<VertexShader>("./res/shaders/terrain/terrain_lit.vert")
+	).WithTessControlShader(
+		Resources::Get<TesselationControlShader>("./res/shaders/terrain/terrain_lit.tess_ctrl")
+	).WithTessEvaluationShader(
+		Resources::Get<TesselationEvaluationShader>("./res/shaders/terrain/terrain_lit.tess_eval")
+	).WithPixelShader(
+		Resources::Get<PixelShader>("./res/shaders/terrain/terrain_lit.frag")
+	).Link();
+	floorProg->SetCastsShadows(false);
+	floorProg->SetIgnoresDepthPrepass(true);
+
+	ShaderProgram* coloredProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
 		Resources::Get<PixelShader>("./res/shaders/lambert color.frag")
@@ -185,6 +198,12 @@ void InitScene() {
 	floorTex->SetWrapModeU(GL_REPEAT);
 	floorTex->SetWrapModeV(GL_REPEAT);
 
+	Texture2D* terrainDisplacementTex = Resources::Get<Texture2D>("./res/textures/terrain/Rugged Terrain Height Map PNG.png", TextureFormat::RGB);
+	terrainDisplacementTex->SetMagFilter(GL_LINEAR);
+	terrainDisplacementTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+	terrainDisplacementTex->SetWrapModeU(GL_REPEAT);
+	terrainDisplacementTex->SetWrapModeV(GL_REPEAT);
+
 	Texture2D* shadedTex = Resources::Get<Texture2D>("./res/testing/uwu.jpg", TextureFormat::RGB);
 
 	if (!shadedTex) {
@@ -195,17 +214,22 @@ void InitScene() {
 
 	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/skybox.jpg", TextureFormat::RGB);
 
-	Material* floorMat = new Material(meshProg);
+	Material* terrainMat = new Material(floorProg);
+	terrainMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
+	terrainMat->SetValue<Texture2D>("heightMap", terrainDisplacementTex);
+	terrainMat->SetValue<float>("heightMapScale", 0.4f);
+
+	Material* floorMat = new Material(coloredProg);
 	floorMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));
 	floorMat->SetValue<Texture2D>("colorTex", floorTex);
 
-	Material* shadeMat = new Material(floorProg);
+	Material* shadeMat = new Material(coloredProg);
 	shadeMat->SetValue<glm::vec3>("uColor", {0.0f, 0.8f, 0.0f});
 
-	Material* roomMat = new Material(floorProg);
+	Material* roomMat = new Material(coloredProg);
 	roomMat->SetValue<glm::vec3>("uColor", {0.8f, 0.8f, 0.0f});
 
-	Material* roomClutterMat = new Material(floorProg);
+	Material* roomClutterMat = new Material(coloredProg);
 	roomClutterMat->SetValue<glm::vec3>("uColor", {0.8f, 0.0f, 0.8f});
 
 	Material* centerMat = new Material(meshProg);
@@ -225,8 +249,13 @@ void InitScene() {
 	
 	auto floorObject = mainScene->CreateNode();
 	auto floorRenderer = floorObject->AddObject<MeshRenderer>(floorMesh, floorMat);
-	floorObject->LocalTransform().Scale() *= 100;
+	floorObject->LocalTransform().Scale() = glm::vec3(100, 1, 100);
 	floorObject->LocalTransform().Position() = {0, -1, 0};
+
+	auto terrainNode = mainScene->CreateNode();
+	auto terrainRenderer = terrainNode->AddObject<MeshRenderer>(floorMesh, terrainMat);
+	// terrainNode->LocalTransform().Scale() *= 0.5f;
+	terrainNode->LocalTransform().Position() = {-5.0f, -0.5f, -5.0f};
 
 	auto shadeNode = mainScene->CreateNode();
 	shadeNode->AddObject<MeshRenderer>(shadeMesh, shadeMat);

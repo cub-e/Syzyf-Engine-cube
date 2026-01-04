@@ -6,10 +6,13 @@
 #if LIGHTS_DRAW_GIZMOS
 ShaderProgram* GetGizmoShader() {
 	static ShaderProgram* gizmoProg = ShaderProgram::Build()
-		.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/lit.vert"))
-		.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/halo.frag"))
-		.Link();
+	.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/lit.vert"))
+	.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/halo.frag"))
+	.Link();
 	
+	gizmoProg->SetCastsShadows(false);
+	gizmoProg->SetIgnoresDepthPrepass(true);
+
 	return gizmoProg;
 }
 #endif

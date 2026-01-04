@@ -30,6 +30,12 @@ private:
 		const unsigned int instanceCount;
 		const glm::mat4 transformation;
 	};
+
+	enum class PassType {
+		DepthPrepass,
+		Shadows,
+		Color
+	};
 	
 	Scene* scene;
 
@@ -47,7 +53,7 @@ private:
 
 	SceneGraphics(Scene* scene);
 
-	void RenderObjects(const ShaderGlobalUniforms& globalUniforms);
+	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, PassType pass);
 	void RenderFullscreenFrameQuad();
 
 	void BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms);

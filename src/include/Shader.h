@@ -21,6 +21,13 @@ concept ShaderLike = requires(T a) {
 
 const fs::path BaseShaderPath{"./res/shaders"};
 
+enum class ShaderProgramFlags {
+	None = 0,
+	IgnoreDepthPrepass = 1,
+	DontCastShadows = 2,
+	UsePatches = 4
+};
+
 class ComputeShaderProgram {
 private:
 	ComputeShader* computeShader;
@@ -94,6 +101,26 @@ public:
 	virtual GLenum GetType() const;
 };
 
+class TesselationControlShader : public ShaderBase {
+	friend class ShaderBase;
+private:
+	TesselationControlShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
+public:
+	static TesselationControlShader* Load(fs::path filePath);
+
+	virtual GLenum GetType() const;
+};
+
+class TesselationEvaluationShader : public ShaderBase {
+	friend class ShaderBase;
+private:
+	TesselationEvaluationShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
+public:
+	static TesselationEvaluationShader* Load(fs::path filePath);
+
+	virtual GLenum GetType() const;
+};
+
 class PixelShader : public ShaderBase {
 	friend class ShaderBase;
 private:
@@ -118,10 +145,14 @@ class ShaderBuilder {
 public:
 	VertexShader* vertexShader;
 	GeometryShader* geometryShader;
+	TesselationEvaluationShader* tessEvalShader;
+	TesselationControlShader* tessCtrlShader;
 	PixelShader* pixelShader;
 	
 	ShaderBuilder& WithVertexShader(VertexShader* vertexShader);
 	ShaderBuilder& WithGeometryShader(GeometryShader* geometryShader);
+	ShaderBuilder& WithTessEvaluationShader(TesselationEvaluationShader* tessEvalShader);
+	ShaderBuilder& WithTessControlShader(TesselationControlShader* tessCtrlShader);
 	ShaderBuilder& WithPixelShader(PixelShader* pixelShader);
 
 	ShaderProgram* Link();
@@ -135,6 +166,7 @@ private:
 	GeometryShader* geometryShader;
 	PixelShader* pixelShader;
 	UniformSpec uniforms;
+	ShaderProgramFlags flags;
 
 	GLuint handle;
 
@@ -145,6 +177,13 @@ public:
 	GLuint GetHandle() const;
 	const UniformSpec& GetUniforms() const;
 	const VertexSpec& GetVertexSpec() const;
+
+	bool IgnoresDepthPrepass() const;
+	bool CastsShadows() const;
+	bool UsesPatches() const;
+
+	void SetIgnoresDepthPrepass(bool ignores);
+	void SetCastsShadows(bool casts);
 };
 
 class ComputeShaderDispatch {

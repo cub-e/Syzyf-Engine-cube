@@ -68,6 +68,12 @@ char* LoadFile(const fs::path& filePath, GLenum& shaderType) {
 	else if (filePath.extension() == ".geom") {
 		shaderType = GL_GEOMETRY_SHADER;
 	}
+	else if (filePath.extension() == ".tess_eval") {
+		shaderType = GL_TESS_EVALUATION_SHADER;
+	}
+	else if (filePath.extension() == ".tess_ctrl") {
+		shaderType = GL_TESS_CONTROL_SHADER;
+	}
 	else if (filePath.extension() == ".comp") {
 		shaderType = GL_COMPUTE_SHADER;
 	}
@@ -130,6 +136,12 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	}
 	else if (filePath.extension() == ".geom") {
 		shaderType = GL_GEOMETRY_SHADER;
+	}
+	else if (filePath.extension() == ".tess_eval") {
+		shaderType = GL_TESS_EVALUATION_SHADER;
+	}
+	else if (filePath.extension() == ".tess_ctrl") {
+		shaderType = GL_TESS_CONTROL_SHADER;
 	}
 	else if (filePath.extension() == ".comp") {
 		shaderType = GL_COMPUTE_SHADER;
@@ -271,6 +283,12 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	else if (shaderType == GL_GEOMETRY_SHADER) {
 		result = new GeometryShader(filePath, {}, shaderHandle);
 	}
+	else if (filePath.extension() == ".tess_eval") {
+		result = new TesselationEvaluationShader(filePath, {}, shaderHandle);
+	}
+	else if (filePath.extension() == ".tess_ctrl") {
+		result = new TesselationControlShader(filePath, {}, shaderHandle);
+	}
 	else if (shaderType == GL_COMPUTE_SHADER) {
 		result = new ComputeShader(filePath, {}, shaderHandle);
 	}
@@ -351,6 +369,48 @@ GLenum GeometryShader::GetType() const {
 	return GL_GEOMETRY_SHADER;
 }
 
+TesselationEvaluationShader::TesselationEvaluationShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
+ShaderBase(filePath, variantInfo, handle) { }
+
+TesselationEvaluationShader* TesselationEvaluationShader::Load(fs::path filePath) {
+	ShaderBase* loaded = ShaderBase::Load(filePath);
+
+	TesselationEvaluationShader* result = dynamic_cast<TesselationEvaluationShader*>(loaded);
+
+	if (!result) {
+		delete loaded;
+
+		return nullptr;
+	}
+	
+	return result;
+}
+
+GLenum TesselationEvaluationShader::GetType() const {
+	return GL_TESS_EVALUATION_SHADER;
+}
+
+TesselationControlShader::TesselationControlShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
+ShaderBase(filePath, variantInfo, handle) { }
+
+TesselationControlShader* TesselationControlShader::Load(fs::path filePath) {
+	ShaderBase* loaded = ShaderBase::Load(filePath);
+
+	TesselationControlShader* result = dynamic_cast<TesselationControlShader*>(loaded);
+
+	if (!result) {
+		delete loaded;
+
+		return nullptr;
+	}
+	
+	return result;
+}
+
+GLenum TesselationControlShader::GetType() const {
+	return GL_TESS_CONTROL_SHADER;
+}
+
 PixelShader::PixelShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
 
@@ -405,6 +465,17 @@ ShaderBuilder& ShaderBuilder::WithGeometryShader(GeometryShader* geometryShader)
 	return *this;
 }
 
+ShaderBuilder& ShaderBuilder::WithTessEvaluationShader(TesselationEvaluationShader* tessEvalShader) {
+	this->tessEvalShader = tessEvalShader;
+
+	return *this;
+}
+ShaderBuilder& ShaderBuilder::WithTessControlShader(TesselationControlShader* tessCtrlShader) {
+	this->tessCtrlShader = tessCtrlShader;
+
+	return *this;
+}
+
 ShaderBuilder& ShaderBuilder::WithPixelShader(PixelShader* pixelShader) {
 	this->pixelShader = pixelShader;
 
@@ -417,16 +488,16 @@ ShaderProgram* ShaderBuilder::Link() {
 	assert(this->vertexShader);
 	assert(this->pixelShader);
 
-	if (this->vertexShader) {
-		glAttachShader(programHandle, this->vertexShader->GetHandle());
-	}
-
+	glAttachShader(programHandle, this->vertexShader->GetHandle());
+	glAttachShader(programHandle, this->pixelShader->GetHandle());
+	
 	if (this->geometryShader) {
 		glAttachShader(programHandle, this->geometryShader->GetHandle());
 	}
-
-	if (this->pixelShader) {
-		glAttachShader(programHandle, this->pixelShader->GetHandle());
+	
+	if (this->tessCtrlShader && this->tessEvalShader) {
+		glAttachShader(programHandle, this->tessEvalShader->GetHandle());
+		glAttachShader(programHandle, this->tessCtrlShader->GetHandle());
 	}
 
 	glLinkProgram(programHandle);
@@ -441,12 +512,21 @@ ShaderProgram* ShaderBuilder::Link() {
 		spdlog::error("Error linking shader:\n{}", compileMsg);
 	}
 
-	return new ShaderProgram(
+	ShaderProgram* prog = new ShaderProgram(
 		this->vertexShader,
 		this->geometryShader,
 		this->pixelShader,
 		programHandle
 	);
+
+	if (this->tessCtrlShader && this->tessEvalShader) {
+		prog->flags = ShaderProgramFlags::UsePatches;
+	}
+	else {
+		prog->flags = ShaderProgramFlags::None;
+	}
+
+	return prog;
 }
 
 ShaderProgram::ShaderProgram(VertexShader* vertexShader, GeometryShader* geometryShader, PixelShader* pixelShader, GLuint handle):
@@ -470,6 +550,40 @@ const UniformSpec& ShaderProgram::GetUniforms() const {
 }
 const VertexSpec& ShaderProgram::GetVertexSpec() const {
 	return this->vertexShader->GetVertexSpec();
+}
+
+bool ShaderProgram::IgnoresDepthPrepass() const {
+	return ((unsigned int) this->flags & (unsigned int) ShaderProgramFlags::IgnoreDepthPrepass) != 0;
+}
+
+bool ShaderProgram::CastsShadows() const {
+	return ((unsigned int) this->flags & (unsigned int) ShaderProgramFlags::DontCastShadows) == 0;
+}
+
+bool ShaderProgram::UsesPatches() const {
+	return ((unsigned int) this->flags & (unsigned int) ShaderProgramFlags::UsePatches) != 0;
+}
+
+void ShaderProgram::SetIgnoresDepthPrepass(bool ignores) {
+	unsigned int temp = (unsigned int) ShaderProgramFlags::IgnoreDepthPrepass;
+	temp = ~temp;
+
+	temp = (unsigned int) this->flags & temp;
+
+	temp |= (unsigned int) ShaderProgramFlags::IgnoreDepthPrepass * ignores;
+
+	this->flags = (ShaderProgramFlags) temp;
+}
+
+void ShaderProgram::SetCastsShadows(bool casts) {
+	unsigned int temp = (unsigned int) ShaderProgramFlags::DontCastShadows;
+	temp = ~temp;
+
+	temp = (unsigned int) this->flags & temp;
+
+	temp |= (unsigned int) ShaderProgramFlags::DontCastShadows * !casts;
+
+	this->flags = (ShaderProgramFlags) temp;
 }
 
 ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {

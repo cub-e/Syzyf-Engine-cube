@@ -72,7 +72,7 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 	
 	glViewport(shadowmapRect.start.x, shadowmapRect.start.y, shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y);
 	
-	GetScene()->GetGraphics()->RenderObjects(globalUniforms);
+	GetScene()->GetGraphics()->RenderObjects(globalUniforms, SceneGraphics::PassType::Shadows);
 
 	shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
 	shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
@@ -161,7 +161,7 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 		
 		glViewport(shadowmapRect.start.x, shadowmapRect.start.y, shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y);
 		
-		GetScene()->GetGraphics()->RenderObjects(globalUniforms);
+		GetScene()->GetGraphics()->RenderObjects(globalUniforms, SceneGraphics::PassType::Shadows);
 
 		shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
 		shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
@@ -203,7 +203,7 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 		
 		glViewport(shadowmapRect.start.x, shadowmapRect.start.y, shadowmapRect.end.x - shadowmapRect.start.x, shadowmapRect.end.y - shadowmapRect.start.y);
 		
-		GetScene()->GetGraphics()->RenderObjects(globalUniforms);
+		GetScene()->GetGraphics()->RenderObjects(globalUniforms, SceneGraphics::PassType::Shadows);
 	
 		shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
 		shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;

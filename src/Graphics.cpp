@@ -96,10 +96,25 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 	}
 }
 
-void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
+void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, SceneGraphics::PassType pass) {
 	ShaderObjectUniforms objectUniforms;
 
 	for (auto node : this->currentRenders) {
+		const Mesh::SubMesh* mesh = node.mesh;
+		const Material* mat = node.material;
+
+		if (!mat) {
+			continue;
+		}
+
+		if (mat->GetShader()->IgnoresDepthPrepass() && pass == PassType::DepthPrepass) {
+			continue;
+		}
+
+		if (!mat->GetShader()->CastsShadows() && pass == PassType::Shadows) {
+			continue;
+		}
+
 		objectUniforms.Object_ModelMatrix = node.transformation;
 		objectUniforms.Object_MVPMatrix = globalUniforms.Global_VPMatrix * objectUniforms.Object_ModelMatrix;
 		objectUniforms.Object_NormalModelMatrix = glm::transpose(glm::inverse(glm::mat3(objectUniforms.Object_ModelMatrix)));
@@ -107,14 +122,6 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-		const Mesh::SubMesh* mesh = node.mesh;
-		
-		const Material* mat = node.material;
-
-		if (!mat) {
-			continue;
-		}
 
 		mat->Bind();
 
@@ -124,11 +131,27 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms) {
 		
 		glBindVertexArray(mesh->GetVertexArrayHandle());
 
-		if (node.instanceCount <= 0) {
-			glDrawElements(mesh->GetDrawMode(), mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+		if (mat->GetShader()->UsesPatches()) {
+			glPatchParameteri(GL_PATCH_VERTICES, (int) mesh->GetType());
+
+			// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+
+			if (node.instanceCount <= 0) {
+				glDrawElements(GL_PATCHES, mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+			}
+			else {
+				glDrawElementsInstanced(GL_PATCHES, mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, node.instanceCount);
+			}
+
+			// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 		else {
-			glDrawElementsInstanced(mesh->GetDrawMode(), mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, node.instanceCount);
+			if (node.instanceCount <= 0) {
+				glDrawElements(mesh->GetDrawMode(), mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+			}
+			else {
+				glDrawElementsInstanced(mesh->GetDrawMode(), mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, node.instanceCount);
+			}
 		}
 
 		glBindVertexArray(0);
@@ -172,13 +195,13 @@ void SceneGraphics::Render() {
 
 	glDepthFunc(GL_LESS);
 
-	RenderObjects(globalUniforms);
+	RenderObjects(globalUniforms, PassType::DepthPrepass);
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer);
 
 	glDepthFunc(GL_LEQUAL);
 
-	RenderObjects(globalUniforms);
+	RenderObjects(globalUniforms, PassType::Color);
 
 	Skybox* sky = Skybox::GetCurrentSkybox();
 

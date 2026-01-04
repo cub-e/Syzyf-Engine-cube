@@ -1,0 +1,74 @@
+#version 460
+
+#include "shared/shared.h"
+#include "shared/uniforms.h"
+
+layout (triangles, equal_spacing, ccw) in;
+
+uniform float heightMapScale;
+uniform sampler2D heightMap;
+
+in VS_OUT {
+	vec3 worldPos;
+	vec3 viewPos;
+	vec3 normal;
+	vec3 tangent;
+	vec2 texcoords;
+	vec2 heightmapCoords;
+} vs_out[];
+
+out VS_OUT {
+	vec3 worldPos;
+	vec3 viewPos;
+	vec3 normal;
+	vec3 tangent;
+	vec2 texcoords;
+	vec2 heightmapCoords;
+} ps_in;
+
+vec2 interpolate2D(vec2 v0, vec2 v1, vec2 v2) {
+    return vec2(gl_TessCoord.x) * v0 + vec2(gl_TessCoord.y) * v1 + vec2(gl_TessCoord.z) * v2;
+}
+
+vec3 interpolate3D(vec3 v0, vec3 v1, vec3 v2) {
+    return vec3(gl_TessCoord.x) * v0 + vec3(gl_TessCoord.y) * v1 + vec3(gl_TessCoord.z) * v2;
+}
+
+vec3 orthogonal(vec3 base) {
+	if (abs(base.x) < abs(base.y) && abs(base.x) < abs(base.z)) {
+		return vec3(0, -base.z, base.y);
+	}
+	else if (abs(base.y) < abs(base.z)) {
+		return vec3(-base.z, 0, base.x);
+	}
+	else {
+		return vec3(-base.y, base.x, 0);
+	}
+}
+
+float getHeightAt(vec2 uv) {
+	return texture(heightMap, uv).x;
+}
+
+void main() {
+	float u = gl_TessCoord.x;
+	float v = gl_TessCoord.y;
+
+	vec3 vPos = interpolate3D(vs_out[0].worldPos, vs_out[1].worldPos, vs_out[2].worldPos);
+	vec2 vTextureCoords = interpolate2D(vs_out[0].texcoords, vs_out[1].texcoords, vs_out[2].texcoords);
+	vec3 vNormal = normalize(interpolate3D(vs_out[0].normal, vs_out[1].normal, vs_out[2].normal));
+	vec3 vTangent = normalize(interpolate3D(vs_out[0].tangent, vs_out[1].tangent, vs_out[2].tangent));
+	vec2 vHeightmapCoords = interpolate2D(vs_out[0].heightmapCoords, vs_out[1].heightmapCoords, vs_out[2].heightmapCoords);
+
+	float height = getHeightAt(vTextureCoords);
+	vPos += vNormal * (heightMapScale * height);
+
+	ps_in.worldPos = (Object_ModelMatrix * vec4(vPos, 1.0)).xyz;
+	ps_in.viewPos = (Global_ViewMatrix * (Object_ModelMatrix * vec4(vPos, 1.0))).xyz;
+	ps_in.normal = Object_NormalModelMatrix * vNormal;
+	ps_in.tangent = Object_NormalModelMatrix * vTangent;
+	ps_in.texcoords = vTextureCoords;
+	ps_in.heightmapCoords = vec2(height, 0);
+
+	gl_Position = Object_MVPMatrix * vec4(vPos, 1.0);
+}
