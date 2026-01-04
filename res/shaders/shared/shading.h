@@ -21,7 +21,7 @@ vec3 shadeLambert(in Light light, in Material mat, in vec3 worldPos, in vec3 nor
 
 #ifdef SHADING_PHONG
 
-#define SHADING_FUNCTION shadeLambert
+#define SHADING_FUNCTION shadePhong
 
 struct Material {
 	vec3 diffuseColor;
