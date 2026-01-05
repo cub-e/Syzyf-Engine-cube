@@ -172,7 +172,7 @@ public:
 			this->starMesh,
 			0,
 			this->starMaterial,
-			glm::zero<glm::mat4>(),
+			this->GlobalTransform(),
 			this->starCount
 		);
 	}
@@ -309,18 +309,16 @@ void InitScene() {
 	auto notCubeNode = mainScene->CreateNode();
 	notCubeNode->GlobalTransform().Position() = glm::zero<glm::vec3>();
 	MeshRenderer* centerRenderer = notCubeNode->AddObject<MeshRenderer>(cube, centerMat);
+	notCubeNode->AddObject<AutoRotator>(0.1f);
 
 	auto cameraObject = mainScene->CreateNode();
 	Camera* camera = cameraObject->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 1.0f, 100.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
 	cameraObject->AddObject<Mover>();
 
-	// SceneNode* lightObject = mainScene->CreateNode();
-	// Light* light = lightObject->AddObject<Light>(Light::DirectionalLight(glm::vec3(1, 1, 1), 0.3));
-	// light->GlobalTransform().Position() = glm::zero<glm::vec3>();
-	// light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(30.0f), glm::vec3(0, 1, 0));
-	// light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(70.0f), glm::vec3(1, 0, 0));
-	// light->SetShadowCasting(true);
+	SceneNode* lightObject = mainScene->CreateNode();
+	Light* light = lightObject->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 10, 0.5));
+	light->GlobalTransform().Position() = glm::vec3(0, 0, -2);
 
 	SceneNode* spotLightNode = mainScene->CreateNode();
 	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(0, 0, 1), glm::radians(45.0f), 10, 1));
@@ -333,8 +331,8 @@ void InitScene() {
 	pointLight->GlobalTransform().Position() = {5.0f, -0.2f, -1.0f};
 	pointLight->SetShadowCasting(true);
 	
-	auto skyboxObject = mainScene->CreateNode();
-	skyboxObject->AddObject<Stars>(10000);
+	auto skyboxObject = mainScene->CreateNode(notCubeNode);
+	skyboxObject->AddObject<Stars>(1000);
 	// skyboxObject->AddObject<Skybox>(skyMat);
 }
 

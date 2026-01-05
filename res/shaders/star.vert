@@ -33,11 +33,11 @@ void main() {
 	rotation[1] = vec3(0, 1, 0);
 	rotation[2] = vec3(sin(rotationAngle), 0, cos(rotationAngle));
 
-	vec3 rotatedPos = rotation * vPos;
+	vec3 rotatedPos = (rotation * vPos) + randomDisplacement;
 
-	gl_Position = Global_VPMatrix * vec4(rotatedPos + randomDisplacement, 1.0);
-	pNormal = rotatedPos * vNormal;
-	pWorldPos = rotatedPos + randomDisplacement;
+	gl_Position = Object_MVPMatrix * vec4(rotatedPos, 1);
+	pNormal = (Object_ModelMatrix * vec4(rotation * vNormal, 0)).xyz;
+	pWorldPos = (Object_ModelMatrix * vec4(rotatedPos, 1)).xyz;
 	gl_Position.z = clamp(gl_Position.z, -1.0, 1.0);
 	gl_Position.z *= gl_Position.z;
 }
