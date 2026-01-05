@@ -134,16 +134,12 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Sc
 		if (mat->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) mesh->GetType());
 
-			// glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-
 			if (node.instanceCount <= 0) {
 				glDrawElements(GL_PATCHES, mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 			}
 			else {
 				glDrawElementsInstanced(GL_PATCHES, mesh->GetVertexCount(), GL_UNSIGNED_INT, nullptr, node.instanceCount);
 			}
-
-			// glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 		}
 		else {
 			if (node.instanceCount <= 0) {

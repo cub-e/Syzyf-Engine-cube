@@ -216,7 +216,7 @@ void LightSystem::OnPostRender() {
 
 	glCullFace(GL_FRONT);
 
-	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.05};
+	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.15};
 
 	int shadowmapTexturesCount = 0;
 

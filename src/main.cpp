@@ -145,6 +145,39 @@ public:
 	}
 };
 
+class Stars : public GameObject {
+private:
+	Mesh* starMesh;
+	Material* starMaterial;
+	int starCount;
+public:
+	Stars(int starCount = 1000) {
+		this->starMesh = Resources::Get<Mesh>("./res/models/star.obj");
+		
+		ShaderProgram* starProgram = ShaderProgram::Build()
+		.WithVertexShader(
+			Resources::Get<VertexShader>("./res/shaders/star.vert")
+		).WithPixelShader(
+			Resources::Get<PixelShader>("./res/shaders/star.frag")
+		).Link();
+		starProgram->SetIgnoresDepthPrepass(true);
+		starProgram->SetCastsShadows(false);
+
+		this->starMaterial = new Material(starProgram);
+		this->starCount = starCount;
+	}
+
+	void Render() {
+		GetScene()->GetGraphics()->DrawMeshInstanced(
+			this->starMesh,
+			0,
+			this->starMaterial,
+			glm::zero<glm::mat4>(),
+			this->starCount
+		);
+	}
+};
+
 void InitScene() {
 	ShaderProgram* meshProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/lit.vert")
@@ -282,12 +315,12 @@ void InitScene() {
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 0.0f, -10.0f);
 	cameraObject->AddObject<Mover>();
 
-	SceneNode* lightObject = mainScene->CreateNode();
-	Light* light = lightObject->AddObject<Light>(Light::DirectionalLight(glm::vec3(1, 1, 1), 0.3));
-	light->GlobalTransform().Position() = glm::zero<glm::vec3>();
-	light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(30.0f), glm::vec3(0, 1, 0));
-	light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(70.0f), glm::vec3(1, 0, 0));
-	light->SetShadowCasting(true);
+	// SceneNode* lightObject = mainScene->CreateNode();
+	// Light* light = lightObject->AddObject<Light>(Light::DirectionalLight(glm::vec3(1, 1, 1), 0.3));
+	// light->GlobalTransform().Position() = glm::zero<glm::vec3>();
+	// light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(30.0f), glm::vec3(0, 1, 0));
+	// light->GlobalTransform().Rotation() *= glm::angleAxis(glm::radians(70.0f), glm::vec3(1, 0, 0));
+	// light->SetShadowCasting(true);
 
 	SceneNode* spotLightNode = mainScene->CreateNode();
 	Light* spotLight = spotLightNode->AddObject<Light>(Light::SpotLight(glm::vec3(0, 0, 1), glm::radians(45.0f), 10, 1));
@@ -299,8 +332,9 @@ void InitScene() {
 	Light* pointLight = pointLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 1));
 	pointLight->GlobalTransform().Position() = {5.0f, -0.2f, -1.0f};
 	pointLight->SetShadowCasting(true);
-
-	// auto skyboxObject = mainScene->CreateNode();
+	
+	auto skyboxObject = mainScene->CreateNode();
+	skyboxObject->AddObject<Stars>(10000);
 	// skyboxObject->AddObject<Skybox>(skyMat);
 }
 
