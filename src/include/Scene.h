@@ -416,9 +416,10 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	TryCreateRenderable(created);
 
 	for (SceneComponent* component : this->components) {
-		GameObjectSystem<T_GO>* sys = dynamic_cast<GameObjectSystem<T_GO>*>(component);
 
-		if (sys) {
+		GameObjectSystemBase* sys = dynamic_cast<GameObjectSystemBase*>(component);
+
+		if (sys && sys->ValidObject(created)) {
 			sys->RegisterObject(created);
 		}
 	}

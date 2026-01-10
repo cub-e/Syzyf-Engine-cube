@@ -1,0 +1,23 @@
+#version 460
+
+#define BLOOM_STRENGTH 0.1
+#define EXPOSURE 2
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) uniform image2D frameTex;
+layout(rgba32f, binding = 1) uniform image2D bloomTex;
+layout(rgba32f, binding = 2) uniform image2D resultTex;
+
+vec3 mixBloom() {
+	vec3 hdrColor = imageLoad(frameTex, ivec2(gl_GlobalInvocationID.xy)).xyz;
+	vec3 bloomColor = imageLoad(bloomTex, ivec2(gl_GlobalInvocationID.xy)).xyz;
+
+	return mix(hdrColor, bloomColor, BLOOM_STRENGTH);
+}
+
+void main() {
+	vec3 result = mixBloom();
+
+	imageStore(resultTex, ivec2(gl_GlobalInvocationID.xy), vec4(result, 1.0));
+}

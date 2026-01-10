@@ -196,6 +196,10 @@ LightSystem* Scene::GetLightSystem() {
 	return this->lightSystem;
 }
 
+PostProcessingSystem* Scene::GetPostProcessing() {
+	return this->postProcessing;
+}
+
 void Scene::DeleteObject(GameObject* obj) {
 	delete obj;
 }

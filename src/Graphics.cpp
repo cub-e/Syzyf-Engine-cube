@@ -10,6 +10,7 @@
 #include <Light.h>
 #include <Texture.h>
 #include <LightSystem.h>
+#include <PostProcessingSystem.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -44,6 +45,10 @@ colorPassOutputTexture(0) {
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
 }
 
+glm::vec2 SceneGraphics::GetScreenResolution() const {
+	return this->screenResolution;
+}
+
 void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 	if (this->screenResolution != newResolution) {
 		this->screenResolution = newResolution;
@@ -68,7 +73,7 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, newResolution.x, newResolution.y, 0,  GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
 		
 		glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, newResolution.x, newResolution.y, 0,  GL_RGBA, GL_UNSIGNED_BYTE, nullptr);		
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, newResolution.x, newResolution.y, 0,  GL_RGBA, GL_FLOAT, nullptr);		
 
 		glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -93,6 +98,10 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 		}
 		
 		testTexture = new Texture2D(this->screenResolution.x, this->screenResolution.y, TextureFormat::RGFloat);
+
+		if (this->scene->GetPostProcessing()) {
+			this->scene->GetPostProcessing()->UpdateBufferResolution(newResolution);
+		}
 	}
 }
 
@@ -210,6 +219,39 @@ void SceneGraphics::Render() {
 		sky->GetSKyMaterial()->Bind();
 		glBindVertexArray(sky->GetSkyMesh()->SubMeshAt(0).GetVertexArrayHandle());
 		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
+	}
+
+	PostProcessingSystem* postProcess = this->scene->GetPostProcessing();
+
+	Texture2D frameTex = Texture::Wrap<Texture2D>(this->colorPassOutputTexture);
+	Texture2D frameDepth = Texture::Wrap<Texture2D>(this->depthPrepassDepthTexture);
+	Texture2D postProcessBuffer = Texture::Wrap<Texture2D>(postProcess->GetPostProcessBuffer());
+	
+	PostProcessParams postProcessParams;
+	postProcessParams.inputTexture = &postProcessBuffer;
+	postProcessParams.outputTexture = &frameTex;
+	postProcessParams.depthTexture = &frameDepth;
+	
+	for (auto* effect : *postProcess->GetAllObjects()) {
+		glCopyImageSubData(
+			this->colorPassOutputTexture,
+			GL_TEXTURE_2D,
+			0,
+			0,
+			0,
+			0,
+			postProcess->GetPostProcessBuffer(),
+			GL_TEXTURE_2D,
+			0,
+			0,
+			0,
+			0,
+			this->screenResolution.x,
+			this->screenResolution.y,
+			1
+		);
+
+		effect->OnPostProcess(&postProcessParams);
 	}
 
 	RenderFullscreenFrameQuad();

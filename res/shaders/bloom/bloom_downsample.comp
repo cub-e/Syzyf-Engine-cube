@@ -1,0 +1,54 @@
+#version 460
+
+layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(rgba32f, binding = 0) uniform image2D imgInput;
+layout(rgba32f, binding = 1) uniform image2D imgOutput;
+
+vec4 bilinear(ivec2 pos, ivec2 inputRes) {
+	vec4 _00 = imageLoad(imgInput, clamp(ivec2(pos.x + 0, pos.y + 0), ivec2(0, 0), inputRes - 1));
+	vec4 _10 = imageLoad(imgInput, clamp(ivec2(pos.x + 1, pos.y + 0), ivec2(0, 0), inputRes - 1));
+	vec4 _01 = imageLoad(imgInput, clamp(ivec2(pos.x + 0, pos.y + 1), ivec2(0, 0), inputRes - 1));
+	vec4 _11 = imageLoad(imgInput, clamp(ivec2(pos.x + 1, pos.y + 1), ivec2(0, 0), inputRes - 1));
+
+	return mix(
+		mix(_00, _10, 0.5),
+		mix(_01, _11, 0.5),
+		0.5
+	);
+}
+
+void main() {
+	ivec2 inputRes = imageSize(imgInput);
+	ivec2 outputRes = imageSize(imgOutput);
+
+	if (gl_GlobalInvocationID.x >= outputRes.x || gl_GlobalInvocationID.y >= outputRes.y) {
+		return;
+	}
+
+	ivec2 inputUV = ivec2(gl_GlobalInvocationID * 2);
+
+	vec3 a = bilinear(ivec2(inputUV.x - 2, inputUV.y + 2), inputRes).rgb;
+	vec3 b = bilinear(ivec2(inputUV.x - 0, inputUV.y + 2), inputRes).rgb;
+	vec3 c = bilinear(ivec2(inputUV.x + 2, inputUV.y + 2), inputRes).rgb;
+
+	vec3 d = bilinear(ivec2(inputUV.x - 2, inputUV.y + 0), inputRes).rgb;
+	vec3 e = bilinear(ivec2(inputUV.x - 0, inputUV.y + 0), inputRes).rgb;
+	vec3 f = bilinear(ivec2(inputUV.x + 2, inputUV.y + 0), inputRes).rgb;
+
+	vec3 g = bilinear(ivec2(inputUV.x - 2, inputUV.y - 2), inputRes).rgb;
+	vec3 h = bilinear(ivec2(inputUV.x - 0, inputUV.y - 2), inputRes).rgb;
+	vec3 i = bilinear(ivec2(inputUV.x + 2, inputUV.y - 2), inputRes).rgb;
+
+	vec3 j = bilinear(ivec2(inputUV.x - 1, inputUV.y + 1), inputRes).rgb;
+	vec3 k = bilinear(ivec2(inputUV.x + 1, inputUV.y + 1), inputRes).rgb;
+	vec3 l = bilinear(ivec2(inputUV.x - 1, inputUV.y - 1), inputRes).rgb;
+	vec3 m = bilinear(ivec2(inputUV.x + 1, inputUV.y - 1), inputRes).rgb;
+
+	vec3 downsample = e*0.125;
+	downsample += (a+c+g+i)*0.03125;
+	downsample += (b+d+f+h)*0.0625;
+	downsample += (j+k+l+m)*0.125;
+
+	imageStore(imgOutput, ivec2(gl_GlobalInvocationID.xy), vec4(downsample, 1.0));
+}

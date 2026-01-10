@@ -15,7 +15,7 @@ void main() {
 
 	float shadow = clamp(0.0, 1.0, dot(normalize(pNormal), cameraDirection) * 3.6);
 
-	fragColor *= mix(0.15, 1.01, pow(shadow - 1.0, 3.0) + 1.0);
+	fragColor *= mix(0.15, 10.0, pow(shadow - 1.0, 3.0) + 1.0);
 
 	gl_FragDepth = 0.9999;
 }

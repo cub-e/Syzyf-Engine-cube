@@ -60,6 +60,7 @@ private:
 
 	void Render();
 public:
+	glm::vec2 GetScreenResolution() const;
 	void UpdateScreenResolution(glm::vec2 newResolution);
 	
 	void DrawMesh(MeshRenderer* renderer);

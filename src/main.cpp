@@ -25,6 +25,7 @@
 #include <Skybox.h>
 #include <Resources.h>
 #include <Light.h>
+#include <Bloom.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -375,8 +376,10 @@ void InitScene() {
 	terrainLight->GlobalTransform().Scale() *= 0.3f;
 	
 	auto skyboxObject = mainScene->CreateNode(notCubeNode);
-	skyboxObject->AddObject<Stars>(1000);
+	skyboxObject->AddObject<Stars>(5000);
 	// skyboxObject->AddObject<Skybox>(skyMat);
+
+	// cameraObject->AddObject<Bloom>();
 }
 
 int main(int, char**) {

@@ -218,7 +218,7 @@ ShaderLightRep Light::GetShaderRepresentation() const {
 		static Mesh* spotGizmoMesh = Resources::Get<Mesh>("./res/models/spot_gizmo.obj");
 		static Mesh* pointGizmoMesh = Resources::Get<Mesh>("./res/models/point_gizmo.obj");
 
-		this->gizmoMat->SetValue("uColor", this->color);
+		this->gizmoMat->SetValue("uColor", this->color * (this->intensity * 2 + 2));
 
 		if (this->type == LightType::Directional) {
 			GetScene()->GetGraphics()->DrawMesh(directionalGizmoMesh, 0, this->gizmoMat, GlobalTransform());
