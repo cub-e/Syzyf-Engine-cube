@@ -58,6 +58,8 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			glBindTexture(GL_TEXTURE_2D, this->depthPrepassDepthTexture);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 
@@ -66,6 +68,8 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 			glBindTexture(GL_TEXTURE_2D, 0);
 		}
 		
@@ -221,6 +225,8 @@ void SceneGraphics::Render() {
 		glDrawElements(GL_TRIANGLES, sky->GetSkyMesh()->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
 	PostProcessingSystem* postProcess = this->scene->GetPostProcessing();
 
 	Texture2D frameTex = Texture::Wrap<Texture2D>(this->colorPassOutputTexture);
@@ -253,6 +259,8 @@ void SceneGraphics::Render() {
 
 		effect->OnPostProcess(&postProcessParams);
 	}
+
+	glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer);
 
 	RenderFullscreenFrameQuad();
 

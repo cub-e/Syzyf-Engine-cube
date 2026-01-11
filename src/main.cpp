@@ -379,7 +379,7 @@ void InitScene() {
 	skyboxObject->AddObject<Stars>(5000);
 	// skyboxObject->AddObject<Skybox>(skyMat);
 
-	// cameraObject->AddObject<Bloom>();
+	cameraObject->AddObject<Bloom>();
 }
 
 int main(int, char**) {

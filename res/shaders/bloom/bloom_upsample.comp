@@ -1,50 +1,85 @@
 #version 460
 
-layout (local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+// Based on https://github.com/tgalaj/RapidGL/tree/master/src/demos/26_bloom
 
-layout(rgba32f, binding = 0) uniform image2D imgInput;
-layout(rgba32f, binding = 1) uniform image2D imgOutput;
+#define GROUP_SIZE         8
+#define GROUP_THREAD_COUNT (GROUP_SIZE * GROUP_SIZE)
+#define FILTER_SIZE        3
+#define FILTER_RADIUS      (FILTER_SIZE / 2)
+#define TILE_SIZE          (GROUP_SIZE + 2 * FILTER_RADIUS)
+#define TILE_PIXEL_COUNT   (TILE_SIZE * TILE_SIZE)
 
-vec4 bilinear(ivec2 pos, ivec2 inputRes) {
-	vec4 _00 = imageLoad(imgInput, clamp(ivec2(pos.x + 0, pos.y + 0), ivec2(0, 0), inputRes - 1));
-	vec4 _10 = imageLoad(imgInput, clamp(ivec2(pos.x + 1, pos.y + 0), ivec2(0, 0), inputRes - 1));
-	vec4 _01 = imageLoad(imgInput, clamp(ivec2(pos.x + 0, pos.y + 1), ivec2(0, 0), inputRes - 1));
-	vec4 _11 = imageLoad(imgInput, clamp(ivec2(pos.x + 1, pos.y + 1), ivec2(0, 0), inputRes - 1));
+layout(local_size_x = GROUP_SIZE, local_size_y = GROUP_SIZE) in;
 
-	return mix(
-		mix(_00, _10, 0.5),
-		mix(_01, _11, 0.5),
-		0.5
-	);
+layout(binding = 0) uniform sampler2D inputTex;
+layout(rgba32f, binding = 0) uniform image2D outputImg;
+
+// layout(binding = 1) uniform sampler2D u_dirt_texture;
+
+uniform vec2 texelSize;
+uniform int mipLevel;
+uniform float bloomIntensity;
+// uniform float dirtIntensity;
+
+shared float sm_r[TILE_PIXEL_COUNT];
+shared float sm_g[TILE_PIXEL_COUNT];
+shared float sm_b[TILE_PIXEL_COUNT];
+
+void storeSharedColor(int idx, vec4 c) {
+	sm_r[idx] = c.r;
+	sm_g[idx] = c.g;
+	sm_b[idx] = c.b;
+}
+
+vec4 loadSharedColor(uint idx) {
+	return vec4(sm_r[idx], sm_g[idx], sm_b[idx], 1.0);
+}
+
+void memoryBarrierWithSync() {
+	groupMemoryBarrier();
+	barrier();
 }
 
 void main() {
-	ivec2 inputRes = imageSize(imgInput);
-	ivec2 outputRes = imageSize(imgOutput);
+	ivec2 pixelCoord = ivec2(gl_GlobalInvocationID.xy);
+	vec2 baseIndex = ivec2(gl_WorkGroupID) * GROUP_SIZE - FILTER_RADIUS;
 
-	if (gl_GlobalInvocationID.x >= outputRes.x || gl_GlobalInvocationID.y >= outputRes.y) {
-		return;
+	// The first (TILE_PIXEL_COUNT - GROUP_THREAD_COUNT) threads load at most 2 texel values
+	for (int i = int(gl_LocalInvocationIndex); i < TILE_PIXEL_COUNT; i += GROUP_THREAD_COUNT) {
+		const vec2 uv = (baseIndex + 0.5) * texelSize;
+		const vec2 uvOffset = vec2(i % TILE_SIZE, i / TILE_SIZE) * texelSize;
+		
+		const vec4 color = textureLod(inputTex, (uv + uvOffset), mipLevel);
+		storeSharedColor(i, color);
 	}
 
-	ivec2 inputUV = ivec2(gl_GlobalInvocationID / 2);
+	memoryBarrierWithSync();
 
-	vec3 a = bilinear(ivec2(inputUV.x - 1, inputUV.y + 1), inputRes).rgb;
-	vec3 b = bilinear(ivec2(inputUV.x + 0, inputUV.y + 1), inputRes).rgb;
-	vec3 c = bilinear(ivec2(inputUV.x + 1, inputUV.y + 1), inputRes).rgb;
+	// center texel
+	const uint sm_idx = (gl_LocalInvocationID.x + FILTER_RADIUS) + (gl_LocalInvocationID.y + FILTER_RADIUS) * TILE_SIZE;
 
-	vec3 d = bilinear(ivec2(inputUV.x - 1, inputUV.y + 0), inputRes).rgb;
-	vec3 e = bilinear(ivec2(inputUV.x + 0, inputUV.y + 0), inputRes).rgb;
-	vec3 f = bilinear(ivec2(inputUV.x + 1, inputUV.y + 0), inputRes).rgb;
+	// Based on [Jimenez14] http://goo.gl/eomGso
+	vec4 s;
+	s =  loadSharedColor(sm_idx - TILE_SIZE - 1);
+	s += loadSharedColor(sm_idx - TILE_SIZE    ) * 2.0;
+	s += loadSharedColor(sm_idx - TILE_SIZE + 1);
 
-	vec3 g = bilinear(ivec2(inputUV.x - 1, inputUV.y - 1), inputRes).rgb;
-	vec3 h = bilinear(ivec2(inputUV.x + 0, inputUV.y - 1), inputRes).rgb;
-	vec3 i = bilinear(ivec2(inputUV.x + 1, inputUV.y - 1), inputRes).rgb;
+	s += loadSharedColor(sm_idx - 1) * 2.0;
+	s += loadSharedColor(sm_idx    ) * 4.0;
+	s += loadSharedColor(sm_idx + 1) * 2.0;
+	
+	s += loadSharedColor(sm_idx + TILE_SIZE - 1);
+	s += loadSharedColor(sm_idx + TILE_SIZE    ) * 2.0;
+	s += loadSharedColor(sm_idx + TILE_SIZE + 1);
 
-	vec3 upsample = imageLoad(imgOutput, ivec2(gl_GlobalInvocationID.xy)).xyz;
-	upsample += e*4.0;
-	upsample += (b+d+f+h)*2.0;
-	upsample += (a+c+g+i);
-	upsample *= 1.0 / 16.0;
+	const vec4 bloom = s * (1.0 / 16.0);
 
-	imageStore(imgOutput, ivec2(gl_GlobalInvocationID.xy), vec4(upsample, 1.0));
+	vec4 outPixel = imageLoad(outputImg, pixelCoord) + bloom * bloomIntensity;
+
+	// if (mipLevel == 1) {
+	// 	vec2 uv  = (vec2(pixelCoord) + vec2(0.5, 0.5)) * texelSize;
+	// 	outPixel += texture(u_dirt_texture, uv) * dirtIntensity * bloom * bloomIntensity;
+	// }
+
+	imageStore(outputImg, pixelCoord, outPixel);
 }
