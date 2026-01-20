@@ -3,6 +3,7 @@
 #include <concepts>
 #include <vector>
 #include <list>
+#include <typeinfo>
 
 #include <Transform.h>
 #include <Graphics.h>
@@ -494,17 +495,14 @@ std::vector<T_GO*> Scene::FindObjectsOfType() {
 	return result;
 }
 
-// This way of checking for a component present is flawed
-// If component A derives from component B, then one can add them in order B -> A just fine
-// But if you add B first, then A will successfuly get casted to B and the scene will assume it was already added
-// Might be tough to avoid it without reflection tho
 template<class T_SC>
 	requires std::derived_from<T_SC, SceneComponent>
 T_SC* Scene::GetComponent() {
 	for (SceneComponent* component : this->components) {
-		T_SC* result = dynamic_cast<T_SC*>(component);
+		
+		if (typeid(T_SC) == typeid(component)) {
+			T_SC* result = dynamic_cast<T_SC*>(component);
 
-		if (result) {
 			return result;
 		}
 	}
