@@ -81,6 +81,6 @@ void ReflectionProbeSystem::OnPostRender() {
 	}
 }
 
-int ReflectionProbeSystem::Priority() {
+int ReflectionProbeSystem::Order() {
 	return 50;
 }

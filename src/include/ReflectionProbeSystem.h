@@ -16,5 +16,5 @@ public:
 
 	virtual void OnPostRender();
 
-	virtual int Priority();
+	virtual int Order();
 };

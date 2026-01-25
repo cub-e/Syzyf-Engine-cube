@@ -16,3 +16,7 @@ void SceneComponent::OnPostUpdate() {}
 
 void SceneComponent::OnPreRender() {}
 void SceneComponent::OnPostRender() {}
+
+int SceneComponent::Order() {
+	return 0;
+}

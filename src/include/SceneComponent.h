@@ -17,4 +17,6 @@ public:
 
 	virtual void OnPreRender();
 	virtual void OnPostRender();
+
+	virtual int Order();
 };

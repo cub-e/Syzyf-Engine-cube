@@ -540,6 +540,11 @@ T_SC* Scene::AddComponent() {
 		
 		this->components.push_back(component);
 
+		for (int i = this->components.size() - 2; i >= 0; i--) {
+			if (this->components[i]->Order() > this->components[i + 1]->Order()) {
+				std::swap(this->components[i], this->components[i + 1]);
+			}
+		}
 	}
 	
 	return component;

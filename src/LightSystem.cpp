@@ -348,6 +348,6 @@ void LightSystem::OnPostRender() {
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 }
 
-int LightSystem::Priority() {
+int LightSystem::Order() {
 	return 100;
 }

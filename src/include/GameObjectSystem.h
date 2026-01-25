@@ -19,8 +19,6 @@ protected:
 	
 	virtual void UnregisterObject(GameObject* obj) = 0;
 	virtual void UnregisterObjectForced(GameObject* obj) = 0;
-
-	virtual int Priority();
 public:
 	virtual ~GameObjectSystemBase() = default;
 };
