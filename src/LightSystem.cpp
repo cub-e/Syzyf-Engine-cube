@@ -190,7 +190,7 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 		globalUniforms.Global_ViewMatrix = glm::lookAt(
 			light->GlobalTransform().Position().Value(),
 			light->GlobalTransform().Position() + directions[face],
-			glm::vec3(0, 1, 1)
+			glm::vec3(0, 1, 0)
 		);
 		globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, light->GetRange());
 		globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
@@ -354,4 +354,8 @@ void LightSystem::OnPostRender() {
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this->shadowmapsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+int LightSystem::Priority() {
+	return 100;
 }

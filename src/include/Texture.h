@@ -105,6 +105,9 @@ class Cubemap : public Texture {
 private:
 	TextureInfoBit<GLenum> wrapW;
 public:
+	Cubemap() = default;
+	Cubemap(unsigned int width, unsigned int height, TextureFormat format = TextureFormat::RGBA);
+
 	static Cubemap* Load(fs::path texturePath, TextureFormat format);
 
 	GLenum GetWrapModeW() const;

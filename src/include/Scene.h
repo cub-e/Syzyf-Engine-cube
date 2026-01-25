@@ -43,6 +43,7 @@ concept Disableable = requires (T a) {
 class Scene;
 class LightSystem;
 class PostProcessingSystem;
+class ReflectionProbeSystem;
 
 class SceneNode {
 	friend class Scene;
@@ -125,6 +126,7 @@ private:
 	SceneGraphics* graphics;
 	LightSystem* lightSystem;
 	PostProcessingSystem* postProcessing;
+	ReflectionProbeSystem* envMapping;
 
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>

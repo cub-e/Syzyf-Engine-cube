@@ -24,4 +24,6 @@ public:
 	GLuint GetShadowmapsBufferHandle();
 
 	virtual void OnPostRender();
+
+	virtual int Priority();
 };

@@ -23,6 +23,7 @@ class Light;
 class SceneGraphics {
 	friend class Scene;
 	friend class LightSystem;
+	friend class ReflectionProbeSystem;
 private:
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
@@ -55,6 +56,7 @@ private:
 
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, PassType pass);
 	void RenderFullscreenFrameQuad();
+	void RenderReflectionProbe();
 
 	void BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUniforms);
 

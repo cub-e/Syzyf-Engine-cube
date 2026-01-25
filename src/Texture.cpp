@@ -353,6 +353,28 @@ Texture2D* Texture2D::Load(fs::path texturePath, TextureFormat format) {
 	return Texture::Load<Texture2D>(texturePath, format);
 }
 
+Cubemap::Cubemap(unsigned int width, unsigned int height, TextureFormat format) {
+	glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &this->handle);
+
+	glBindTexture(GL_TEXTURE_CUBE_MAP, this->handle);
+	for (int i = 0; i < 6; i++) {
+		glTexImage2D(
+			GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+			0, TextureFormatToGL(format), width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr
+		);
+	}
+	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+	this->format = format;
+	this->owning = true;
+
+	SetWrapModeU(GL_CLAMP_TO_EDGE);
+	SetWrapModeV(GL_CLAMP_TO_EDGE);
+	SetWrapModeW(GL_CLAMP_TO_EDGE);
+	SetMinFilter(GL_LINEAR);
+	SetMagFilter(GL_LINEAR);
+}
+
 Cubemap* Cubemap::Load(fs::path texturePath, TextureFormat format) {
 	return Texture::Load<Cubemap>(texturePath, format);
 }

@@ -9,6 +9,8 @@
 #include <Light.h>
 #include <LightSystem.h>
 #include <PostProcessingSystem.h>
+#include <ReflectionProbe.h>
+#include <ReflectionProbeSystem.h>
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
@@ -142,6 +144,7 @@ root(new SceneNode(this)),
 graphics(new SceneGraphics(this)) {
 	this->lightSystem = AddComponent<LightSystem>();
 	this->postProcessing = AddComponent<PostProcessingSystem>();
+	this->envMapping = AddComponent<ReflectionProbeSystem>();
 }
 
 void Scene::MessageReceiver::Message() {

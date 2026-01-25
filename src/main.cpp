@@ -26,6 +26,7 @@
 #include <Resources.h>
 #include <Light.h>
 #include <Bloom.h>
+#include <ReflectionProbe.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -376,8 +377,12 @@ void InitScene() {
 	terrainLight->GlobalTransform().Scale() *= 0.3f;
 	
 	auto skyboxObject = mainScene->CreateNode(notCubeNode);
-	skyboxObject->AddObject<Stars>(5000);
-	// skyboxObject->AddObject<Skybox>(skyMat);
+	// skyboxObject->AddObject<Stars>(5000);
+	skyboxObject->AddObject<Skybox>(skyMat);
+
+	SceneNode* cubemapNode = mainScene->CreateNode();
+	cubemapNode->GlobalTransform().Position() = {5.0f, -0.2f, -2.0f};
+	cubemapNode->AddObject<ReflectionProbe>();
 
 	cameraObject->AddObject<Bloom>();
 }
