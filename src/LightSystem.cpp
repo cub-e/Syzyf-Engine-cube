@@ -349,5 +349,5 @@ void LightSystem::OnPostRender() {
 }
 
 int LightSystem::Order() {
-	return 100;
+	return 0;
 }
