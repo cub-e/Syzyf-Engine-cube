@@ -325,35 +325,37 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 	if (((int) params.pass & (int) RenderPassType::PostProcessing) != 0) {
 		PostProcessingSystem* postProcess = GetPostProcessing();
 
-		Texture2D* frameTex = dynamic_cast<Texture2D*>(framebuffer->GetColorTexture());
-		Texture2D* frameDepth = dynamic_cast<Texture2D*>(framebuffer->GetDepthTexture());
-		Texture2D postProcessBuffer = Texture::Wrap<Texture2D>(postProcess->GetPostProcessBuffer());
-		
-		PostProcessParams postProcessParams;
-		postProcessParams.inputTexture = &postProcessBuffer;
-		postProcessParams.outputTexture = frameTex;
-		postProcessParams.depthTexture = frameDepth;
-		
-		for (auto* effect : *postProcess->GetAllObjects()) {
-			glCopyImageSubData(
-				this->colorPassOutputTexture->GetHandle(),
-				GL_TEXTURE_2D,
-				0,
-				0,
-				0,
-				0,
-				postProcess->GetPostProcessBuffer(),
-				GL_TEXTURE_2D,
-				0,
-				0,
-				0,
-				0,
-				this->screenResolution.x,
-				this->screenResolution.y,
-				1
-			);
-
-			effect->OnPostProcess(&postProcessParams);
+		if (postProcess) {
+			Texture2D* frameTex = dynamic_cast<Texture2D*>(framebuffer->GetColorTexture());
+			Texture2D* frameDepth = dynamic_cast<Texture2D*>(framebuffer->GetDepthTexture());
+			Texture2D postProcessBuffer = Texture::Wrap<Texture2D>(postProcess->GetPostProcessBuffer());
+			
+			PostProcessParams postProcessParams;
+			postProcessParams.inputTexture = &postProcessBuffer;
+			postProcessParams.outputTexture = frameTex;
+			postProcessParams.depthTexture = frameDepth;
+			
+			for (auto* effect : *postProcess->GetAllObjects()) {
+				glCopyImageSubData(
+					this->colorPassOutputTexture->GetHandle(),
+					GL_TEXTURE_2D,
+					0,
+					0,
+					0,
+					0,
+					postProcess->GetPostProcessBuffer(),
+					GL_TEXTURE_2D,
+					0,
+					0,
+					0,
+					0,
+					this->screenResolution.x,
+					this->screenResolution.y,
+					1
+				);
+	
+				effect->OnPostProcess(&postProcessParams);
+			}
 		}
 	}
 

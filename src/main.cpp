@@ -28,6 +28,7 @@
 #include <Light.h>
 #include <Bloom.h>
 #include <ReflectionProbe.h>
+#include <Tonemapper.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -386,6 +387,7 @@ void InitScene() {
 	cubemapNode->AddObject<ReflectionProbe>();
 
 	cameraObject->AddObject<Bloom>();
+	cameraObject->AddObject<Tonemapper>();
 }
 
 int main(int, char**) {
