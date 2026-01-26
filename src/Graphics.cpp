@@ -103,7 +103,6 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 	}
 }
 
-
 LightSystem* SceneGraphics::GetLightSystem() {
 	return this->lightSystem;
 }
