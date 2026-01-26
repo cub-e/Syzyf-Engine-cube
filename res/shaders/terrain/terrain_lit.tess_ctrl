@@ -40,7 +40,12 @@ float calcTessLevel(float dist0, float dist1) {
 void main() {
 	gl_out[gl_InvocationID].gl_Position = gl_in[gl_InvocationID].gl_Position;
 
-	ps_in[gl_InvocationID] = vs_out[gl_InvocationID];
+	ps_in[gl_InvocationID].worldPos = vs_out[gl_InvocationID].worldPos;
+	ps_in[gl_InvocationID].viewPos = vs_out[gl_InvocationID].viewPos;
+	ps_in[gl_InvocationID].normal = vs_out[gl_InvocationID].normal;
+	ps_in[gl_InvocationID].tangent = vs_out[gl_InvocationID].tangent;
+	ps_in[gl_InvocationID].texcoords = vs_out[gl_InvocationID].texcoords;
+	ps_in[gl_InvocationID].heightmapCoords = vs_out[gl_InvocationID].heightmapCoords;
 
 	float vertDist0 = distance(Global_CameraWorldPos, ps_in[0].worldPos);
 	float vertDist1 = distance(Global_CameraWorldPos, ps_in[1].worldPos);

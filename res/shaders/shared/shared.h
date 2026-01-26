@@ -8,6 +8,7 @@
 #define vec3 glm::vec3
 #define vec2 glm::vec2
 #define t_bool unsigned int
+#define uint unsigned int
 #define mat4 glm::mat4
 
 #else
@@ -58,6 +59,10 @@ struct ShadowMapRegion {
 	vec2 start;
 	vec2 end;
 };
+
+#ifdef uint
+#undef uint
+#endif
 
 #ifdef vec3
 #undef vec3

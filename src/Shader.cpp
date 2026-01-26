@@ -45,8 +45,8 @@ char* LoadFile(const fs::path& filePath) {
 
 	char* buf = new char[shaderFile.file_size() + 1];
 	
-	std::ifstream shaderFileStream(filePath);
-	
+	std::ifstream shaderFileStream(filePath, std::ios::binary);
+
 	shaderFileStream.read(buf, shaderFile.file_size());
 	
 	buf[shaderFile.file_size()] = '\0';

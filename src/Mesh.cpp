@@ -313,7 +313,7 @@ Mesh* Mesh::Load(fs::path modelPath) {
 
 		glBindVertexArray(subMeshVertexArray);
 
-		uint attributeOffset = 0;
+		unsigned int attributeOffset = 0;
 		for (int input = int(VertexInputType::Position) - 1; input < int(VertexInputType::Color); input++) {
 			int length = meshSpec.GetLengthOf(VertexInputType(input + 1));
 

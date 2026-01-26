@@ -198,7 +198,7 @@ template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureForm
 	}
 
 	int width, height, nrChannels;
-	unsigned char *textureData = stbi_load(texturePath.c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+	unsigned char *textureData = stbi_load(texturePath.string().c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
 
 	if (!textureData) {
 		spdlog::error("stbi_load failed on file {}", texturePath.string());
@@ -263,7 +263,7 @@ template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat f
 
 	int width, height, nrChannels;
 	for (int i = 0; i < 6; i++) {
-		unsigned char* textureData = stbi_load(texturePaths[i].c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
+		unsigned char* textureData = stbi_load(texturePaths[i].string().c_str(), &width, &height, &nrChannels, STBI_rgb_alpha);
 	
 		if (!textureData) {
 			spdlog::error("stbi_load failed on file {}", texturePaths[i].string());
