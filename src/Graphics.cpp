@@ -11,6 +11,7 @@
 #include <Texture.h>
 #include <LightSystem.h>
 #include <PostProcessingSystem.h>
+#include <ReflectionProbeSystem.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -46,6 +47,10 @@ colorPassOutputTexture(nullptr) {
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
 	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
+
+	this->lightSystem = GetScene()->AddComponent<LightSystem>();
+	this->postProcessing = GetScene()->AddComponent<PostProcessingSystem>();
+	this->envMapping = GetScene()->AddComponent<ReflectionProbeSystem>();
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -91,10 +96,23 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 			this->colorPassFramebuffer->SetDepthTexture(this->depthPrepassDepthTexture, 0);
 		}
 
-		if (GetScene()->GetPostProcessing()) {
-			GetScene()->GetPostProcessing()->UpdateBufferResolution(newResolution);
+		if (GetPostProcessing()) {
+			GetPostProcessing()->UpdateBufferResolution(newResolution);
 		}
 	}
+}
+
+
+LightSystem* SceneGraphics::GetLightSystem() {
+	return this->lightSystem;
+}
+
+PostProcessingSystem* SceneGraphics::GetPostProcessing() {
+	return this->postProcessing;
+}
+
+ReflectionProbeSystem* SceneGraphics::GetEnvMapping() {
+	return this->envMapping;
 }
 
 void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params) {
@@ -127,7 +145,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		mat->Bind();
 
 		glActiveTexture(GL_TEXTURE31);
-		glBindTexture(GL_TEXTURE_2D, GetScene()->GetLightSystem()->shadowAtlasDepthTexture->GetHandle());
+		glBindTexture(GL_TEXTURE_2D, GetLightSystem()->shadowAtlasDepthTexture->GetHandle());
 		glUniform1i(glGetUniformLocation(mat->GetShader()->handle, "shadowMask"), 31);
 		
 		glBindVertexArray(mesh->GetVertexArrayHandle());
@@ -305,7 +323,7 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 	}
 
 	if (((int) params.pass & (int) RenderPassType::PostProcessing) != 0) {
-		PostProcessingSystem* postProcess = GetScene()->GetPostProcessing();
+		PostProcessingSystem* postProcess = GetPostProcessing();
 
 		Texture2D* frameTex = dynamic_cast<Texture2D*>(framebuffer->GetColorTexture());
 		Texture2D* frameDepth = dynamic_cast<Texture2D*>(framebuffer->GetDepthTexture());

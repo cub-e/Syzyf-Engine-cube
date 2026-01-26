@@ -143,9 +143,6 @@ updateable(),
 renderable(),
 root(new SceneNode(this)) {
 	this->graphics = AddComponent<SceneGraphics>();
-	this->lightSystem = AddComponent<LightSystem>();
-	this->postProcessing = AddComponent<PostProcessingSystem>();
-	this->envMapping = AddComponent<ReflectionProbeSystem>();
 }
 
 void Scene::MessageReceiver::Message() {
@@ -194,14 +191,6 @@ SceneNode* Scene::CreateNode(SceneNode* parent) {
 
 SceneGraphics* Scene::GetGraphics() {
 	return this->graphics;
-}
-
-LightSystem* Scene::GetLightSystem() {
-	return this->lightSystem;
-}
-
-PostProcessingSystem* Scene::GetPostProcessing() {
-	return this->postProcessing;
 }
 
 void Scene::DeleteObject(GameObject* obj) {

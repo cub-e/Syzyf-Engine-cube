@@ -16,6 +16,9 @@ class Scene;
 class ComputeShaderDispatch;
 class Texture2D;
 class Light;
+class LightSystem;
+class PostProcessingSystem;
+class ReflectionProbeSystem;
 
 // struct RenderBatch {
 // 	Mesh* mesh;
@@ -59,6 +62,10 @@ class SceneGraphics : public SceneComponent {
 	Framebuffer* colorPassFramebuffer;
 	Texture2D* colorPassOutputTexture;
 	
+	LightSystem* lightSystem;
+	PostProcessingSystem* postProcessing;
+	ReflectionProbeSystem* envMapping;
+
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
 	
@@ -71,6 +78,10 @@ public:
 	glm::vec2 GetScreenResolution() const;
 	void UpdateScreenResolution(glm::vec2 newResolution);
 	
+	LightSystem* GetLightSystem();
+	PostProcessingSystem* GetPostProcessing();
+	ReflectionProbeSystem* GetEnvMapping();
+
 	void DrawMesh(MeshRenderer* renderer);
 	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation);
 	
