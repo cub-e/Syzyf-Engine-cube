@@ -69,7 +69,6 @@ void Framebuffer::SetColorTexture(Cubemap* texture, int face) {
 	this->dirty = true;
 }
 void Framebuffer::SetDepthTexture(Texture* texture, int level) {
-	this->colorTexture = texture;
 	this->depthTexture = texture;
 	this->depthTextureLevel = level;
 

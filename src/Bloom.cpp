@@ -12,7 +12,10 @@ void Bloom::UpdateTexture() {
 		return;
 	}
 
-	glTextureStorage2D(this->bloomTexture, BLOOM_LEVEL, GL_RGBA16F, resolution.x, resolution.y);
+	glBindTexture(GL_TEXTURE_2D, this->bloomTexture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, resolution.x, resolution.y, 0, GL_RGBA, GL_FLOAT, nullptr);
+	glGenerateMipmap(GL_TEXTURE_2D);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 Bloom::Bloom() {
