@@ -5,6 +5,7 @@
 #include <glad/glad.h>
 
 #include <VertexSpec.h>
+#include <BoundingBox.h>
 
 namespace fs = std::filesystem;
 
@@ -23,6 +24,7 @@ public:
 		unsigned int* indexData;
 		MeshType type;
 		int materialIndex;
+		BoundingBox bounds;
 
 		struct {
 			GLuint vertexArray;
@@ -40,6 +42,8 @@ public:
 
 		unsigned int GetVertexCount() const;
 		unsigned int GetFaceCount() const;
+
+		BoundingBox GetBounds() const;
 	};
 
 	// class MeshPart {

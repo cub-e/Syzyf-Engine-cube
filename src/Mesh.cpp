@@ -112,6 +112,10 @@ GLuint Mesh::SubMesh::GetIndexBufferHandle() const {
 	return this->handle.indexBuffer;
 }
 
+BoundingBox Mesh::SubMesh::GetBounds() const {
+	return this->bounds;
+}
+
 unsigned int Mesh::SubMesh::GetVertexCount() const {
 	return this->faceCount * GetVerticesPerFace();
 }
@@ -290,8 +294,42 @@ Mesh* Mesh::Load(fs::path modelPath) {
 		return a.faceCount > b.faceCount;
 	});
 
-
 	subMeshes.resize(subMeshCount);
+
+	for (SubMesh& subMesh : subMeshes) {
+		glm::vec3 minCorner = glm::vec3(INFINITY);
+		glm::vec3 maxCorner = glm::vec3(-INFINITY);
+
+		for (int faceIndex = 0; faceIndex < subMesh.faceCount; faceIndex++) {
+			int verticesPerFace = (int) subMesh.type;
+
+			for (int i = 0; i < verticesPerFace; i++) {
+				glm::vec3 vertex = *(glm::vec3*) (vertexData + meshSpec.VertexSize() * subMesh.indexData[faceIndex * verticesPerFace + i]);
+
+				if (vertex.x < minCorner.x) {
+					minCorner.x = vertex.x;
+				}
+				if (vertex.y < minCorner.y) {
+					minCorner.y = vertex.y;
+				}
+				if (vertex.z < minCorner.z) {
+					minCorner.z = vertex.z;
+				}
+
+				if (vertex.x > maxCorner.x) {
+					maxCorner.x = vertex.x;
+				}
+				if (vertex.y > maxCorner.y) {
+					maxCorner.y = vertex.y;
+				}
+				if (vertex.z > maxCorner.z) {
+					maxCorner.z = vertex.z;
+				}
+			}
+		}
+
+		subMesh.bounds = BoundingBox(minCorner, maxCorner);
+	}
 
 	GLuint vertexBuffer;
 	glGenBuffers(1, &vertexBuffer);
@@ -341,70 +379,4 @@ Mesh* Mesh::Load(fs::path modelPath) {
 	loadedMesh->vertexBuffer = vertexBuffer;
 
 	return loadedMesh;
-
-	/*
-	const aiMesh* currentMesh = loaded_scene->mMeshes[0];
-
-	int vertexSize = meshSpec.VertexSize();
-	unsigned int vertexCount = currentMesh->mNumVertices;
-	unsigned int triangleCount = currentMesh->mNumFaces;
-
-	float* vertexData = new float[vertexCount * vertexSize + 3];
-	uint* indexData = new uint[triangleCount * 3];
-
-	for (int faceIndex = 0; faceIndex < triangleCount; faceIndex++) {
-		indexData[faceIndex * 3 + 0] = currentMesh->mFaces[faceIndex].mIndices[0];
-		indexData[faceIndex * 3 + 1] = currentMesh->mFaces[faceIndex].mIndices[1];
-		indexData[faceIndex * 3 + 2] = currentMesh->mFaces[faceIndex].mIndices[2];
-	}
-
-	GLuint modelVAO;
-	GLuint modelVertexBuffer, modelIndexBuffer;
-
-	glGenVertexArrays(1, &modelVAO);
-	glGenBuffers(1, &modelVertexBuffer);
-	glGenBuffers(1, &modelIndexBuffer);
-
-	glBindVertexArray(modelVAO);
-	glBindBuffer(GL_ARRAY_BUFFER, modelVertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, vertexCount * vertexSize * sizeof(float), vertexData, GL_STATIC_DRAW);
-
-	uint offset = 0;
-	for (int input = int(VertexInputType::Position) - 1; input < int(VertexInputType::Color); input++) {
-		int length = meshSpec.GetLengthOf(VertexInputType(input + 1));
-
-		if (length > 0) {
-			glVertexAttribPointer(input, length, GL_FLOAT, false, vertexSize * sizeof(float), (void*) (offset * sizeof(float)));
-			glEnableVertexAttribArray(input);
-			
-			offset += length;
-		}
-	}
-
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, modelIndexBuffer);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, triangleCount * 3 * sizeof(uint), indexData, GL_STATIC_DRAW);
-	glBindBuffer(GL_INDEX_ARRAY, 0);
-	
-	glBindVertexArray(0);
-
-	MeshInternal loadedMesh {
-		modelPath,
-		vertexCount,
-		vertexData,
-		triangleCount,
-		indexData,
-		modelVAO
-	};
-
-	loadedMeshes.push_back({
-		{
-			meshSpec.GetHash(),
-			loadedMesh
-		}
-	});
-
-	return new Mesh(meshID, meshSpec);
-	*/
 }

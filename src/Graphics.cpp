@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
+#include <glm/gtc/matrix_access.hpp>
 
 #include <MeshRenderer.h>
 #include <Camera.h>
@@ -12,6 +13,7 @@
 #include <LightSystem.h>
 #include <PostProcessingSystem.h>
 #include <ReflectionProbeSystem.h>
+#include <Frustum.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -19,6 +21,58 @@
 #include <GLFW/glfw3.h>
 
 #define LIGHT_GRID_SIZE 16
+
+Frustum ComputeFrustum(const glm::mat4& projectionMatrix) {
+	Frustum result;
+
+	const glm::vec4 planeLeftParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 0)));
+	const glm::vec4 planeRightParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 0)));
+	const glm::vec4 planeBottomParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 1)));
+	const glm::vec4 planeTopParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 1)));
+	const glm::vec4 planeNearParams = glm::normalize(-(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 2)));
+	const glm::vec4 planeFarParams = glm::normalize(-(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 2)));
+
+	result.left = Plane(glm::vec3(planeLeftParams), planeLeftParams.w);
+	result.right = Plane(glm::vec3(planeRightParams), planeRightParams.w);
+	result.bottom = Plane(glm::vec3(planeBottomParams), planeBottomParams.w);
+	result.top = Plane(glm::vec3(planeTopParams), planeTopParams.w);
+	result.nearPlane = Plane(glm::vec3(planeNearParams), planeNearParams.w);
+	result.farPlane = Plane(glm::vec3(planeFarParams), planeFarParams.w);
+	
+	return result;
+}
+
+bool TestPlane(const Plane& plane, const BoundingBox& bounds) {
+	const glm::vec3 n = plane.normal;
+	const float d = plane.distance;
+
+	const glm::vec3 c = bounds.center;
+	const glm::vec3 h = bounds.GetExtents();
+
+	const float e = h.x * glm::abs(
+		glm::dot(n, glm::vec3(bounds.axisU))
+	) + h.y * glm::abs(
+		glm::dot(n, glm::vec3(bounds.axisV))
+	) + h.z * glm::abs(
+		glm::dot(n, glm::vec3(bounds.axisW))
+	);
+
+	const float s = glm::dot(c, n) + d;
+
+	return s - e <= 0;
+}
+
+bool TestFrustum(const Frustum& frustum, const BoundingBox& bounds) {
+	return (
+		TestPlane(frustum.left, bounds)
+		&&
+		TestPlane(frustum.right, bounds)
+		&&
+		TestPlane(frustum.bottom, bounds)
+		&&
+		TestPlane(frustum.top, bounds)
+	);
+}
 
 RenderParams::RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth):
 pass(pass),
@@ -118,9 +172,15 @@ ReflectionProbeSystem* SceneGraphics::GetEnvMapping() {
 void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params) {
 	ShaderObjectUniforms objectUniforms;
 
+	Frustum viewFrustum = ComputeFrustum(globalUniforms.Global_VPMatrix);
+
 	for (auto node : this->currentRenders) {
 		const Mesh::SubMesh* mesh = node.mesh;
 		const Material* mat = node.material;
+
+		if (!TestFrustum(viewFrustum, mesh->GetBounds().Transform(node.transformation))) {
+			continue;
+		}
 
 		if (!mat) {
 			continue;
