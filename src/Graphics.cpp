@@ -71,6 +71,8 @@ bool TestFrustum(const Frustum& frustum, const BoundingBox& bounds) {
 		TestPlane(frustum.bottom, bounds)
 		&&
 		TestPlane(frustum.top, bounds)
+		&&
+		TestPlane(frustum.farPlane, bounds)
 	);
 }
 
