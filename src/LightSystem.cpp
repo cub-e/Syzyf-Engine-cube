@@ -208,7 +208,7 @@ void LightSystem::OnPostRender() {
 	glBindFramebuffer(GL_FRAMEBUFFER, this->shadowAtlasFramebuffer->GetHandle());
 	glClear(GL_DEPTH_BUFFER_BIT);
 
-	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.1};
+	glm::vec4 ambientLight{1.0, 1.0, 1.0, 0.01};
 
 	int shadowmapTexturesCount = 0;
 
