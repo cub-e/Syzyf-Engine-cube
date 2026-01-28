@@ -18,12 +18,10 @@ constexpr int DIRECTIONAL_LIGHT_CASCADE_COUNT = 6;
 LightSystem::LightSystem(Scene* scene):
 GameObjectSystem<Light>(scene),
 lightsBuffer(0) {
-	this->shadowAtlasDepthTexture = new Texture2D(SHADOW_MAP_ATLAS_SIZE, SHADOW_MAP_ATLAS_SIZE, TextureFormat::Depth);
+	this->shadowAtlasDepthTexture = new Texture2D(SHADOW_MAP_ATLAS_SIZE, SHADOW_MAP_ATLAS_SIZE, Texture::DepthBuffer);
 
-	this->shadowAtlasDepthTexture->SetMinFilter(GL_NEAREST);
-	this->shadowAtlasDepthTexture->SetMagFilter(GL_NEAREST);
-	this->shadowAtlasDepthTexture->SetWrapModeU(GL_CLAMP_TO_EDGE);
-	this->shadowAtlasDepthTexture->SetWrapModeV(GL_CLAMP_TO_EDGE);
+	this->shadowAtlasDepthTexture->SetMinFilter(TextureFilter::Nearest);
+	this->shadowAtlasDepthTexture->SetMagFilter(TextureFilter::Nearest);
 
 	this->shadowAtlasFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->shadowAtlasDepthTexture);
 

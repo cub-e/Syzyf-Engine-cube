@@ -170,7 +170,7 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() const {
 			Texture2D* imageTex = GetValue<Texture2D>(i);
 
 			GLuint imageTexHandle = 0;
-			GLenum imageFormat = GL_RGBA32F;
+			GLenum imageFormat = GL_RGBA16F;
 
 			if (imageTex) {
 				if (imageTex->IsDirty()) {
@@ -178,7 +178,11 @@ void ShaderVariableStorage<T_ShaderProg>::Bind() const {
 				}
 				
 				imageTexHandle = imageTex->GetHandle();
-				imageFormat = Texture::TextureFormatToGL(imageTex->GetFormat());
+				imageFormat = Texture::CalcInternalFormat({
+					.channels = imageTex->GetChannels(),
+					.colorSpace = imageTex->GetColorSpace(),
+					.format = imageTex->GetFormat(),
+				});
 
 				glUniform1i(uniforms[i].binding, samplerIndex);
 			}

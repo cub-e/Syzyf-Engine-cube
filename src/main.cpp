@@ -72,7 +72,7 @@ static void APIENTRY glDebugOutput(
 	}
 
 	switch (severity) {
-		case GL_DEBUG_SEVERITY_HIGH:         spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
+		case GL_DEBUG_SEVERITY_HIGH:         spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id); exit(1); break;
 		case GL_DEBUG_SEVERITY_MEDIUM:
 		case GL_DEBUG_SEVERITY_LOW:          spdlog::warn("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
 		case GL_DEBUG_SEVERITY_NOTIFICATION: spdlog::info("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
@@ -263,31 +263,23 @@ void InitScene() {
 	Mesh* cube = Resources::Get<Mesh>("./res/models/not_cube.obj");
 	Mesh* roomMesh = Resources::Get<Mesh>("./res/models/room.obj");
 
-	Texture2D* stoneTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", TextureFormat::RGB);
-	stoneTex->SetMagFilter(GL_LINEAR);
-	stoneTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
+	Texture2D* stoneTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", Texture::ColorTextureRGB);
 
-	Texture2D* floorTex = Resources::Get<Texture2D>("./res/textures/stone.jpg", TextureFormat::RGB);
-	floorTex->SetMagFilter(GL_LINEAR);
-	floorTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
-	floorTex->SetWrapModeU(GL_REPEAT);
-	floorTex->SetWrapModeV(GL_REPEAT);
+	Texture2D* floorTex = Resources::Get<Texture2D>("./res/textures/stone.jpg", Texture::ColorTextureRGB);
+	floorTex->SetWrapModeU(TextureWrap::Repeat);
+	floorTex->SetWrapModeV(TextureWrap::Repeat);
 
-	Texture2D* terrainDisplacementTex = Resources::Get<Texture2D>("./res/textures/terrain/Rugged Terrain Height Map PNG.png", TextureFormat::RGB);
-	terrainDisplacementTex->SetMagFilter(GL_LINEAR);
-	terrainDisplacementTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
-	terrainDisplacementTex->SetWrapModeU(GL_REPEAT);
-	terrainDisplacementTex->SetWrapModeV(GL_REPEAT);
+	Texture2D* terrainDisplacementTex = Resources::Get<Texture2D>("./res/textures/terrain/Rugged Terrain Height Map PNG.png", TextureParams(TextureChannels::Grayscale, TextureColor::Linear, TextureFormat::Ubyte));
+	terrainDisplacementTex->SetWrapModeU(TextureWrap::Repeat);
+	terrainDisplacementTex->SetWrapModeV(TextureWrap::Repeat);
 
-	Texture2D* shadedTex = Resources::Get<Texture2D>("./res/testing/uwu.jpg", TextureFormat::RGB);
+	Texture2D* shadedTex = Resources::Get<Texture2D>("./res/testing/uwu.jpg", Texture::ColorTextureRGB);
 
 	if (!shadedTex) {
-		shadedTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", TextureFormat::RGB);
+		shadedTex = Resources::Get<Texture2D>("./res/textures/lufis.jpeg", Texture::ColorTextureRGB);
 	}
-	shadedTex->SetMagFilter(GL_LINEAR);
-	shadedTex->SetMinFilter(GL_LINEAR_MIPMAP_LINEAR);
 
-	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/skybox.jpg", TextureFormat::RGB);
+	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/skybox.jpg", Texture::ColorTextureRGB);
 
 	Material* terrainMat = new Material(floorProg);
 	terrainMat->SetValue<glm::vec3>("uColor", glm::vec3(1.0f, 1.0f, 1.0f));

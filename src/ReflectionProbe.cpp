@@ -8,7 +8,7 @@
 
 ReflectionProbe::ReflectionProbe():
 dirty(true) {
-	this->cubemap = new Cubemap(resolution, resolution, TextureFormat::RGBA);
+	this->cubemap = new Cubemap(resolution, resolution, Texture::LDRColorBuffer);
 }
 
 void ReflectionProbe::Regenerate() {

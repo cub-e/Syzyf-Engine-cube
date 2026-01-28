@@ -11,11 +11,7 @@
 
 ReflectionProbeSystem::ReflectionProbeSystem(Scene* scene):
 GameObjectSystem<ReflectionProbe>(scene) {
-	this->reflectionProbeDepthTexture = new Texture2D(ReflectionProbe::resolution, ReflectionProbe::resolution, TextureFormat::Depth);
-	this->reflectionProbeDepthTexture->SetMinFilter(GL_LINEAR);
-	this->reflectionProbeDepthTexture->SetMagFilter(GL_LINEAR);
-	this->reflectionProbeDepthTexture->SetWrapModeU(GL_CLAMP_TO_EDGE);
-	this->reflectionProbeDepthTexture->SetWrapModeV(GL_CLAMP_TO_EDGE);
+	this->reflectionProbeDepthTexture = new Texture2D(ReflectionProbe::resolution, ReflectionProbe::resolution, Texture::DepthBuffer);
 
 	this->reflectionProbeFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->reflectionProbeDepthTexture, 0);
 }

@@ -12,7 +12,7 @@ void Bloom::UpdateTexture() {
 		return;
 	}
 
-	glTextureStorage2D(this->bloomTexture, BLOOM_LEVEL, GL_RGBA32F, resolution.x, resolution.y);
+	glTextureStorage2D(this->bloomTexture, BLOOM_LEVEL, GL_RGBA16F, resolution.x, resolution.y);
 }
 
 Bloom::Bloom() {
@@ -53,7 +53,7 @@ void Bloom::OnPostProcess(const PostProcessParams* params) {
 			glBindTextureUnit(0, this->bloomTexture);
 		}
 
-		glBindImageTexture(0, this->bloomTexture, i, false, 0, GL_WRITE_ONLY, GL_RGBA32F);
+		glBindImageTexture(0, this->bloomTexture, i, false, 0, GL_WRITE_ONLY, GL_RGBA16F);
 		
 		glm::vec2 texelSize = 1.0f / glm::vec2(resolution);
 		glUniform2fv(glGetUniformLocation(this->downsampleShader->GetHandle(), "texelSize"), 1, &texelSize[0]);
@@ -73,10 +73,10 @@ void Bloom::OnPostProcess(const PostProcessParams* params) {
 
 	for (int i = BLOOM_LEVEL - 1; i >= 1; i--) {
 		if (i == 1) {
-			glBindImageTexture(0, params->outputTexture->GetHandle(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
+			glBindImageTexture(0, params->outputTexture->GetHandle(), 0, false, 0, GL_READ_WRITE, GL_RGBA16F);
 		}
 		else {
-			glBindImageTexture(0, this->bloomTexture, i - 2, false, 0, GL_READ_WRITE, GL_RGBA32F);
+			glBindImageTexture(0, this->bloomTexture, i - 2, false, 0, GL_READ_WRITE, GL_RGBA16F);
 		}
 
 		resolution.x = glm::max(1.0, glm::floor(float(savedResolution.x)  / glm::pow(2.0, i - 1)));
@@ -92,14 +92,4 @@ void Bloom::OnPostProcess(const PostProcessParams* params) {
 
 		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT | GL_TEXTURE_FETCH_BARRIER_BIT);
 	}
-
-	// glUseProgram(this->finalShader->GetHandle());
-
-	// glBindImageTexture(0, params->inputTexture->GetHandle(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-	// glBindImageTexture(1, this->bloomTexture, 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-	// glBindImageTexture(2, params->outputTexture->GetHandle(), 0, false, 0, GL_READ_WRITE, GL_RGBA32F);
-
-	// glDispatchCompute(std::ceil(savedResolution.x / 8), std::ceil(savedResolution.y / 8), 1);
-
-	// glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }

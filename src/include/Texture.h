@@ -15,20 +15,58 @@ enum class TextureType {
 	Cubemap
 };
 
-enum class TextureFormat {
+enum class TextureChannels {
 	Grayscale = 0,
-	RG,
-	RGB,
-	RGBA,
-	GrayscaleFloat,
-	RGFloat,
-	RGBFloat,
-	RGBAFloat,
-	RUInt,
-	RGUInt,
-	RGBUInt,
-	RGBAUInt,
-	Depth
+	RG = 1,
+	RGB = 2,
+	RGBA = 3,
+	Depth = 4
+};
+
+enum class TextureColor {
+	Linear,
+	SRGB
+};
+
+enum class TextureFormat {
+	Ubyte = 0,
+	Uint,
+	Float
+};
+
+enum class TextureWrap {
+	Clamp = 0,
+	Repeat,
+	MirrorRepeat
+};
+
+enum class TextureFilter {
+	Nearest = 0,
+	Linear,
+	NearestMipmapNearest = 4,
+	NearestMipmapLinear,
+	LinearMipmapNearest,
+	LinearMipmapLinear,
+};
+
+struct TextureParams {
+	TextureChannels channels;
+	TextureColor colorSpace;
+	TextureFormat format;
+	TextureWrap wrapU = TextureWrap::Repeat;
+	TextureWrap wrapV = TextureWrap::Repeat;
+	TextureWrap wrapW = TextureWrap::Repeat;
+	TextureFilter minFilter = TextureFilter::Linear;
+	TextureFilter magFilter = TextureFilter::Linear;
+
+	// constexpr TextureParams(TextureChannels channels, TextureColor colorSpace, TextureFormat format):
+	// channels(channels),
+	// colorSpace(colorSpace),
+	// format(format) { }
+
+	constexpr unsigned int NumChannels() const {
+		return (int) this->channels + 1;
+	}
 };
 
 class Texture {
@@ -39,48 +77,61 @@ protected:
 		bool dirty;
 	};
 
+	unsigned int width;
+	unsigned int height;
+
 	GLuint handle;
 	bool dirty;
 	bool owning;
 
+	TextureChannels channels;
+	TextureColor colorSpace;
 	TextureFormat format;
 
-	TextureInfoBit<GLenum> wrapU;
-	TextureInfoBit<GLenum> wrapV;
-	TextureInfoBit<GLenum> minFilter;
-	TextureInfoBit<GLenum> magFilter;
+	TextureInfoBit<TextureWrap> wrapU;
+	TextureInfoBit<TextureWrap> wrapV;
+	TextureInfoBit<TextureFilter> minFilter;
+	TextureInfoBit<TextureFilter> magFilter;
 	TextureInfoBit<bool> mipmapped;
 public:
+	static constexpr TextureParams ColorTextureRGB {.channels = TextureChannels::RGB, .colorSpace = TextureColor::SRGB, .format = TextureFormat::Ubyte, .magFilter = TextureFilter::LinearMipmapLinear};
+	static constexpr TextureParams ColorTextureRGBA {TextureChannels::RGBA, TextureColor::SRGB, TextureFormat::Ubyte};
+	static constexpr TextureParams DepthBuffer {TextureChannels::Depth, TextureColor::Linear, TextureFormat::Float};
+	static constexpr TextureParams HDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Float};
+	static constexpr TextureParams LDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte};
+
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)
-	static T_Tex* Load(fs::path texturePath, TextureFormat format) = delete;
+	static T_Tex* Load(const fs::path& texturePath, const TextureParams& loadParams) = delete;
 
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)
 	static T_Tex Wrap(GLuint handle);
 
-	template <class T_Tex>
-		requires (std::derived_from<T_Tex, Texture>)
-	static T_Tex Wrap(GLuint handle, TextureFormat format);
-
 	virtual ~Texture();
 
 	virtual constexpr TextureType GetType() const = 0;
 
-	static GLenum TextureFormatToGL(TextureFormat format);
+	static GLenum CalcInternalFormat(const TextureParams& params);
+
+	unsigned int GetWidth() const;
+	unsigned int GetHeight() const;
 
 	GLuint GetHandle();
-	TextureFormat GetFormat();
+	TextureChannels GetChannels() const;
+	int GetNumChannels() const;
+	TextureColor GetColorSpace() const;
+	TextureFormat GetFormat() const;
 
-	GLenum GetWrapModeU() const;
-	void SetWrapModeU(GLenum wrapMode);
-	GLenum GetWrapModeV() const;
-	void SetWrapModeV(GLenum wrapMode);
+	TextureWrap GetWrapModeU() const;
+	void SetWrapModeU(TextureWrap wrapMode);
+	TextureWrap GetWrapModeV() const;
+	void SetWrapModeV(TextureWrap wrapMode);
 
-	GLenum GetMinFilter() const;
-	void SetMinFilter(GLenum minFilter);
-	GLenum GetMagFilter() const;
-	void SetMagFilter(GLenum magFilter);
+	TextureFilter GetMinFilter() const;
+	void SetMinFilter(TextureFilter minFilter);
+	TextureFilter GetMagFilter() const;
+	void SetMagFilter(TextureFilter magFilter);
 
 	bool HasMipmaps() const;
 	void GenerateMipmaps();
@@ -92,10 +143,10 @@ public:
 class Texture2D : public Texture {
 public:
 	Texture2D() = default;
-	Texture2D(unsigned int width, unsigned int height, TextureFormat format = TextureFormat::RGBA);
-	Texture2D(GLuint handle, TextureFormat format, bool mipmapped);
+	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams);
+	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle);
 
-	static Texture2D* Load(fs::path texturePath, TextureFormat format);
+	static Texture2D* Load(const fs::path& texturePath, const TextureParams& loadParams);
 
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;
@@ -104,23 +155,24 @@ public:
 
 class Cubemap : public Texture {
 private:
-	TextureInfoBit<GLenum> wrapW;
+	TextureInfoBit<TextureWrap> wrapW;
 public:
 	Cubemap() = default;
-	Cubemap(unsigned int width, unsigned int height, TextureFormat format = TextureFormat::RGBA);
+	Cubemap(unsigned int width, unsigned int height, const TextureParams& creationParams);
+	Cubemap(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle);
 
-	static Cubemap* Load(fs::path texturePath, TextureFormat format);
+	static Cubemap* Load(const fs::path& texturePath, const TextureParams& loadParams);
 
-	GLenum GetWrapModeW() const;
-	void SetWrapModeW(GLenum wrapMode);
+	TextureWrap GetWrapModeW() const;
+	void SetWrapModeW(TextureWrap wrapMode);
 
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Cubemap;
 	}
 };
 
-template<> Texture2D* Texture::Load<Texture2D>(fs::path texturePath, TextureFormat format);
-template<> Cubemap* Texture::Load<Cubemap>(fs::path texturePath, TextureFormat format);
+template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams);
+template<> Cubemap* Texture::Load<Cubemap>(const fs::path& texturePath, const TextureParams& loadParams);
 
 template <class T_Tex>
 	requires (std::derived_from<T_Tex, Texture>)
@@ -135,4 +187,3 @@ T_Tex Texture::Wrap(GLuint handle) {
 
 	return result;
 }
-

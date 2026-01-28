@@ -14,7 +14,7 @@ GameObjectSystem<PostProcessEffect>(scene) {
 void PostProcessingSystem::UpdateBufferResolution(glm::vec2 newResolution) {
 	glBindTexture(GL_TEXTURE_2D, this->postProcessColorBuffer);
 	
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, newResolution.x, newResolution.y, 0,  GL_RGBA, GL_FLOAT, nullptr);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, newResolution.x, newResolution.y, 0,  GL_RGBA, GL_FLOAT, nullptr);
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
