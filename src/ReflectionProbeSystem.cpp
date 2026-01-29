@@ -6,6 +6,7 @@
 #include <ReflectionProbe.h>
 #include <Graphics.h>
 #include <Resources.h>
+#include <Skybox.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
@@ -47,12 +48,63 @@ Texture2D* GenerateBRDFConvolution() {
 }
 
 ReflectionProbeSystem::ReflectionProbeSystem(Scene* scene):
-GameObjectSystem<ReflectionProbe>(scene) {
+GameObjectSystem<ReflectionProbe>(scene),
+skyboxProbe(nullptr) {
 	this->reflectionProbeDepthTexture = new Texture2D(ReflectionProbe::resolution, ReflectionProbe::resolution, Texture::DepthBuffer);
+	this->reflectionProbeColorTexture = new Cubemap(ReflectionProbe::resolution, ReflectionProbe::resolution, Texture::HDRColorBuffer);
 
-	this->reflectionProbeFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->reflectionProbeDepthTexture, 0);
+	this->reflectionProbeFramebuffer = new Framebuffer(reflectionProbeColorTexture, 0, this->reflectionProbeDepthTexture, 0);
 
 	this->brdfConvolutionMap = GenerateBRDFConvolution();
+}
+
+void ReflectionProbeSystem::RecalculateSkyboxIBL() {
+	// Silly
+	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
+
+	Skybox* sky = Skybox::GetCurrentSkybox();
+
+	if (!sky) {
+		return;
+	}
+
+	if (this->skyboxProbe == nullptr) {
+		this->skyboxProbe = GetScene()->GetRootNode()->AddObject<ReflectionProbe>();
+	}
+	
+	this->skyboxProbe->dirty = false;
+	this->skyboxProbe->irradianceMap = skyCubemap->GenerateIrradianceMap();
+	this->skyboxProbe->prefilterMap = skyCubemap->GeneratePrefilterIBLMap();
+}
+
+void ReflectionProbeSystem::InvalidateAll() {
+	for (ReflectionProbe* probe : *GetAllObjects()) {
+		probe->Regenerate();
+	}
+}
+
+ReflectionProbe* ReflectionProbeSystem::GetClosestProbe(glm::vec3 position) {
+	ReflectionProbe* closest = nullptr;
+	float closestDistance = INFINITY;
+
+	for (ReflectionProbe* probe : *GetAllObjects()) {
+		if (probe->dirty || !probe->IsEnabled() || probe == this->skyboxProbe) {
+			continue;
+		}
+
+		float dist = glm::distance(probe->GlobalTransform().Position().Value(), position);
+
+		if (dist < closestDistance) {
+			closest = probe;
+			closestDistance = dist;
+		}
+	}
+
+	if (closest == nullptr) {
+		closest = this->skyboxProbe;
+	}
+
+	return closest;
 }
 
 Texture2D* ReflectionProbeSystem::BRDFConvolutionMap() {
@@ -69,13 +121,17 @@ void ReflectionProbeSystem::OnPostRender() {
 		{ 0,  0, -1}
 	};
 
+	if (this->skyboxProbe == nullptr) {
+		RecalculateSkyboxIBL();
+
+		return;
+	}
+
 	for (ReflectionProbe* probe : *GetAllObjects()) {
-		if (!probe->dirty) {
+		if (!probe->dirty || !probe->IsEnabled() || probe == this->skyboxProbe) {
 			continue;
 		}
 
-		probe->dirty = false;
-		
 		ShaderGlobalUniforms globalUniforms;
 		
 		globalUniforms.Global_CameraWorldPos = probe->GlobalTransform().Position();
@@ -109,7 +165,7 @@ void ReflectionProbeSystem::OnPostRender() {
 			globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 100.0f);
 			globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
-			this->reflectionProbeFramebuffer->SetColorTexture(probe->cubemap, face);
+			this->reflectionProbeFramebuffer->SetColorTexture(this->reflectionProbeColorTexture, face);
 
 			RenderParams params(RenderPassType::Color, glm::vec4(0, 0, ReflectionProbe::resolution, ReflectionProbe::resolution), true);
 			
@@ -117,6 +173,12 @@ void ReflectionProbeSystem::OnPostRender() {
 		}
 		
 		this->reflectionProbeFramebuffer->SetColorTexture((Texture2D*) nullptr, 0);
+
+		probe->dirty = false;
+		probe->irradianceMap = this->reflectionProbeColorTexture->GenerateIrradianceMap();
+		probe->prefilterMap = this->reflectionProbeColorTexture->GeneratePrefilterIBLMap();
+
+		break; // Only recompute 1 probe at a time
 	}
 }
 

@@ -75,6 +75,8 @@ protected:
 	struct TextureInfoBit {
 		T value;
 		bool dirty;
+
+		TextureInfoBit() = default;
 	};
 
 	unsigned int width;

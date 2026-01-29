@@ -21,9 +21,9 @@ uniform sampler2D albedoMap;
 uniform sampler2D normalMap;
 uniform sampler2D armMap;
 
-uniform samplerCube irradianceMap;
-uniform samplerCube prefilterMap;
-uniform sampler2D brdfLUT;
+uniform samplerCube Builtin_EnvIrradianceMap;
+uniform samplerCube Builtin_EnvPrefilterMap;
+uniform sampler2D Builtin_BRDFConvolutionMap;
 
 vec3 getNormalFromMap() {
 	vec3 tangentNormal = texture(normalMap, ps_in.texcoords).xyz * 2.0 - 1.0;
@@ -72,12 +72,12 @@ void main() {
     vec3 kD = 1.0 - kS;
     kD *= 1.0 - mat.metallic;
 
-	vec3 irradiance = texture(irradianceMap, N).rgb;
+	vec3 irradiance = texture(Builtin_EnvIrradianceMap, N).rgb;
     vec3 diffuse = irradiance * mat.albedo;
 
 	const float MAX_REFLECTION_LOD = 7.0;
-    vec3 prefilteredColor = textureLod(prefilterMap, R, mat.roughness * MAX_REFLECTION_LOD).rgb;    
-    vec2 brdf = texture(brdfLUT, vec2(max(dot(N, V), 0.0), mat.roughness)).rg;
+    vec3 prefilteredColor = textureLod(Builtin_EnvPrefilterMap, R, mat.roughness * MAX_REFLECTION_LOD).rgb;    
+    vec2 brdf = texture(Builtin_BRDFConvolutionMap, vec2(max(dot(N, V), 0.0), mat.roughness)).rg;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
 	vec3 ambient = (kD * diffuse + specular) * ao;

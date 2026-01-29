@@ -7,14 +7,21 @@
 
 class ReflectionProbeSystem : public GameObjectSystem<ReflectionProbe> {
 private:
+	ReflectionProbe* skyboxProbe;
+
 	Framebuffer* reflectionProbeFramebuffer;
+	Cubemap* reflectionProbeColorTexture;
 	Texture2D* reflectionProbeDepthTexture;
 
 	Texture2D* brdfConvolutionMap;
 public:
 	ReflectionProbeSystem(Scene* scene);
 
-	ReflectionProbe* GetClosest(glm::vec3 position);
+	void RecalculateSkyboxIBL();
+
+	void InvalidateAll();
+
+	ReflectionProbe* GetClosestProbe(glm::vec3 position);
 
 	Texture2D* BRDFConvolutionMap();
 

@@ -17,7 +17,7 @@ layout (std430, binding = 0) buffer ShadowmapInfo {
 	ShadowMapRegion Light_ShadowMapRegions[];
 };
 
-uniform sampler2D shadowMask;
+uniform sampler2D Builtin_ShadowMask;
 
 vec3 getLightStrength(in Light light, in vec3 worldPos) {
 	if (light.type == DIRECTIONAL_LIGHT) {
@@ -87,7 +87,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 			lightViewPos /= lightViewPos.w;
 			lightViewPos.z = (lightViewPos.z + 1) * 0.5;
 
-			vec2 texelSize = 1.0 / (textureSize(shadowMask, 0) * (mask.end.x - mask.start.x));
+			vec2 texelSize = 1.0 / (textureSize(Builtin_ShadowMask, 0) * (mask.end.x - mask.start.x));
 			float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
 			// float bias = 0;
 
@@ -102,7 +102,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 
 					vec2 uv = mix(mask.start, mask.end, uvOffset);
 
-					float shadowZ = texture(shadowMask, uv).x;
+					float shadowZ = texture(Builtin_ShadowMask, uv).x;
 
 					shadowAmount += lightViewPos.z - bias > shadowZ ? 1.0 : 0.0; 
 				}

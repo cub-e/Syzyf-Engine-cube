@@ -248,9 +248,6 @@ void InitScene() {
 	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
 
 	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
-	Cubemap* skyRadianceMap = skyCubemap->GenerateIrradianceMap();
-	Cubemap* skyPrefilterMap = skyCubemap->GeneratePrefilterIBLMap();
-	Texture2D* skyBRDFMap = mainScene->GetGraphics()->GetEnvMapping()->BRDFConvolutionMap();
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
@@ -273,33 +270,21 @@ void InitScene() {
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
 	cannonMat->SetValue("normalMap", cannonNormal);
 	cannonMat->SetValue("armMap", cannonARM);
-	cannonMat->SetValue("irradianceMap", skyRadianceMap);
-	cannonMat->SetValue("prefilterMap", skyPrefilterMap);
-	cannonMat->SetValue("brdfLUT", skyBRDFMap);
 
 	Material* reflectiveMat = new Material(pbrProg);
 	reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
 	reflectiveMat->SetValue("normalMap", reflectiveNormal);
 	reflectiveMat->SetValue("armMap", reflectiveARM);
-	reflectiveMat->SetValue("irradianceMap", skyRadianceMap);
-	reflectiveMat->SetValue("prefilterMap", skyPrefilterMap);
-	reflectiveMat->SetValue("brdfLUT", skyBRDFMap);
 
 	Material* roughMat = new Material(pbrProg);
 	roughMat->SetValue("albedoMap", reflectiveDiffuse);
 	roughMat->SetValue("normalMap", reflectiveNormal);
 	roughMat->SetValue("armMap", roughARM);
-	roughMat->SetValue("irradianceMap", skyRadianceMap);
-	roughMat->SetValue("prefilterMap", skyPrefilterMap);
-	roughMat->SetValue("brdfLUT", skyBRDFMap);
 
 	Material* shinyMat = new Material(pbrProg);
 	shinyMat->SetValue("albedoMap", reflectiveDiffuse);
 	shinyMat->SetValue("normalMap", reflectiveNormal);
 	shinyMat->SetValue("armMap", shinyNonMetalARM);
-	shinyMat->SetValue("irradianceMap", skyRadianceMap);
-	shinyMat->SetValue("prefilterMap", skyPrefilterMap);
-	shinyMat->SetValue("brdfLUT", skyBRDFMap);
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
@@ -334,6 +319,10 @@ void InitScene() {
 	auto lightNode = mainScene->CreateNode("Point Light");
 	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
 	lightNode->GlobalTransform().Position() = {-1, 1.2f, 0};
+
+	auto envProbe = mainScene->CreateNode("Reflection Probe");
+	auto probeObj = envProbe->AddObject<ReflectionProbe>();
+	envProbe->GlobalTransform().Position() = {-2, 1, 0};
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);

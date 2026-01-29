@@ -190,7 +190,7 @@ void Texture::SetMinFilter(TextureFilter minFilter) {
 	this->minFilter.dirty = true;
 	this->dirty = true;
 	
-	if ((int) minFilter & (int) TextureFilter::NearestMipmapNearest != 0) {
+	if (((int) minFilter & (int) TextureFilter::NearestMipmapNearest) != 0) {
 		this->GenerateMipmaps();
 	}
 }
@@ -285,6 +285,12 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->height = height;
 	this->dirty = true;
 
+	this->mipmapped = TextureInfoBit<bool>();
+	this->wrapU = TextureInfoBit<TextureWrap>();
+	this->wrapV = TextureInfoBit<TextureWrap>();
+	this->minFilter = TextureInfoBit<TextureFilter>();
+	this->magFilter = TextureInfoBit<TextureFilter>();
+
 	this->SetWrapModeU(creationParams.wrapU);
 	this->SetWrapModeV(creationParams.wrapV);
 	this->SetMinFilter(creationParams.minFilter);
@@ -317,16 +323,18 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->height = height;
 	this->dirty = true;
 
+	this->mipmapped = TextureInfoBit<bool>();
+	this->wrapU = TextureInfoBit<TextureWrap>();
+	this->wrapV = TextureInfoBit<TextureWrap>();
+	this->minFilter = TextureInfoBit<TextureFilter>();
+	this->magFilter = TextureInfoBit<TextureFilter>();
+
 	this->SetWrapModeU(creationParams.wrapU);
 	this->SetWrapModeV(creationParams.wrapV);
 	this->SetMinFilter(creationParams.minFilter);
 	this->SetMagFilter(creationParams.magFilter);
 
-	glBindTexture(GL_TEXTURE_2D, this->handle);
-
 	this->Update();
-
-	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams) {
@@ -376,6 +384,13 @@ Cubemap::Cubemap(unsigned int width, unsigned int height, const TextureParams& c
 	this->height = height;
 	this->dirty = true;
 
+	this->mipmapped = TextureInfoBit<bool>();
+	this->wrapU = TextureInfoBit<TextureWrap>();
+	this->wrapV = TextureInfoBit<TextureWrap>();
+	this->wrapW = TextureInfoBit<TextureWrap>();
+	this->minFilter = TextureInfoBit<TextureFilter>();
+	this->magFilter = TextureInfoBit<TextureFilter>();
+	
 	this->SetWrapModeU(creationParams.wrapU);
 	this->SetWrapModeV(creationParams.wrapV);
 	this->SetWrapModeW(creationParams.wrapW);
@@ -413,17 +428,18 @@ Cubemap::Cubemap(unsigned int width, unsigned int height, const TextureParams& c
 	this->height = height;
 	this->dirty = true;
 
+	this->mipmapped = TextureInfoBit<bool>();
+	this->wrapU = TextureInfoBit<TextureWrap>();
+	this->wrapV = TextureInfoBit<TextureWrap>();
+	this->wrapW = TextureInfoBit<TextureWrap>();
+	
 	this->SetWrapModeU(creationParams.wrapU);
 	this->SetWrapModeV(creationParams.wrapV);
 	this->SetWrapModeW(creationParams.wrapW);
 	this->SetMinFilter(creationParams.minFilter);
 	this->SetMagFilter(creationParams.magFilter);
 
-	glBindTexture(GL_TEXTURE_CUBE_MAP, this->handle);
-
 	this->Update();
-
-	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 }
 
 Cubemap* Cubemap::Load(const fs::path& texturePath, const TextureParams& loadParams) {

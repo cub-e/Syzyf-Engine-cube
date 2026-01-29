@@ -224,9 +224,43 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 
 		mat->Bind();
 
-		glActiveTexture(GL_TEXTURE31);
-		glBindTexture(GL_TEXTURE_2D, GetLightSystem()->shadowAtlasDepthTexture->GetHandle());
-		glUniform1i(glGetUniformLocation(mat->GetShader()->handle, "shadowMask"), 31);
+		if (params.pass == RenderPassType::Color) {
+			int shadowmaskUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_ShadowMask");
+
+			if (shadowmaskUniformLocation >= 0) {
+				glActiveTexture(GL_TEXTURE31);
+				glBindTexture(GL_TEXTURE_2D, GetLightSystem()->shadowAtlasDepthTexture->GetHandle());
+				glUniform1i(shadowmaskUniformLocation, 31);
+			}
+
+			int irradianceMapUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_EnvIrradianceMap");
+			int prefilterMapUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_EnvPrefilterMap");
+			int brdfConvolutionMapUniformLocation = glGetUniformLocation(mat->GetShader()->handle, "Builtin_BRDFConvolutionMap");
+
+			ReflectionProbe* closestProbe = nullptr;
+
+			if (irradianceMapUniformLocation >= 0 || prefilterMapUniformLocation >= 0 || brdfConvolutionMapUniformLocation >= 0){ 
+				closestProbe = envMapping->GetClosestProbe(mesh->GetBounds().Transform(node.transformation).center);
+			}
+
+			if (closestProbe) {
+				if (irradianceMapUniformLocation >= 0) {
+					glActiveTexture(GL_TEXTURE30);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, closestProbe->GetIrradianceMap()->GetHandle());
+					glUniform1i(irradianceMapUniformLocation, 30);
+				}
+				if (prefilterMapUniformLocation >= 0) {
+					glActiveTexture(GL_TEXTURE29);
+					glBindTexture(GL_TEXTURE_CUBE_MAP, closestProbe->GetPrefilterMap()->GetHandle());
+					glUniform1i(prefilterMapUniformLocation, 29);
+				}
+				if (brdfConvolutionMapUniformLocation >= 0) {
+					glActiveTexture(GL_TEXTURE28);
+					glBindTexture(GL_TEXTURE_2D, envMapping->BRDFConvolutionMap()->GetHandle());
+					glUniform1i(brdfConvolutionMapUniformLocation, 28);
+				}
+			}
+		}
 		
 		glBindVertexArray(mesh->GetVertexArrayHandle());
 
