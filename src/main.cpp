@@ -28,6 +28,7 @@
 #include <Light.h>
 #include <Bloom.h>
 #include <ReflectionProbe.h>
+#include <ReflectionProbeSystem.h>
 #include <Tonemapper.h>
 #include <Debug.h>
 
@@ -222,6 +223,8 @@ public:
 };
 
 void InitScene() {
+	mainScene = new Scene();
+	
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
@@ -247,7 +250,7 @@ void InitScene() {
 	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	Cubemap* skyRadianceMap = skyCubemap->GenerateIrradianceMap();
 	Cubemap* skyPrefilterMap = skyCubemap->GeneratePrefilterIBLMap();
-	Texture2D* skyBRDFMap = skyCubemap->GenerateBRDFConvolution();
+	Texture2D* skyBRDFMap = mainScene->GetGraphics()->GetEnvMapping()->BRDFConvolutionMap();
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
@@ -301,8 +304,6 @@ void InitScene() {
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	mainScene = new Scene();
-	
 	auto floorNode = mainScene->CreateNode();
 	auto floorRenderer = floorNode->AddObject<MeshRenderer>(floorMesh, floorMat);
 	floorNode->LocalTransform().Scale() = glm::vec3(100, 1, 100);

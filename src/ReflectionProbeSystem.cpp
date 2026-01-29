@@ -5,15 +5,58 @@
 
 #include <ReflectionProbe.h>
 #include <Graphics.h>
+#include <Resources.h>
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
+
+Texture2D* GenerateBRDFConvolution() {
+	static ComputeShaderDispatch* BrdfConvolutionDispatch;
+
+	if (BrdfConvolutionDispatch == nullptr) {
+		BrdfConvolutionDispatch = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/cubemapBlit/brdf_convolution.comp"));
+	}
+
+	TextureParams creationParams;
+	creationParams.channels = TextureChannels::RG;
+	creationParams.format = TextureFormat::Float;
+	creationParams.colorSpace = TextureColor::Linear;
+
+	int texSize = 512;
+
+	GLuint handle;
+
+	glCreateTextures(GL_TEXTURE_2D, 1, &handle);
+	glBindTexture(GL_TEXTURE_2D, handle);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, texSize, texSize, 0, GL_RG, GL_FLOAT, nullptr);
+	glBindTexture(GL_TEXTURE_2D, 0);
+
+	Texture2D* result = new Texture2D(texSize, texSize, creationParams, handle);
+
+	result->SetWrapModeU(TextureWrap::Clamp);
+	result->SetWrapModeV(TextureWrap::Clamp);
+	result->SetMinFilter(TextureFilter::Linear);
+	result->SetMagFilter(TextureFilter::Linear);
+	
+	result->Update();
+
+	BrdfConvolutionDispatch->GetData()->SetValue("outputImg", result);
+	BrdfConvolutionDispatch->Dispatch(glm::ceil(texSize / 8), glm::ceil(texSize / 8), 1);
+
+	return result;
+}
 
 ReflectionProbeSystem::ReflectionProbeSystem(Scene* scene):
 GameObjectSystem<ReflectionProbe>(scene) {
 	this->reflectionProbeDepthTexture = new Texture2D(ReflectionProbe::resolution, ReflectionProbe::resolution, Texture::DepthBuffer);
 
 	this->reflectionProbeFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->reflectionProbeDepthTexture, 0);
+
+	this->brdfConvolutionMap = GenerateBRDFConvolution();
+}
+
+Texture2D* ReflectionProbeSystem::BRDFConvolutionMap() {
+	return this->brdfConvolutionMap;
 }
 
 void ReflectionProbeSystem::OnPostRender() {

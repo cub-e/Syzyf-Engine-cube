@@ -169,7 +169,6 @@ public:
 
 	Cubemap* GenerateIrradianceMap();
 	Cubemap* GeneratePrefilterIBLMap();
-	Texture2D* GenerateBRDFConvolution();
 	
 	TextureWrap GetWrapModeW() const;
 	void SetWrapModeW(TextureWrap wrapMode);
