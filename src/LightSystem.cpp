@@ -2,6 +2,7 @@
 
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
+#include <imgui.h>
 
 #include <Light.h>
 #include <Camera.h>
@@ -11,19 +12,16 @@
 #include "../res/shaders/shared/uniforms.h"
 
 constexpr int MAX_NUM_LIGHTS = 128;
-constexpr int SHADOW_MAP_ATLAS_SIZE = 4096;
-
-constexpr int DIRECTIONAL_LIGHT_CASCADE_COUNT = 6;
 
 LightSystem::LightSystem(Scene* scene):
 GameObjectSystem<Light>(scene),
-lightsBuffer(0) {
-	this->shadowAtlasDepthTexture = new Texture2D(SHADOW_MAP_ATLAS_SIZE, SHADOW_MAP_ATLAS_SIZE, Texture::DepthBuffer);
+lightsBuffer(0),
+shadowmapAtlasSize(4096),
+directionalLightCascadeCount(6),
+shadowAtlasDepthTexture(nullptr) {
+	this->shadowAtlasFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, nullptr);
 
-	this->shadowAtlasDepthTexture->SetMinFilter(TextureFilter::Nearest);
-	this->shadowAtlasDepthTexture->SetMagFilter(TextureFilter::Nearest);
-
-	this->shadowAtlasFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->shadowAtlasDepthTexture);
+	ChangeShadowAtlasResolution(this->shadowmapAtlasSize);
 
 	glGenBuffers(1, &this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, this->lightsBuffer);
@@ -32,6 +30,21 @@ lightsBuffer(0) {
 	glGenBuffers(1, &this->shadowmapsBuffer);
 
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+}
+
+void LightSystem::ChangeShadowAtlasResolution(int newResolution) {
+	if (this->shadowAtlasDepthTexture) {
+		delete this->shadowAtlasDepthTexture;
+	}
+
+	this->shadowmapAtlasSize = newResolution;
+
+	this->shadowAtlasDepthTexture = new Texture2D(this->shadowmapAtlasSize, this->shadowmapAtlasSize, Texture::DepthBuffer);
+
+	this->shadowAtlasDepthTexture->SetMinFilter(TextureFilter::LinearMipmapNearest);
+	this->shadowAtlasDepthTexture->SetMagFilter(TextureFilter::LinearMipmapNearest);
+
+	this->shadowAtlasFramebuffer->SetDepthTexture(this->shadowAtlasDepthTexture, 0);
 }
 
 GLuint LightSystem::GetLightsBufferHandle() {
@@ -66,8 +79,8 @@ void LightSystem::DoSpotLightShadowmap(Light* light, ShadowMapRegion& shadowmapR
 
 	GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
 
-	shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
-	shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
+	shadowmapRect.start /= this->shadowmapAtlasSize;
+	shadowmapRect.end /= this->shadowmapAtlasSize;
 }
 
 void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* shadowmapRects) {
@@ -96,9 +109,9 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 		glm::vec4( 1,  1,  1,  1),
 	};
 
-	for (int cascade = 0; cascade < DIRECTIONAL_LIGHT_CASCADE_COUNT; cascade++) {
-		float cascadeFrustumStart = farPlane * (float(cascade) / DIRECTIONAL_LIGHT_CASCADE_COUNT) * (float(cascade) / DIRECTIONAL_LIGHT_CASCADE_COUNT);
-		float cascadeFrustumEnd = farPlane * (float(cascade + 1) / DIRECTIONAL_LIGHT_CASCADE_COUNT) * (float(cascade + 1) / DIRECTIONAL_LIGHT_CASCADE_COUNT);
+	for (int cascade = 0; cascade < this->directionalLightCascadeCount; cascade++) {
+		float cascadeFrustumStart = farPlane * (float(cascade) / this->directionalLightCascadeCount) * (float(cascade) / this->directionalLightCascadeCount);
+		float cascadeFrustumEnd = farPlane * (float(cascade + 1) / this->directionalLightCascadeCount) * (float(cascade + 1) / this->directionalLightCascadeCount);
 
 		glm::vec3 frustumCenter = cameraPosition + cameraForward * ((cascadeFrustumStart + cascadeFrustumEnd) * 0.5f);
 
@@ -156,8 +169,8 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 		
 		GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
 
-		shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
-		shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
+		shadowmapRect.start /= this->shadowmapAtlasSize;
+		shadowmapRect.end /= this->shadowmapAtlasSize;
 	}
 }
 
@@ -201,7 +214,7 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 					glm::vec3(0, -1, 0)
 				);
 			}
-		globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.2f), 1.0f, 0.1f, light->GetRange());
+		globalUniforms.Global_ProjectionMatrix = glm::perspective(glm::radians(90.4f), 1.0f, 0.1f, light->GetRange());
 		globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
 
 		ShadowMapRegion& shadowmapRect = shadowmapRects[face];
@@ -215,8 +228,8 @@ void LightSystem::DoPointLightShadowmap(Light* light, ShadowMapRegion* shadowmap
 		
 		GetScene()->GetGraphics()->RenderScene(globalUniforms, this->shadowAtlasFramebuffer, renderParams);
 
-		shadowmapRect.start /= SHADOW_MAP_ATLAS_SIZE;
-		shadowmapRect.end /= SHADOW_MAP_ATLAS_SIZE;
+		shadowmapRect.start /= this->shadowmapAtlasSize;
+		shadowmapRect.end /= this->shadowmapAtlasSize;
 	}	
 }
 
@@ -242,7 +255,7 @@ void LightSystem::OnPostRender() {
 				shadowmapTexturesCount += 6;
 			}
 			else if (l->GetType() == Light::LightType::Directional) {
-				shadowmapTexturesCount += DIRECTIONAL_LIGHT_CASCADE_COUNT;
+				shadowmapTexturesCount += this->directionalLightCascadeCount;
 			}
 		}
 	}
@@ -268,12 +281,12 @@ void LightSystem::OnPostRender() {
 			if (l->IsShadowCasting()) {
 				if (l->GetType() == Light::LightType::Spot) {
 					rects[shadowMapIndex].start = glm::vec2(xPosition, yPosition);
-					rects[shadowMapIndex].end = glm::vec2(xPosition + SHADOW_MAP_ATLAS_SIZE / sizeDivisor, yPosition + SHADOW_MAP_ATLAS_SIZE / sizeDivisor);
+					rects[shadowMapIndex].end = glm::vec2(xPosition + this->shadowmapAtlasSize / sizeDivisor, yPosition + this->shadowmapAtlasSize / sizeDivisor);
 	
-					xPosition += SHADOW_MAP_ATLAS_SIZE / sizeDivisor;
-					if (xPosition >= SHADOW_MAP_ATLAS_SIZE) {
+					xPosition += this->shadowmapAtlasSize / sizeDivisor;
+					if (xPosition >= this->shadowmapAtlasSize) {
 						xPosition = 0;
-						yPosition += SHADOW_MAP_ATLAS_SIZE / sizeDivisor;
+						yPosition += this->shadowmapAtlasSize / sizeDivisor;
 					}
 	
 					shadowMapIndex++;
@@ -281,30 +294,30 @@ void LightSystem::OnPostRender() {
 				else if (l->GetType() == Light::LightType::Point) {
 					for (int i = 0; i < 6; i++) {
 						rects[shadowMapIndex + i].start = glm::vec2(xPosition, yPosition);
-						rects[shadowMapIndex + i].end = glm::vec2(xPosition + SHADOW_MAP_ATLAS_SIZE / sizeDivisor, yPosition + SHADOW_MAP_ATLAS_SIZE / sizeDivisor);
+						rects[shadowMapIndex + i].end = glm::vec2(xPosition + this->shadowmapAtlasSize / sizeDivisor, yPosition + this->shadowmapAtlasSize / sizeDivisor);
 	
-						xPosition += SHADOW_MAP_ATLAS_SIZE / sizeDivisor;
-						if (xPosition >= SHADOW_MAP_ATLAS_SIZE) {
+						xPosition += this->shadowmapAtlasSize / sizeDivisor;
+						if (xPosition >= this->shadowmapAtlasSize) {
 							xPosition = 0;
-							yPosition += SHADOW_MAP_ATLAS_SIZE / sizeDivisor;
+							yPosition += this->shadowmapAtlasSize / sizeDivisor;
 						}
 					}
 
 					shadowMapIndex += 6;
 				}
 				else if (l->GetType() == Light::LightType::Directional) {
-					for (int i = 0; i < DIRECTIONAL_LIGHT_CASCADE_COUNT; i++) {
+					for (int i = 0; i < this->directionalLightCascadeCount; i++) {
 						rects[shadowMapIndex + i].start = glm::vec2(xPosition, yPosition);
-						rects[shadowMapIndex + i].end = glm::vec2(xPosition + SHADOW_MAP_ATLAS_SIZE / sizeDivisor, yPosition + SHADOW_MAP_ATLAS_SIZE / sizeDivisor);
+						rects[shadowMapIndex + i].end = glm::vec2(xPosition + this->shadowmapAtlasSize / sizeDivisor, yPosition + this->shadowmapAtlasSize / sizeDivisor);
 	
-						xPosition += SHADOW_MAP_ATLAS_SIZE / sizeDivisor;
-						if (xPosition >= SHADOW_MAP_ATLAS_SIZE) {
+						xPosition += this->shadowmapAtlasSize / sizeDivisor;
+						if (xPosition >= this->shadowmapAtlasSize) {
 							xPosition = 0;
-							yPosition += SHADOW_MAP_ATLAS_SIZE / sizeDivisor;
+							yPosition += this->shadowmapAtlasSize / sizeDivisor;
 						}
 					}
 
-					shadowMapIndex += DIRECTIONAL_LIGHT_CASCADE_COUNT;
+					shadowMapIndex += this->directionalLightCascadeCount;
 				}
 			}
 		}
@@ -333,7 +346,7 @@ void LightSystem::OnPostRender() {
 						DoPointLightShadowmap(l, rects + rep.shadowAtlasIndex);
 					}
 					else if (l->GetType() == Light::LightType::Directional) {
-						shadowMapIndex += DIRECTIONAL_LIGHT_CASCADE_COUNT;
+						shadowMapIndex += this->directionalLightCascadeCount;
 
 						DoDirectionalLightShadowmap(l, rects + rep.shadowAtlasIndex);
 					}
@@ -351,6 +364,7 @@ void LightSystem::OnPostRender() {
 
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(ambientLight), &ambientLight);
 	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 16, sizeof(lightIndex), &lightIndex);
+	glBufferSubData(GL_SHADER_STORAGE_BUFFER, 20, sizeof(this->directionalLightCascadeCount), &this->directionalLightCascadeCount);
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, this->lightsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
@@ -360,8 +374,31 @@ void LightSystem::OnPostRender() {
 
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, this->shadowmapsBuffer);
 	glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
 int LightSystem::Order() {
 	return 0;
+}
+
+void LightSystem::DrawImGui() {
+	if (ImGui::TreeNode("Lights Debug")) {
+		ImGui::Text("Shadow atlas resolution: %ix%i px", this->shadowmapAtlasSize, this->shadowmapAtlasSize);
+		ImGui::Text("Active lights: %i", this->GetAllObjects()->size());
+
+		ImGui::Separator();
+
+		int newShadowmapResolution = this->shadowmapAtlasSize;
+	
+		ImGui::InputInt("Shadow atlas resolution", &newShadowmapResolution);
+
+		if (ImGui::IsItemDeactivatedAfterEdit() && ImGui::IsKeyPressed(ImGuiKey_Enter)) {
+			if (newShadowmapResolution != this->shadowmapAtlasSize) {
+				ChangeShadowAtlasResolution(newShadowmapResolution);
+			}
+		}
+
+		ImGui::TreePop();
+	}
 }

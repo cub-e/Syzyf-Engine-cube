@@ -6,11 +6,10 @@
 
 // #include "shared/shared.h"
 
-#define DIRECTIONAL_LIGHT_CASCADE_COUNT 6
-
 layout (std430, binding = 1) buffer LightInfo {
 	vec4 Light_AmbientLight;
 	int Light_LightCount;
+	int Light_DirectionalLightCascadeCount;
 	Light Light_LightsList[];
 };
 
@@ -66,7 +65,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 			uint index = 0;
 
 			if (l.type == DIRECTIONAL_LIGHT) {
-				index = uint(floor(sqrt(pixelDepth) * DIRECTIONAL_LIGHT_CASCADE_COUNT));
+				index = uint(floor(sqrt(pixelDepth) * Light_DirectionalLightCascadeCount));
 
 				lightDir = -l.direction;
 			}
@@ -92,10 +91,10 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 			float bias = max(0.005 * (1.0 - dot(normal, lightDir)), 0.001);
 			// float bias = 0;
 
-			vec2 uvLocal = vec2(
+			vec2 uvLocal = clamp(vec2(
 				(lightViewPos.x + 1) * 0.5,
 				(lightViewPos.y + 1) * 0.5
-			);
+			), 0, 1);
 
 			for (int x = -1; x <= 1; x++) {
 				for (int y = -1; y <= 1; y++) {

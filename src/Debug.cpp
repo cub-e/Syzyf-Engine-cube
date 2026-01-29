@@ -139,8 +139,8 @@ void DrawNodeImGui(SceneNode* node) {
 
 void DebugInspector::DrawImGui() {
 	SceneNode* treeRoot = GetScene()->GetRootNode();
-	
-	if (ImGui::TreeNode("GameObject debug")) {
+
+	if (ImGui::TreeNode("GameObject Debug")) {
 		DrawNodeImGui(treeRoot);
 
 		ImGui::TreePop();
@@ -148,5 +148,5 @@ void DebugInspector::DrawImGui() {
 }
 
 int DebugInspector::Order() {
-	return 1000;
+	return -1000;
 }

@@ -502,10 +502,13 @@ void SceneGraphics::OnPostRender() {
 }
 
 void SceneGraphics::DrawImGui() {
-	ImGui::SeparatorText("Graphics debug");
+	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
+	if (ImGui::TreeNode("Graphics Debug")) {
+		ImGui::Text("Resolution: %i:%i", (int) this->screenResolution.x, (int) this->screenResolution.y);
+		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
-	ImGui::Text("Resolution: %i:%i", (int) this->screenResolution.x, (int) this->screenResolution.y);
-	ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+		ImGui::TreePop();
+	}
 }
 
 int SceneGraphics::Order() {
