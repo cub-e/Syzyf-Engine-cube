@@ -139,10 +139,7 @@ void DrawNodeImGui(SceneNode* node) {
 
 void DebugInspector::DrawImGui() {
 	SceneNode* treeRoot = GetScene()->GetRootNode();
-	std::stack<SceneNode*> nodes;
-
-	nodes.push_range(treeRoot->GetChildren());
-
+	
 	if (ImGui::TreeNode("GameObject debug")) {
 		DrawNodeImGui(treeRoot);
 
