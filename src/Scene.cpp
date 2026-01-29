@@ -148,9 +148,10 @@ void SceneNode::DeleteObject(GameObject* obj) {
 Scene::Scene() :
 updateable(),
 renderable(),
-root(new SceneNode(this)),
+root(nullptr),
 nextSceneNodeID(0),
 nextGameObjectID(0) {
+	this->root = CreateNode("root");
 	this->graphics = AddComponent<SceneGraphics>();
 }
 
@@ -178,7 +179,7 @@ void Scene::DeleteObjectInternal(GameObject* obj) {
 
 void Scene::DeleteNodeInternal(SceneNode* node) {
 	if (node == this->root) {
-		this->root = new SceneNode(this);
+		this->root = CreateNode("root");
 	}
 }
 
@@ -198,8 +199,11 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 	if (parent) {
 		result->SetParent(parent);
 	}
-	else {
+	else if (this->root) {
 		result->SetParent(this->root);
+	}
+	else {
+		this->root = result;
 	}
 
 	result->id = this->nextSceneNodeID++;
