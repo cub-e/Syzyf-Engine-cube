@@ -105,70 +105,113 @@ constexpr int32_t GL_VERSION_MINOR = 6;
 
 Scene* mainScene;
 
-class Mover : public GameObject {
+class Mover : public GameObject, public ImGuiDrawable {
 private:
 	float pitch;
 	float rotation;
+	bool movementEnabled;
+	bool spaceKeyTrip;
+	int mode;
+	float movementSpeed = 0.1f;
+	float mouseSensitivity = 1.0f;
 public:
+	void SetCaptureMouse(bool capture) {
+		if (capture) {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+			glfwSetCursorPos(window, 0, 0);
+		}
+		else {
+			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+
+			int display_w, display_h;
+			glfwMakeContextCurrent(window);
+			glfwGetFramebufferSize(window, &display_w, &display_h);
+
+			glfwSetCursorPos(window, display_w / 2, display_h / 2);
+		}
+
+		this->movementEnabled = capture;
+	}
+
 	Mover() {
 		this->pitch = 0;
 		this->rotation = 0;
+		this->spaceKeyTrip = false;
+		this->mode = 0;
+
+		SetCaptureMouse(true);
 	}
 
 	void Update() {
-		glm::vec3 movement = glm::zero<glm::vec3>();
-		glm::quat rotation = glm::identity<glm::quat>();
+		if (movementEnabled) {
+			glm::vec3 movement = glm::zero<glm::vec3>();
+			glm::quat rotation = glm::identity<glm::quat>();
 
-		glm::vec3 right = this->GlobalTransform().Right();
-		glm::vec3 up = glm::vec3(0, 1, 0);
-		glm::vec3 forward = glm::cross(right, up);
+			glm::vec3 right = this->GlobalTransform().Right();
+			glm::vec3 up = glm::vec3(0, 1, 0);
+			glm::vec3 forward = mode == 0 ? glm::cross(right, up) : this->GlobalTransform().Forward();
 
-		if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-			movement += right;
-		}
-		if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-			movement -= right;
-		}
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-			movement += forward;
-		}
-		if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-			movement -= forward;
+			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+				movement += right;
+			}
+			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+				movement -= right;
+			}
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+				movement += forward;
+			}
+			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+				movement -= forward;
+			}
+	
+			double xpos, ypos;
+			glfwGetCursorPos(window, &xpos, &ypos);
+
+			glm::vec2 deltaMovement = glm::vec2(xpos, ypos);
+			
+			int display_w, display_h;
+			glfwMakeContextCurrent(window);
+			glfwGetFramebufferSize(window, &display_w, &display_h);
+
+			this->rotation -= (deltaMovement.x / 20) * this->mouseSensitivity;
+			this->pitch += (deltaMovement.y / 20) * this->mouseSensitivity * (float(display_h) / display_w);
+
+			glfwSetCursorPos(window, 0, 0);
+
+			if (this->rotation < -180) {
+				this->rotation += 360;
+			}
+			else if (this->rotation > 180) {
+				this->rotation -= 360;
+			}
+
+			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
+			this->GlobalTransform().Position() += movement * this->movementSpeed;
+			this->GlobalTransform().Rotation() = glm::angleAxis(
+				glm::radians(this->rotation), glm::vec3(0, 1, 0)
+			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS) {
-			this->rotation -= 1.0f;
-		}
-		if (glfwGetKey(window, GLFW_KEY_LEFT) == GLFW_PRESS) {
-			this->rotation += 1.0f;
-		}
-		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS) {
-			this->pitch -= 1.0f;
-		}
-		if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS) {
-			this->pitch += 1.0f;
-		}
+		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
+			if (!spaceKeyTrip) {
+				SetCaptureMouse(!this->movementEnabled);
 
-		if (this->rotation < -180) {
-			this->rotation += 360;
-		}
-		else if (this->rotation > 180) {
-			this->rotation -= 360;
-		}
-
-		this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
-
-		if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS) {
-			auto lights = GetScene()->FindObjectsOfType<Light>();
-			if (lights.size() > 0) {
-				delete lights[0];
+				spaceKeyTrip = true;
 			}
 		}
+		else {
+			spaceKeyTrip = false;
+		}
+	}
 
-		this->GlobalTransform().Position() += movement * 0.04f;
-		this->GlobalTransform().Rotation() = glm::angleAxis(
-			glm::radians(this->rotation), glm::vec3(0, 1, 0)
-		) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
+	virtual void DrawImGui() {
+		const char* modes[] { "Walking", "Freecam", };
+
+		ImGui::Combo("Movement type", &this->mode, modes, 2);
+
+		ImGui::InputFloat("Movement speed", &this->movementSpeed);
+		ImGui::InputFloat("Mouse sensitivity", &this->mouseSensitivity);
 	}
 };
 
@@ -318,7 +361,7 @@ void InitScene() {
 	shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
 
 	auto cameraNode = mainScene->CreateNode("Camera");
-	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 100.0f));
+	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
 	cameraNode->AddObject<Mover>();
 
