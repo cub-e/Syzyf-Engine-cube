@@ -65,12 +65,16 @@ void ReflectionProbeSystem::RecalculateSkyboxIBL() {
 
 	Skybox* sky = Skybox::GetCurrentSkybox();
 
-	if (!sky) {
-		return;
-	}
-
 	if (this->skyboxProbe == nullptr) {
 		this->skyboxProbe = GetScene()->GetRootNode()->AddObject<ReflectionProbe>();
+	}
+
+	if (!sky) {
+		this->skyboxProbe->dirty = false;
+		this->skyboxProbe->irradianceMap = new Cubemap(1, 1, Texture::HDRColorBuffer);
+		this->skyboxProbe->prefilterMap = new Cubemap(1, 1, Texture::HDRColorBuffer);
+
+		return;
 	}
 	
 	this->skyboxProbe->dirty = false;
@@ -129,8 +133,14 @@ void ReflectionProbeSystem::OnPostRender() {
 	}
 
 	for (ReflectionProbe* probe : *GetAllObjects()) {
-		if (!probe->dirty || !probe->IsEnabled() || probe == this->skyboxProbe) {
+		if (!probe->dirty || !probe->IsEnabled()) {
 			continue;
+		}
+
+		if (probe == this->skyboxProbe) {
+			RecalculateSkyboxIBL();
+
+			break;
 		}
 
 		ShaderGlobalUniforms globalUniforms;
