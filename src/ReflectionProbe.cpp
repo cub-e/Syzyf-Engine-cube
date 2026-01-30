@@ -6,6 +6,8 @@
 #include <Material.h>
 #include <Graphics.h>
 
+#include <imgui.h>
+
 ReflectionProbe::ReflectionProbe():
 dirty(true),
 irradianceMap(nullptr),
@@ -43,4 +45,12 @@ void ReflectionProbe::DrawGizmos() {
 	this->gizmoMaterial->SetValue("cubemap", this->prefilterMap);
 
 	GetScene()->GetGraphics()->DrawGizmoMesh(cubemapGizmoMesh, 0, this->gizmoMaterial, GlobalTransform().Value());
+}
+
+void ReflectionProbe::DrawImGui() {
+	ImGui::Text("Status: %s", this->dirty ? "Dirty" : "Clean");
+
+	if (ImGui::Button("Recalculate")) {
+		this->Regenerate();
+	}
 }
