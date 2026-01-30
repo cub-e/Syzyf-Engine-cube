@@ -32,6 +32,9 @@
           pkg-config
           gdb
           wayland-scanner
+
+          glslls
+          clang-tools
         ];
 
         buildInputs = with pkgs; [
