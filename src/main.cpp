@@ -291,6 +291,12 @@ void InitScene() {
 		Resources::Get<PixelShader>("./res/shaders/pbr.frag")
 	).Link();
 
+	ShaderProgram* pbrRefractProg = ShaderProgram::Build().WithVertexShader(
+		Resources::Get<VertexShader>("./res/shaders/lit.vert")
+	).WithPixelShader(
+		Resources::Get<PixelShader>("./res/shaders/pbr refract.frag")
+	).Link();
+
 	Mesh* gmConstructMesh = Resources::Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
@@ -325,10 +331,10 @@ void InitScene() {
 	roughMat->SetValue("normalMap", reflectiveNormal);
 	roughMat->SetValue("armMap", roughARM);
 
-	Material* shinyMat = new Material(pbrProg);
+	Material* shinyMat = new Material(pbrRefractProg);
 	shinyMat->SetValue("albedoMap", reflectiveDiffuse);
 	shinyMat->SetValue("normalMap", reflectiveNormal);
-	shinyMat->SetValue("armMap", shinyNonMetalARM);
+	shinyMat->SetValue("armMap", reflectiveARM);
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
@@ -392,6 +398,9 @@ void InitScene() {
 	auto envProbe3 = mainScene->CreateNode("Reflection Probe");
 	envProbe3->AddObject<ReflectionProbe>();
 	envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
+
+	auto envProbe4 = mainScene->CreateNode(shinyCubeNode, "Reflection Probe");
+	envProbe4->AddObject<ReflectionProbe>();
 
 	auto starsNode = mainScene->CreateNode("Stars");
 	starsNode->AddObject<Stars>(1000);

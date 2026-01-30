@@ -49,9 +49,11 @@ void main() {
 	mat.roughness = max(arm.y, 0.05);
 	float ao = arm.x;
 
+	float refractionRatio = 1.00 / 1.52;
+
 	vec3 N = getNormalFromMap();
 	vec3 V = normalize(Global_CameraWorldPos - ps_in.worldPos);
-	vec3 R = reflect(-V, N); 
+	vec3 R = refract(-V, N, refractionRatio); 
 
 	vec3 F0 = vec3(0.04); 
     F0 = mix(F0, mat.albedo, mat.metallic);
