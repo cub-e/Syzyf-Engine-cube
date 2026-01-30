@@ -82,5 +82,5 @@ void main() {
 
 	vec3 ambient = (kD * diffuse + specular) * ao;
 
-	fragColor.xyz += ambient;
+	fragColor.xyz += ambient * 0.2;
 }

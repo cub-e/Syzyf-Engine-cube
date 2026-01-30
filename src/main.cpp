@@ -290,7 +290,7 @@ void InitScene() {
 	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
 
-	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/moonless_golf_4k.hdr", Texture::HDRColorBuffer);
+	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
