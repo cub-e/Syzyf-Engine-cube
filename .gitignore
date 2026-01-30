@@ -11,3 +11,6 @@ CTestTestfile.cmake
 [Bb]uild/
 .vscode/
 res/testing/
+
+# Nix
+.direnv
