@@ -397,7 +397,7 @@ int LightSystem::Order() {
 void LightSystem::DrawImGui() {
 	if (ImGui::TreeNode("Lights Debug")) {
 		ImGui::Text("Shadow atlas resolution: %ix%i px", this->shadowmapAtlasSize, this->shadowmapAtlasSize);
-		ImGui::Text("Active lights: %i", this->GetAllObjects()->size());
+		ImGui::Text("Active lights: %i", (int) this->GetAllObjects()->size());
 
 		ImGui::Separator();
 

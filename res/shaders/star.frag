@@ -15,9 +15,9 @@ void main() {
 	uint bep = (ps_in.instanceID % 7) + 1;
 
 	fragColor = vec4(
-		float(bep & 1),
-		float(bep & 2),
-		float(bep & 4),
+		float(bep & 1u),
+		float(bep & 2u),
+		float(bep & 4u),
 		1.0
 	);
 
