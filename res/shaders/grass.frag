@@ -20,6 +20,8 @@ uniform samplerCube Builtin_EnvIrradianceMap;
 uniform samplerCube Builtin_EnvPrefilterMap;
 uniform sampler2D Builtin_BRDFConvolutionMap;
 
+uniform sampler2D noiseTexture;
+
 out vec4 fragColor;
 
 void main() {
