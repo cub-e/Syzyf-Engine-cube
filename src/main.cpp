@@ -243,8 +243,8 @@ public:
 		.WithVertexShader(
 			Resources::Get<VertexShader>("./res/shaders/star.vert")
 		).WithGeometryShader(
-			Resources::Get<GeometryShader>("./res/shaders/star.geom")
-		).WithPixelShader(
+      Resources::Get<GeometryShader>("./res/shaders/star.geom")
+    ).WithPixelShader(
 			Resources::Get<PixelShader>("./res/shaders/star.frag")
 		).Link();
 		starProgram->SetIgnoresDepthPrepass(true);
@@ -267,6 +267,48 @@ public:
 
 	void DrawImGui() {
 		ImGui::InputInt("Star count", &this->starCount);
+	}
+};
+
+class Grass : public GameObject, public ImGuiDrawable {
+private:
+	Mesh* mesh;
+	Material* material;
+	int count;
+public:
+	Grass(int count = 1000) {
+		this->mesh = Resources::Get<Mesh>("./res/models/grass.obj");
+    this->GlobalTransform().Scale() = glm::vec3(4.0f);
+		
+		ShaderProgram* shaderProgram = ShaderProgram::Build()
+		.WithVertexShader(
+			Resources::Get<VertexShader>("./res/shaders/grass.vert")
+		).WithGeometryShader(
+      Resources::Get<GeometryShader>("./res/shaders/grass.geom")
+    ).WithPixelShader(
+			Resources::Get<PixelShader>("./res/shaders/grass.frag")
+		).Link();
+		shaderProgram->SetIgnoresDepthPrepass(true);
+		shaderProgram->SetCastsShadows(false);
+
+		this->material = new Material(shaderProgram);
+		this->count = count;
+	}
+
+	void Render() {
+		GetScene()->GetGraphics()->DrawMeshInstanced(
+			this->mesh,
+			0,
+			this->material,
+			this->GlobalTransform(),
+			this->count,
+			BoundingBox::CenterAndExtents(glm::vec3(0, 0, 0), glm::vec3(15, 15, 15)),
+      true
+		);
+	}
+
+	void DrawImGui() {
+		ImGui::InputInt("Grass count", &this->count);
 	}
 };
 
@@ -300,6 +342,7 @@ void InitScene() {
 	Mesh* gmConstructMesh = Resources::Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
+  Mesh* schnozMesh = Resources::Get<Mesh>("./res/models/schnoz/schnoz.obj", true);
 
 	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -349,6 +392,10 @@ void InitScene() {
 	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
 	cubeNode->GlobalTransform().Position() = {-2.0f, 1.0f, 0.0f};
 	cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
+
+  auto schnozNode = mainScene->CreateNode("Schnoz");
+  schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMesh->GetDefaultMaterials());
+  schnozNode-> GlobalTransform().Position() = { 2.0f, 2.0f, 0.0f };
 
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
@@ -403,8 +450,12 @@ void InitScene() {
 	envProbe4->AddObject<ReflectionProbe>();
 
 	auto starsNode = mainScene->CreateNode("Stars");
-	starsNode->AddObject<Stars>(1000);
+	starsNode->AddObject<Stars>(10);
 	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
+
+  auto grassNode = mainScene->CreateNode("Grass");
+  grassNode->AddObject<Grass>(100000);
+  grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);

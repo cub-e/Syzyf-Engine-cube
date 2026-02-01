@@ -6,12 +6,14 @@ layout (triangle_strip, max_vertices = 3) out;
 in VARYINGS {
 	vec3 normal;
 	vec3 worldPos;
+  vec3 viewPos;
 	flat uint instanceID;
 } gs_in[];
 
 out VARYINGS {
 	vec3 normal;
 	vec3 worldPos;
+  vec3 viewPos;
 	flat uint instanceID;
 } gs_out;
 
