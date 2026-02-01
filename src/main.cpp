@@ -188,6 +188,15 @@ public:
 
 			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
 			this->GlobalTransform().Position() += movement * this->movementSpeed;
+
+      if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        this->GlobalTransform().Position() += glm::vec3(0.0, this->movementSpeed, 0.0);
+      }
+      if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        this->GlobalTransform().Position() -= glm::vec3(0.0, this->movementSpeed, 0.0);
+      }
+
+
 			this->GlobalTransform().Rotation() = glm::angleAxis(
 				glm::radians(this->rotation), glm::vec3(0, 1, 0)
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
@@ -278,7 +287,7 @@ private:
 public:
 	Grass(int count = 1000) {
 		this->mesh = Resources::Get<Mesh>("./res/models/grass.obj");
-    this->GlobalTransform().Scale() = glm::vec3(4.0f);
+    this->GlobalTransform().Scale() = glm::vec3(3.0f);
 		
 		ShaderProgram* shaderProgram = ShaderProgram::Build()
 		.WithVertexShader(
@@ -288,10 +297,18 @@ public:
     ).WithPixelShader(
 			Resources::Get<PixelShader>("./res/shaders/grass.frag")
 		).Link();
+
+  	Texture2D* noiseTexture = Resources::Get<Texture2D>("./res/textures/noise/marble10.png", Texture::ColorTextureRGB);
+	  noiseTexture->SetWrapModeU(TextureWrap::Repeat);
+	  noiseTexture->SetWrapModeV(TextureWrap::Repeat);
+
+	  Material* grassMat = new Material(shaderProgram);
+    grassMat->SetValue("noiseTexture", noiseTexture);
+
 		shaderProgram->SetIgnoresDepthPrepass(true);
 		shaderProgram->SetCastsShadows(false);
 
-		this->material = new Material(shaderProgram);
+		this->material = grassMat;
 		this->count = count;
 	}
 
@@ -395,7 +412,8 @@ void InitScene() {
 
   auto schnozNode = mainScene->CreateNode("Schnoz");
   schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMesh->GetDefaultMaterials());
-  schnozNode-> GlobalTransform().Position() = { 2.0f, 2.0f, 0.0f };
+  schnozNode-> GlobalTransform().Position() = { 2.0f, 0.5f, 0.0f };
+  schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
 
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
@@ -419,7 +437,7 @@ void InitScene() {
 	shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
 
 	auto cameraNode = mainScene->CreateNode("Camera");
-	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
+	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
 	cameraNode->AddObject<Mover>();
 

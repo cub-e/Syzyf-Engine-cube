@@ -7,6 +7,7 @@ in VARYINGS {
 	vec3 normal;
 	vec3 worldPos;
   vec3 viewPos;
+  float height;
 	flat uint instanceID;
 } gs_in[];
 
@@ -14,6 +15,7 @@ out VARYINGS {
 	vec3 normal;
 	vec3 worldPos;
   vec3 viewPos;
+  float height;
 	flat uint instanceID;
 } gs_out;
 
@@ -34,18 +36,21 @@ void main() {
 	gs_out.normal = gs_in[0].normal;
 	gs_out.worldPos = gs_in[0].worldPos;
 	gs_out.instanceID = gs_in[0].instanceID;
+  gs_out.height = gs_in[0].height;
     EmitVertex();
 
 	gl_Position = gl_in[1].gl_Position;
 	gs_out.normal = gs_in[1].normal;
 	gs_out.worldPos = gs_in[1].worldPos;
 	gs_out.instanceID = gs_in[1].instanceID;
+  gs_out.height = gs_in[1].height;
     EmitVertex();
 
 	gl_Position = gl_in[2].gl_Position;
 	gs_out.normal = gs_in[2].normal;
 	gs_out.worldPos = gs_in[2].worldPos;
 	gs_out.instanceID = gs_in[2].instanceID;
+  gs_out.height = gs_in[2].height;
     EmitVertex();
 
 	EndPrimitive();
