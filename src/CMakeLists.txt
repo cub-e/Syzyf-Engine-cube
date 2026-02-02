@@ -47,8 +47,3 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
 if(MSVC)
     target_compile_definitions(${PROJECT_NAME} PUBLIC NOMINMAX)
 endif()
-
-target_compile_definitions(${PROJECT_NAME} PUBLIC
-    JPH_PROFILE_ENABLED
-    JPH_DEBUG_RENDERER
-)

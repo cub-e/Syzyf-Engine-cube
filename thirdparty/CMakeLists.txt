@@ -31,6 +31,8 @@ CPMAddPackage(
         "TARGET_UNIT_TESTS OFF"
         "TARGET_SAMPLES OFF"
         "TARGET_HELLO_WORLD OFF"
+        "NO_PROFILER OFF"
+        "DEBUG_RENDERER ON"
 )
 
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)
