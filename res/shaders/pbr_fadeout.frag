@@ -25,6 +25,8 @@ uniform samplerCube Builtin_EnvIrradianceMap;
 uniform samplerCube Builtin_EnvPrefilterMap;
 uniform sampler2D Builtin_BRDFConvolutionMap;
 
+uniform sampler2D bayerMatrix;
+
 vec3 getNormalFromMap() {
 	vec3 tangentNormal = texture(normalMap, ps_in.texcoords).xyz * 2.0 - 1.0;
 
@@ -36,9 +38,26 @@ vec3 getNormalFromMap() {
 	return normalize(TBN * tangentNormal);
 }
 
+void fadeout() {
+  vec3 diff = (Global_CameraWorldPos - ps_in.worldPos);
+  float len = length(diff);
+  float fadeStart = 1.5;
+  float fadeEnd = 1.0;
+  float value = smoothstep(fadeStart, fadeEnd, len);
+
+  vec2 screenUV = gl_FragCoord.xy / 16.0;
+  float threshold = texture(bayerMatrix, screenUV).r;
+
+  if (value > threshold || value >= 1.0) {
+    discard;
+  }
+}
+
 out vec4 fragColor;
 
 void main() {
+  fadeout();
+
 	Material mat;
 
 	vec3 arm = texture(armMap, ps_in.texcoords).xyz;

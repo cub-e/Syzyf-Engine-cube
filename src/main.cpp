@@ -356,10 +356,16 @@ void InitScene() {
 		Resources::Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
+  ShaderProgram* fadeoutProg = ShaderProgram::Build().WithVertexShader(
+    Resources::Get<VertexShader>("./res/shaders/lit.vert")
+  ).WithPixelShader(
+    Resources::Get<PixelShader>("./res/shaders/pbr_fadeout.frag")
+  ).Link();
+
 	Mesh* gmConstructMesh = Resources::Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
-  Mesh* schnozMesh = Resources::Get<Mesh>("./res/models/schnoz/schnoz.obj", true);
+  Mesh* schnozMesh = Resources::Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
 	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -375,7 +381,9 @@ void InitScene() {
 	Texture2D* reflectiveARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* roughARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* shinyNonMetalARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
+  
   Texture2D* schnozDiffuse = Resources::Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
+  Texture2D* bayerMatrix = Resources::Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::ColorTextureRGB); 
 
 	Material* cannonMat = new Material(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
@@ -400,6 +408,12 @@ void InitScene() {
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
+  Material* schnozMat = new Material(fadeoutProg);
+  schnozMat->SetValue("albedoMap", schnozDiffuse);
+  schnozMat->SetValue("normalMap", Resources::Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ));
+  schnozMat->SetValue("armMap", Resources::Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ));
+  schnozMat->SetValue("bayerMatrix", bayerMatrix);
+
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 
@@ -412,7 +426,7 @@ void InitScene() {
 	cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
 
   auto schnozNode = mainScene->CreateNode("Schnoz");
-  schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMesh->GetDefaultMaterials());
+  schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
   schnozNode-> GlobalTransform().Position() = { 2.0f, 0.5f, 0.0f };
   schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
 
