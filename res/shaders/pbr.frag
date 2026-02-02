@@ -39,6 +39,8 @@ vec3 getNormalFromMap() {
 out vec4 fragColor;
 
 void main() {
+  #include "fadeout.h"
+  
 	Material mat;
 
 	vec3 arm = texture(armMap, ps_in.texcoords).xyz;
