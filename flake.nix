@@ -16,6 +16,7 @@
 
         wayland
         libxkbcommon
+        libxinerama
         xorg.libX11
         xorg.libXcursor
         xorg.libXi
