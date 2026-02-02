@@ -472,9 +472,9 @@ void InitScene() {
 	starsNode->AddObject<Stars>(10);
 	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
 
-  auto grassNode = mainScene->CreateNode("Grass");
-  grassNode->AddObject<Grass>(100000);
-  grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
+  // auto grassNode = mainScene->CreateNode("Grass");
+  // grassNode->AddObject<Grass>(100000);
+  // grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
