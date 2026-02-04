@@ -13,9 +13,8 @@ private:
 	bool enabled;
 	MessageMethod onEnable;
 	MessageMethod onDisable;
-protected:
 	SceneNode* node;
-	
+protected:
 	SceneTransform& GetTransform() const;
 	SceneTransform::TransformAccess& GlobalTransform() const;
 	SceneTransform::TransformAccess& LocalTransform() const;
