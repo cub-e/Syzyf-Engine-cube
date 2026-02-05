@@ -1,9 +1,9 @@
-#include "PhysicsComponent.h"
+#include "physics/PhysicsComponent.h"
+#include "physics/PhysicsObject.h"
 
 #include "Jolt/Core/Core.h"
 #include "Jolt/Physics/Body/BodyID.h"
 #include "Jolt/Physics/Body/BodyManager.h"
-#include "PhysicsObject.h"
 #include <Jolt/RegisterTypes.h>
 #include <Jolt/Core/Factory.h>
 #include <Jolt/Physics/PhysicsSettings.h>

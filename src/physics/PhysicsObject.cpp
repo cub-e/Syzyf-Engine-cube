@@ -1,5 +1,5 @@
-#include "PhysicsObject.h"
-#include "PhysicsComponent.h"
+#include "physics/PhysicsObject.h"
+#include "physics/PhysicsComponent.h"
 #include <spdlog/spdlog.h>
 
 #include <Jolt/Physics/Body/BodyCreationSettings.h>

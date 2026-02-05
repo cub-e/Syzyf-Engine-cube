@@ -30,8 +30,8 @@
 #include <ReflectionProbe.h>
 #include <ReflectionProbeSystem.h>
 #include <Tonemapper.h>
-#include <PhysicsComponent.h>
-#include <PhysicsObject.h>
+#include <physics/PhysicsComponent.h>
+#include <physics/PhysicsObject.h>
 #include <Debug.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
