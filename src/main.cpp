@@ -30,209 +30,10 @@
 #include <ReflectionProbe.h>
 #include <ReflectionProbeSystem.h>
 #include <Tonemapper.h>
+#include <PhysicsComponent.h>
+#include <PhysicsObject.h>
 #include <Debug.h>
 
-#include <Jolt/Jolt.h>
-
-// Jolt includes
-#include <Jolt/RegisterTypes.h>
-#include <Jolt/Core/Factory.h>
-#include <Jolt/Core/TempAllocator.h>
-#include <Jolt/Core/JobSystemThreadPool.h>
-#include <Jolt/Physics/PhysicsSettings.h>
-#include <Jolt/Physics/PhysicsSystem.h>
-#include <Jolt/Physics/Collision/Shape/BoxShape.h>
-#include <Jolt/Physics/Collision/Shape/SphereShape.h>
-#include <Jolt/Physics/Body/BodyCreationSettings.h>
-#include <Jolt/Physics/Body/BodyActivationListener.h>
-
-// STL includes
-#include <iostream>
-#include <cstdarg>
-
-// Disable common warnings triggered by Jolt, you can use JPH_SUPPRESS_WARNING_PUSH / JPH_SUPPRESS_WARNING_POP to store and restore the warning state
-JPH_SUPPRESS_WARNINGS
-
-// All Jolt symbols are in the JPH namespace
-using namespace JPH;
-
-// If you want your code to compile using single or double precision write 0.0_r to get a Real value that compiles to double or float depending if JPH_DOUBLE_PRECISION is set or not.
-using namespace JPH::literals;
-
-// We're also using STL classes in this example
-using namespace std;
-
-// Callback for traces, connect this to your own trace function if you have one
-static void TraceImpl(const char *inFMT, ...)
-{
-	// Format the message
-	va_list list;
-	va_start(list, inFMT);
-	char buffer[1024];
-	vsnprintf(buffer, sizeof(buffer), inFMT, list);
-	va_end(list);
-
-	// Print to the TTY
-	cout << buffer << endl;
-}
-
-#ifdef JPH_ENABLE_ASSERTS
-
-// Callback for asserts, connect this to your own assert handler if you have one
-static bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, uint inLine)
-{
-	// Print to the TTY
-	cout << inFile << ":" << inLine << ": (" << inExpression << ") " << (inMessage != nullptr? inMessage : "") << endl;
-
-	// Breakpoint
-	return true;
-};
-
-#endif // JPH_ENABLE_ASSERTS
-
-// Layer that objects can be in, determines which other objects it can collide with
-// Typically you at least want to have 1 layer for moving bodies and 1 layer for static bodies, but you can have more
-// layers if you want. E.g. you could have a layer for high detail collision (which is not used by the physics simulation
-// but only if you do collision testing).
-namespace Layers
-{
-	static constexpr ObjectLayer NON_MOVING = 0;
-	static constexpr ObjectLayer MOVING = 1;
-	static constexpr ObjectLayer NUM_LAYERS = 2;
-};
-
-/// Class that determines if two object layers can collide
-class ObjectLayerPairFilterImpl : public ObjectLayerPairFilter
-{
-public:
-	virtual bool					ShouldCollide(ObjectLayer inObject1, ObjectLayer inObject2) const override
-	{
-		switch (inObject1)
-		{
-		case Layers::NON_MOVING:
-			return inObject2 == Layers::MOVING; // Non moving only collides with moving
-		case Layers::MOVING:
-			return true; // Moving collides with everything
-		default:
-			JPH_ASSERT(false);
-			return false;
-		}
-	}
-};
-
-// Each broadphase layer results in a separate bounding volume tree in the broad phase. You at least want to have
-// a layer for non-moving and moving objects to avoid having to update a tree full of static objects every frame.
-// You can have a 1-on-1 mapping between object layers and broadphase layers (like in this case) but if you have
-// many object layers you'll be creating many broad phase trees, which is not efficient. If you want to fine tune
-// your broadphase layers define JPH_TRACK_BROADPHASE_STATS and look at the stats reported on the TTY.
-namespace BroadPhaseLayers
-{
-	static constexpr BroadPhaseLayer NON_MOVING(0);
-	static constexpr BroadPhaseLayer MOVING(1);
-	static constexpr uint NUM_LAYERS(2);
-};
-
-// BroadPhaseLayerInterface implementation
-// This defines a mapping between object and broadphase layers.
-class BPLayerInterfaceImpl final : public BroadPhaseLayerInterface
-{
-public:
-									BPLayerInterfaceImpl()
-	{
-		// Create a mapping table from object to broad phase layer
-		mObjectToBroadPhase[Layers::NON_MOVING] = BroadPhaseLayers::NON_MOVING;
-		mObjectToBroadPhase[Layers::MOVING] = BroadPhaseLayers::MOVING;
-	}
-
-	virtual uint					GetNumBroadPhaseLayers() const override
-	{
-		return BroadPhaseLayers::NUM_LAYERS;
-	}
-
-	virtual BroadPhaseLayer			GetBroadPhaseLayer(ObjectLayer inLayer) const override
-	{
-		JPH_ASSERT(inLayer < Layers::NUM_LAYERS);
-		return mObjectToBroadPhase[inLayer];
-	}
-
-#if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
-	virtual const char *			GetBroadPhaseLayerName(BroadPhaseLayer inLayer) const override
-	{
-		switch ((BroadPhaseLayer::Type)inLayer)
-		{
-		case (BroadPhaseLayer::Type)BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
-		case (BroadPhaseLayer::Type)BroadPhaseLayers::MOVING:		return "MOVING";
-		default:													JPH_ASSERT(false); return "INVALID";
-		}
-	}
-#endif // JPH_EXTERNAL_PROFILE || JPH_PROFILE_ENABLED
-
-private:
-	BroadPhaseLayer					mObjectToBroadPhase[Layers::NUM_LAYERS];
-};
-
-/// Class that determines if an object layer can collide with a broadphase layer
-class ObjectVsBroadPhaseLayerFilterImpl : public ObjectVsBroadPhaseLayerFilter
-{
-public:
-	virtual bool				ShouldCollide(ObjectLayer inLayer1, BroadPhaseLayer inLayer2) const override
-	{
-		switch (inLayer1)
-		{
-		case Layers::NON_MOVING:
-			return inLayer2 == BroadPhaseLayers::MOVING;
-		case Layers::MOVING:
-			return true;
-		default:
-			JPH_ASSERT(false);
-			return false;
-		}
-	}
-};
-
-// An example contact listener
-class MyContactListener : public ContactListener
-{
-public:
-	// See: ContactListener
-	virtual ValidateResult	OnContactValidate(const Body &inBody1, const Body &inBody2, RVec3Arg inBaseOffset, const CollideShapeResult &inCollisionResult) override
-	{
-		cout << "Contact validate callback" << endl;
-
-		// Allows you to ignore a contact before it is created (using layers to not make objects collide is cheaper!)
-		return ValidateResult::AcceptAllContactsForThisBodyPair;
-	}
-
-	virtual void			OnContactAdded(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
-	{
-		cout << "A contact was added" << endl;
-	}
-
-	virtual void			OnContactPersisted(const Body &inBody1, const Body &inBody2, const ContactManifold &inManifold, ContactSettings &ioSettings) override
-	{
-		cout << "A contact was persisted" << endl;
-	}
-
-	virtual void			OnContactRemoved(const SubShapeIDPair &inSubShapePair) override
-	{
-		cout << "A contact was removed" << endl;
-	}
-};
-
-// An example activation listener
-class MyBodyActivationListener : public BodyActivationListener
-{
-public:
-	virtual void		OnBodyActivated(const BodyID &inBodyID, uint64 inBodyUserData) override
-	{
-		cout << "A body got activated" << endl;
-	}
-
-	virtual void		OnBodyDeactivated(const BodyID &inBodyID, uint64 inBodyUserData) override
-	{
-		cout << "A body went to sleep" << endl;
-	}
-};
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
 }
@@ -265,7 +66,7 @@ static void APIENTRY glDebugOutput(
 	switch (type) {
 		case GL_DEBUG_TYPE_ERROR:               typeString = "Error"; break;
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeString = "Deprecated Behaviour"; break;
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break; 
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break;
 		case GL_DEBUG_TYPE_PORTABILITY:         typeString = "Portability"; break;
 		case GL_DEBUG_TYPE_PERFORMANCE:         typeString = "Performance"; break;
 		case GL_DEBUG_TYPE_MARKER:              typeString = "Marker"; break;
@@ -365,12 +166,12 @@ public:
 			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
 				movement -= forward;
 			}
-	
+
 			double xpos, ypos;
 			glfwGetCursorPos(window, &xpos, &ypos);
 
 			glm::vec2 deltaMovement = glm::vec2(xpos, ypos);
-			
+
 			int display_w, display_h;
 			glfwMakeContextCurrent(window);
 			glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -448,7 +249,7 @@ private:
 public:
 	Stars(int starCount = 1000) {
 		this->starMesh = Resources::Get<Mesh>("./res/models/star.obj");
-		
+
 		ShaderProgram* starProgram = ShaderProgram::Build()
 		.WithVertexShader(
 			Resources::Get<VertexShader>("./res/shaders/star.vert")
@@ -489,7 +290,7 @@ public:
 	Grass(int count = 1000) {
 		this->mesh = Resources::Get<Mesh>("./res/models/grass.obj");
     this->GlobalTransform().Scale() = glm::vec3(3.0f);
-		
+
 		ShaderProgram* shaderProgram = ShaderProgram::Build()
 		.WithVertexShader(
 			Resources::Get<VertexShader>("./res/shaders/grass.vert")
@@ -530,23 +331,11 @@ public:
 	}
 };
 
-PhysicsSystem* physicsSystem = nullptr;
-BodyInterface* bodyInterface = nullptr;
-TempAllocatorImpl* tempAllocator = nullptr;
-JobSystemThreadPool* jobSystem = nullptr;
-
-BPLayerInterfaceImpl* bpLayerInterface = nullptr;
-ObjectVsBroadPhaseLayerFilterImpl* objVsBPFilter = nullptr;
-ObjectLayerPairFilterImpl* objVsObjFilter = nullptr;
-
-BodyID schnozBodyID;
-SceneNode* schnozSceneNode = nullptr;
-BodyID schnoz2BodyID;
-SceneNode* schnoz2SceneNode = nullptr;
-
 void InitScene() {
 	mainScene = new Scene();
-	
+	mainScene->AddComponent<DebugInspector>();
+	mainScene->AddComponent<PhysicsComponent>();
+
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
@@ -590,15 +379,15 @@ void InitScene() {
 	Texture2D* cannonDiffuse = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
 	Texture2D* cannonNormal = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
 	Texture2D* cannonARM = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
-	
+
 	Texture2D* reflectiveDiffuse = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
 	Texture2D* reflectiveNormal = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
 	Texture2D* reflectiveARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* roughARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* shinyNonMetalARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
-  
+
   Texture2D* schnozDiffuse = Resources::Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
-  Texture2D* bayerMatrix = Resources::Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::ColorTextureRGB); 
+  Texture2D* bayerMatrix = Resources::Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::ColorTextureRGB);
 
 	Material* cannonMat = new Material(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
@@ -642,15 +431,9 @@ void InitScene() {
 
   auto schnozNode = mainScene->CreateNode("Schnoz");
   schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-  schnozNode-> GlobalTransform().Position() = { 2.0f, 0.5f, 0.0f };
+  schnozNode-> GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
   schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-  schnozSceneNode = schnozNode;
-
-  auto schnoz2Node = mainScene->CreateNode("Schnoz2");
-  schnoz2Node->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-  schnoz2Node-> GlobalTransform().Position() = { 2.0f, 0.5f, 0.0f };
-  schnoz2Node->GlobalTransform().Scale() = glm::vec3(0.25f);
-  schnoz2SceneNode = schnoz2Node;
+  schnozNode->AddObject<PhysicsObject>();
 
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
@@ -714,57 +497,6 @@ void InitScene() {
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
-
-	mainScene->AddComponent<DebugInspector>();
-}
-
-void InitPhysics() {
-    RegisterDefaultAllocator();
-    Factory::sInstance = new Factory();
-    RegisterTypes();
-
-    tempAllocator = new TempAllocatorImpl(10 * 1024 * 1024);
-    jobSystem = new JobSystemThreadPool(cMaxPhysicsJobs, cMaxPhysicsBarriers, thread::hardware_concurrency() - 1);
-
-    bpLayerInterface = new BPLayerInterfaceImpl();
-    objVsBPFilter = new ObjectVsBroadPhaseLayerFilterImpl();
-    objVsObjFilter = new ObjectLayerPairFilterImpl();
-
-    const uint cMaxBodies = 1024;
-    const uint cNumBodyMutexes = 0;
-    const uint cMaxBodyPairs = 1024;
-    const uint cMaxContactConstraints = 1024;
-
-    physicsSystem = new PhysicsSystem();
-    physicsSystem->Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, 
-        *bpLayerInterface, *objVsBPFilter, *objVsObjFilter);
-
-    bodyInterface = &physicsSystem->GetBodyInterface();
-
-    BoxShapeSettings floor_shape_settings(Vec3(100.0f, 1.0f, 100.0f));
-    floor_shape_settings.SetEmbedded();
-    ShapeSettings::ShapeResult floor_shape_result = floor_shape_settings.Create();
-    
-    BodyCreationSettings floor_settings(floor_shape_result.Get(), RVec3(0.0_r, -1.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
-    bodyInterface->CreateAndAddBody(floor_settings, EActivation::DontActivate);
-
-    BodyCreationSettings sphere_settings(new SphereShape(0.5f), RVec3(0.0_r, 10.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
-    
-    sphere_settings.mRestitution = 0.1f; 
-    
-    schnozBodyID = bodyInterface->CreateAndAddBody(sphere_settings, EActivation::Activate);
-    
-    bodyInterface->SetLinearVelocity(schnozBodyID, Vec3(0.0f, -5.0f, -0.1f));
-
-    BodyCreationSettings sphere2_settings(new SphereShape(0.5f), RVec3(0.0_r, 10.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Dynamic, Layers::MOVING);
-    
-    sphere2_settings.mRestitution = 0.2f;
-
-    schnoz2BodyID = bodyInterface->CreateAndAddBody(sphere2_settings, EActivation::Activate);
-
-    bodyInterface->SetLinearVelocity(schnozBodyID, Vec3(0.0f, -5.0f, 0.1f));
-
-    physicsSystem->OptimizeBroadPhase();
 }
 
 int main(int, char**) {
@@ -773,8 +505,6 @@ int main(int, char**) {
 		return EXIT_FAILURE;
 	}
 	spdlog::info("Initialized project.");
-
-  InitPhysics();
 
 	InitScene();
 
@@ -829,7 +559,7 @@ bool InitProgram() {
 	glfwSwapInterval(1);
 
 	bool err = !gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-	
+
 	int contextFlags = 0;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
 
@@ -866,33 +596,11 @@ void InitImgui() {
 }
 
 void Input() {
-	
+
 }
 
-const float cDeltaTime = 1.0f / 60.0f;
-
 void Update() {
-  physicsSystem->Update(cDeltaTime, 1, tempAllocator, jobSystem);
-
-  RVec3 position = bodyInterface->GetCenterOfMassPosition(schnozBodyID);
-  Quat rotation = bodyInterface->GetRotation(schnozBodyID);
-
-  glm::vec3 glmPosition = glm::vec3(position.GetX(), position.GetY(), position.GetZ());
-  glm::quat glmRotation = glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
-
-  schnozSceneNode->GlobalTransform().Position() = glmPosition;
-  schnozSceneNode->GlobalTransform().Rotation() = glmRotation;
-
-  position = bodyInterface->GetCenterOfMassPosition(schnoz2BodyID);
-  rotation = bodyInterface->GetRotation(schnoz2BodyID);
-
-  glmPosition = glm::vec3(position.GetX(), position.GetY(), position.GetZ());
-  glmRotation = glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
-
-  schnoz2SceneNode->GlobalTransform().Position() = glmPosition;
-  schnoz2SceneNode->GlobalTransform().Rotation() = glmRotation;
-
-  mainScene->Update();
+	mainScene->Update();
 }
 
 void Render() {
