@@ -32,7 +32,7 @@
           ninja
           pkg-config
           gdb
-          clang
+          # clang
           wayland-scanner
 
           glslls

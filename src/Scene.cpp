@@ -164,6 +164,7 @@ nextSceneNodeID(0),
 nextGameObjectID(0) {
 	this->root = CreateNode("root");
 	this->graphics = AddComponent<SceneGraphics>();
+  this->eventManager = EventManager();
 }
 
 void SceneNode::MessageReceiver::Message() {
@@ -273,6 +274,8 @@ void Scene::Update() {
 		updateables.top()->Message();
 		updateables.pop();
 	}
+
+  eventManager.DispatchEvents();
 
 	for (auto& component: this->components) {
 		component->OnPostUpdate();

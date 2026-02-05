@@ -4,10 +4,14 @@
 #include <vector>
 #include <list>
 #include <typeinfo>
+#include <memory>
+#include <utility>
 
 #include <spdlog/spdlog.h>
 
 #include <Transform.h>
+
+#include "events/EventManager.h"
 
 class GameObject;
 class SceneGraphics;
@@ -153,6 +157,8 @@ private:
 
 	SceneGraphics* graphics;
 
+  EventManager eventManager;
+
 	template<class T_GO>
 		requires std::derived_from<T_GO, GameObject>
 	bool TryCreateAwakeable(SceneNode* node, T_GO* object);
@@ -244,6 +250,26 @@ public:
 	void Update();
 	void Render();
 	void DrawImGui();
+
+  template<typename EventType>
+  inline void Subscribe(const EventHandler<EventType>& callback) {
+    std::unique_ptr<EventHandlerWrapperInterface> handler = std::make_unique<EventHandlerWrapper<EventType>>(callback);
+    eventManager.Subscribe(EventType::GetStaticEventType(), std::move(handler));
+  }
+
+  template<typename EventType>
+  inline void Unsubscribe(const EventHandler<EventType>& callback) {
+    const std::string handlerName = callback.target_type().name();
+    eventManager.Unsubscribe(EventType::GetStaticEventType(), handlerName);
+  }
+
+  inline void TriggerEvent(const Event& triggeredEvent) {
+    eventManager.TriggerEvent(triggeredEvent);
+  }
+
+  inline void QueueEvent(std::unique_ptr<Event>&& queuedEvent) {
+    eventManager.QueueEvent(std::forward<std::unique_ptr<Event>>(queuedEvent));
+  }
 };
 
 #include <GameObject.h>
