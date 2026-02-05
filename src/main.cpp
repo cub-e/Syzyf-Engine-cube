@@ -65,7 +65,7 @@ static void APIENTRY glDebugOutput(
 	switch (type) {
 		case GL_DEBUG_TYPE_ERROR:               typeString = "Error"; break;
 		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeString = "Deprecated Behaviour"; break;
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break; 
+		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break;
 		case GL_DEBUG_TYPE_PORTABILITY:         typeString = "Portability"; break;
 		case GL_DEBUG_TYPE_PERFORMANCE:         typeString = "Performance"; break;
 		case GL_DEBUG_TYPE_MARKER:              typeString = "Marker"; break;
@@ -85,7 +85,6 @@ static void APIENTRY glDebugOutput(
 bool InitProgram();
 void InitImgui();
 
-void Input();
 void Update();
 void Render();
 
@@ -165,12 +164,12 @@ public:
 			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
 				movement -= forward;
 			}
-	
+
 			double xpos, ypos;
 			glfwGetCursorPos(window, &xpos, &ypos);
 
 			glm::vec2 deltaMovement = glm::vec2(xpos, ypos);
-			
+
 			int display_w, display_h;
 			glfwMakeContextCurrent(window);
 			glfwGetFramebufferSize(window, &display_w, &display_h);
@@ -239,7 +238,7 @@ private:
 public:
 	Stars(int starCount = 1000) {
 		this->starMesh = Resources::Get<Mesh>("./res/models/star.obj");
-		
+
 		ShaderProgram* starProgram = ShaderProgram::Build()
 		.WithVertexShader(
 			Resources::Get<VertexShader>("./res/shaders/star.vert")
@@ -275,6 +274,14 @@ void InitScene() {
 	mainScene = new Scene();
 	mainScene->AddComponent<DebugInspector>();
 	mainScene->AddComponent<InputComponent>();
+
+	std::vector<std::string> actions = {"Pooga", "poggers", "Pogman"};
+	std::unordered_map<int, std::vector<std::string>> inputMap = {
+	    {GLFW_KEY_Q, actions}
+	};
+	InputComponent* input = mainScene->GetComponent<InputComponent>();
+	input->SetInputMap(inputMap);
+	input->SetGlfwCallbacks(window);
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/skybox.vert")
@@ -312,7 +319,7 @@ void InitScene() {
 	Texture2D* cannonDiffuse = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
 	Texture2D* cannonNormal = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
 	Texture2D* cannonARM = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
-	
+
 	Texture2D* reflectiveDiffuse = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
 	Texture2D* reflectiveNormal = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
 	Texture2D* reflectiveARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
@@ -426,8 +433,6 @@ int main(int, char**) {
 	spdlog::info("Initialized ImGui.");
 
 	while (!glfwWindowShouldClose(window)) {
-		Input();
-
 		Update();
 
 		Render();
@@ -473,7 +478,7 @@ bool InitProgram() {
 	glfwSwapInterval(1);
 
 	bool err = !gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-	
+
 	int contextFlags = 0;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
 
@@ -503,14 +508,10 @@ void InitImgui() {
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
 
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplGlfw_InitForOpenGL(window, false);
 	ImGui_ImplOpenGL3_Init(glsl_version);
 
 	ImGui::StyleColorsDark();
-}
-
-void Input() {
-	
 }
 
 void Update() {

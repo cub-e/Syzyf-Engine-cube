@@ -1,6 +1,8 @@
 #pragma once
 
-#include <SceneComponent.h>
+#include "SceneComponent.h"
+#include <GLFW/glfw3.h>
+#include <spdlog/spdlog.h>
 #include <unordered_map>
 #include <string>
 #include <vector>
@@ -18,4 +20,10 @@ private:
 public:
   void SetInputMap(const std::unordered_map<int, std::vector<std::string>> inputMap);
   void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+
+  void SetGlfwCallbacks(GLFWwindow* window);
+  static void DispatchKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+  static void DispatchMouseButtonCallback(GLFWwindow* window, int button, int action, int mods);
+  static void DispatchScrollCallback(GLFWwindow* window, double xoffset, double yoffset);
+  static void DispatchCharCallback(GLFWwindow* window, unsigned int codepoint);
 };
