@@ -13,8 +13,9 @@ CTestTestfile.cmake
 res/testing/
 
 # Nix
-.direnv/
+.direnv
 
-# clang
-.cache/
+# Clangd
 .clang-format
+compile_commands.json
+.cache/

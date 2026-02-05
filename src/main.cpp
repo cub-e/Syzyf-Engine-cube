@@ -30,6 +30,8 @@
 #include <ReflectionProbe.h>
 #include <ReflectionProbeSystem.h>
 #include <Tonemapper.h>
+#include <physics/PhysicsComponent.h>
+#include <physics/PhysicsObject.h>
 #include <Debug.h>
 #include <InputComponent.h>
 
@@ -188,6 +190,15 @@ public:
 
 			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
 			this->GlobalTransform().Position() += movement * this->movementSpeed;
+
+      if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
+        this->GlobalTransform().Position() += glm::vec3(0.0, this->movementSpeed, 0.0);
+      }
+      if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
+        this->GlobalTransform().Position() -= glm::vec3(0.0, this->movementSpeed, 0.0);
+      }
+
+
 			this->GlobalTransform().Rotation() = glm::angleAxis(
 				glm::radians(this->rotation), glm::vec3(0, 1, 0)
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
@@ -243,8 +254,8 @@ public:
 		.WithVertexShader(
 			Resources::Get<VertexShader>("./res/shaders/star.vert")
 		).WithGeometryShader(
-			Resources::Get<GeometryShader>("./res/shaders/star.geom")
-		).WithPixelShader(
+      Resources::Get<GeometryShader>("./res/shaders/star.geom")
+    ).WithPixelShader(
 			Resources::Get<PixelShader>("./res/shaders/star.frag")
 		).Link();
 		starProgram->SetIgnoresDepthPrepass(true);
@@ -267,6 +278,56 @@ public:
 
 	void DrawImGui() {
 		ImGui::InputInt("Star count", &this->starCount);
+	}
+};
+
+class Grass : public GameObject, public ImGuiDrawable {
+private:
+	Mesh* mesh;
+	Material* material;
+	int count;
+public:
+	Grass(int count = 1000) {
+		this->mesh = Resources::Get<Mesh>("./res/models/grass.obj");
+    this->GlobalTransform().Scale() = glm::vec3(3.0f);
+
+		ShaderProgram* shaderProgram = ShaderProgram::Build()
+		.WithVertexShader(
+			Resources::Get<VertexShader>("./res/shaders/grass.vert")
+		).WithGeometryShader(
+      Resources::Get<GeometryShader>("./res/shaders/grass.geom")
+    ).WithPixelShader(
+			Resources::Get<PixelShader>("./res/shaders/grass.frag")
+		).Link();
+
+  	Texture2D* noiseTexture = Resources::Get<Texture2D>("./res/textures/noise/marble10.png", Texture::ColorTextureRGB);
+	  noiseTexture->SetWrapModeU(TextureWrap::Repeat);
+	  noiseTexture->SetWrapModeV(TextureWrap::Repeat);
+
+	  Material* grassMat = new Material(shaderProgram);
+    grassMat->SetValue("noiseTexture", noiseTexture);
+
+		shaderProgram->SetIgnoresDepthPrepass(false);
+		shaderProgram->SetCastsShadows(false);
+
+		this->material = grassMat;
+		this->count = count;
+	}
+
+	void Render() {
+		GetScene()->GetGraphics()->DrawMeshInstanced(
+			this->mesh,
+			0,
+			this->material,
+			this->GlobalTransform(),
+			this->count,
+			BoundingBox::CenterAndExtents(glm::vec3(0, 0, 0), glm::vec3(15, 15, 15)),
+      true
+		);
+	}
+
+	void DrawImGui() {
+		ImGui::InputInt("Grass count", &this->count);
 	}
 };
 
@@ -307,9 +368,16 @@ void InitScene() {
 		Resources::Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
+  ShaderProgram* fadeoutProg = ShaderProgram::Build().WithVertexShader(
+    Resources::Get<VertexShader>("./res/shaders/lit.vert")
+  ).WithPixelShader(
+    Resources::Get<PixelShader>("./res/shaders/pbr_fadeout.frag")
+  ).Link();
+
 	Mesh* gmConstructMesh = Resources::Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
+  Mesh* schnozMesh = Resources::Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
 	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -325,6 +393,9 @@ void InitScene() {
 	Texture2D* reflectiveARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* roughARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* shinyNonMetalARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
+
+  Texture2D* schnozDiffuse = Resources::Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
+  Texture2D* bayerMatrix = Resources::Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::ColorTextureRGB);
 
 	Material* cannonMat = new Material(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
@@ -349,6 +420,12 @@ void InitScene() {
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
+  Material* schnozMat = new Material(fadeoutProg);
+  schnozMat->SetValue("albedoMap", schnozDiffuse);
+  schnozMat->SetValue("normalMap", Resources::Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ));
+  schnozMat->SetValue("armMap", Resources::Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ));
+  schnozMat->SetValue("bayerMatrix", bayerMatrix);
+
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 
@@ -359,6 +436,12 @@ void InitScene() {
 	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
 	cubeNode->GlobalTransform().Position() = {-2.0f, 1.0f, 0.0f};
 	cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
+
+  auto schnozNode = mainScene->CreateNode("Schnoz");
+  schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+  schnozNode-> GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
+  schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
+  schnozNode->AddObject<PhysicsObject>();
 
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
@@ -382,7 +465,7 @@ void InitScene() {
 	shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
 
 	auto cameraNode = mainScene->CreateNode("Camera");
-	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
+	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
 	cameraNode->AddObject<Mover>();
 
@@ -413,8 +496,12 @@ void InitScene() {
 	envProbe4->AddObject<ReflectionProbe>();
 
 	auto starsNode = mainScene->CreateNode("Stars");
-	starsNode->AddObject<Stars>(1000);
+	starsNode->AddObject<Stars>(10);
 	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
+
+  // auto grassNode = mainScene->CreateNode("Grass");
+  // grassNode->AddObject<Grass>(100000);
+  // grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);

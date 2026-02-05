@@ -511,11 +511,10 @@ template<class T_SC>
 T_SC* Scene::GetComponent() {
 	for (SceneComponent* component : this->components) {
 		T_SC* result = dynamic_cast<T_SC*>(component);
-		if (result) {
+		if (result != nullptr) {
 			return result;
 	    }
 	}
-
 	return nullptr;
 }
 

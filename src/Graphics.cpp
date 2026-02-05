@@ -82,33 +82,37 @@ pass(pass),
 viewport(viewport),
 clearDepth(clearDepth) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const bool disableBackfaceCulling):
 mesh(mesh),
 material(material),
 instanceCount(instanceCount),
 transformation(transformation),
-bounds(mesh->GetBounds()) { }
+bounds(mesh->GetBounds()),
+disableBackfaceCulling(disableBackfaceCulling) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, const bool disableBackfaceCulling):
 mesh(mesh),
 material(material),
 instanceCount(instanceCount),
 transformation(transformation),
-bounds(bounds) { }
+bounds(bounds),
+disableBackfaceCulling(disableBackfaceCulling) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const bool disableBackfaceCulling):
 mesh(mesh),
 material(material),
 ignoreDepth(ignoreDepth),
 transformation(transformation),
-bounds(mesh->GetBounds()) { }
+bounds(mesh->GetBounds()),
+disableBackfaceCulling(disableBackfaceCulling) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, const bool disableBackfaceCulling):
 mesh(mesh),
 material(material),
 ignoreDepth(ignoreDepth),
 transformation(transformation),
-bounds(bounds) { }
+bounds(bounds),
+disableBackfaceCulling(disableBackfaceCulling) { }
 
 SceneGraphics::SceneGraphics(Scene* scene):
 SceneComponent(scene),
@@ -285,6 +289,10 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 			glDisable(GL_DEPTH_TEST);
 		}
 
+    if (node.disableBackfaceCulling) {
+			glDisable(GL_CULL_FACE);
+    }
+
 		if (mat->GetShader()->UsesPatches()) {
 			glPatchParameteri(GL_PATCH_VERTICES, (int) mesh->GetType());
 
@@ -307,6 +315,10 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		if (drawsGizmos && node.ignoreDepth) {
 			glEnable(GL_DEPTH_TEST);
 		}
+
+    if (node.disableBackfaceCulling) {
+      glEnable(GL_CULL_FACE);
+    }
 
 		glBindVertexArray(0);
 	}
@@ -361,16 +373,17 @@ void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material*
 	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0, bounds);
 }
 
-void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth) {
+void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth, const bool disableBackfaceCulling) {
 	this->gizmoRenders.push_back(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
 		ignoresDepth,
-		transformation
+		transformation,
+    disableBackfaceCulling
 	));
 }
 
-void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
+void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount, const bool disableBackfaceCulling) {
 	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
 		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
 
@@ -378,27 +391,30 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 			mesh,
 			renderer->GetMaterial(mesh->GetMaterialIndex()),
 			instanceCount,
-			renderer->GlobalTransform()
+			renderer->GlobalTransform(),
+      disableBackfaceCulling
 		));
 	}
 }
 
-void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount) {
-	this->currentRenders.push_back(RenderNode(
-		&mesh->SubMeshAt(subMeshIndex),
-		material,
-		instanceCount,
-		transformation
-	));
-}
-
-void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds) {
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const bool disableBackfaceCulling) {
 	this->currentRenders.push_back(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
 		instanceCount,
 		transformation,
-		bounds
+    disableBackfaceCulling
+	));
+}
+
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, const bool disableBackfaceCulling) {
+	this->currentRenders.push_back(RenderNode(
+		&mesh->SubMeshAt(subMeshIndex),
+		material,
+		instanceCount,
+		transformation,
+		bounds,
+    disableBackfaceCulling
 	));
 }
 
