@@ -90,9 +90,9 @@ public:
 
 	void MarkDirty();
 	void MarkChildrenDirty();
-	
+
 	const std::vector<GameObject*> AttachedObjects();
-	
+
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
 	T_GO* AddObject(T_Param... params);
@@ -275,12 +275,12 @@ template<class T_GO>
 	requires std::derived_from<T_GO, GameObject>
 bool SceneNode::TryGetObject(T_GO*& found) const {
 	T_GO* ptr = GetObject<T_GO>();
-	
+
 	if (ptr) {
 		found = ptr;
 		return true;
 	}
-	
+
 	return false;
 }
 
@@ -390,7 +390,7 @@ template<class T_GO>
 	requires std::derived_from<T_GO, GameObject> && Enableable<T_GO>
 bool Scene::TryCreateEnableable(T_GO* object) {
 	object->onEnable = reinterpret_cast<MessageMethod>(&T_GO::Enable);
-	
+
 	object->Enable();
 
 	return true;
@@ -408,7 +408,7 @@ template<class T_GO>
 	requires std::derived_from<T_GO, GameObject> && Disableable<T_GO>
 bool Scene::TryCreateDisableable(T_GO* object) {
 	object->onDisable = reinterpret_cast<MessageMethod>(&T_GO::Disable);
-	
+
 	return true;
 }
 
@@ -450,10 +450,10 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	bufAsObjPtr->node = node;
 
 	T_GO* created = new(const_cast<T_GO*>(bufAsObjPtr)) T_GO(params...);
-	
+
 	created->node = node;
 	created->runtimeTypeInfo = &typeid(T_GO);
-	
+
 	node->objects.push_back(created);
 
 	TryCreateAwakeable(created);
@@ -547,14 +547,11 @@ template<class T_SC>
 	requires std::derived_from<T_SC, SceneComponent>
 T_SC* Scene::GetComponent() {
 	for (SceneComponent* component : this->components) {
-		
-		if (typeid(T_SC) == typeid(component)) {
-			T_SC* result = dynamic_cast<T_SC*>(component);
-
+		T_SC* result = dynamic_cast<T_SC*>(component);
+		if (result != nullptr) {
 			return result;
 		}
 	}
-
 	return nullptr;
 }
 
@@ -583,7 +580,7 @@ T_SC* Scene::AddComponent() {
 
 	if (component == nullptr) {
 		component = new T_SC(this);
-		
+
 		this->components.push_back(component);
 
 		for (int i = this->components.size() - 2; i >= 0; i--) {
@@ -592,6 +589,6 @@ T_SC* Scene::AddComponent() {
 			}
 		}
 	}
-	
+
 	return component;
 }
