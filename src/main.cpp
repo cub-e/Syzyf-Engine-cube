@@ -1,3 +1,5 @@
+#include "SchnozController.h"
+#include "events/PushSchnozEvent.h"
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
@@ -334,14 +336,11 @@ public:
 void InitScene() {
 	mainScene = new Scene();
 	mainScene->AddComponent<DebugInspector>();
-	mainScene->AddComponent<InputComponent>();
+  mainScene->AddComponent<PhysicsComponent>();
+  mainScene->AddComponent<InputComponent>();
 
-	std::vector<std::string> actions = {"Pooga", "poggers", "Pogman"};
-	std::unordered_map<int, std::vector<std::string>> inputMap = {
-	    {GLFW_KEY_Q, actions}
-	};
-	InputComponent* input = mainScene->GetComponent<InputComponent>();
-	input->SetInputMap(inputMap);
+  InputComponent* input = mainScene->GetComponent<InputComponent>();
+  input->BindAction<PushSchnozEvent>(GLFW_KEY_SPACE);
 	input->SetGlfwCallbacks(window);
 
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
@@ -442,6 +441,7 @@ void InitScene() {
   schnozNode-> GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
   schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
   schnozNode->AddObject<PhysicsObject>();
+  schnozNode->AddObject<SchnozController>();
 
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);

@@ -1,14 +1,11 @@
 #include "InputComponent.h"
 #include <unordered_map>
 #include "imgui.h"
+#include "Scene.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 
 InputComponent::InputComponent(Scene* scene): SceneComponent(scene) {};
 InputComponent::~InputComponent() {};
-
-void InputComponent::SetInputMap(const std::unordered_map<int, std::vector<std::string>> inputMap) {
-  this->inputMap = inputMap;
-}
 
 void InputComponent::OnPreUpdate() {
 }
@@ -17,9 +14,12 @@ void InputComponent::KeyCallback(GLFWwindow* window, int key, int scancode, int 
 
   if (action == GLFW_PRESS) {
     if (inputMap.contains(key)) {
-      auto actions = inputMap[key];
-      for (auto action : actions) {
-        spdlog::info("Action: {} pressed", action);
+      const auto& factories = inputMap[key];
+
+      for (const auto& factory : factories) {
+        std::unique_ptr<Event> event = factory();
+
+        GetScene()->QueueEvent(std::move(event));
       }
     }
   }
