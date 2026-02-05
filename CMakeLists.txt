@@ -19,7 +19,9 @@ add_subdirectory(thirdparty)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --concepts-diagnostics-depth=2")
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --concepts-diagnostics-depth=2")
+endif()
 
 # ---- Main project's files ----
 add_subdirectory(src)

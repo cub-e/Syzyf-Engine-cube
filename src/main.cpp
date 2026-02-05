@@ -31,6 +31,7 @@
 #include <ReflectionProbeSystem.h>
 #include <Tonemapper.h>
 #include <Debug.h>
+#include <InputComponent.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -272,7 +273,9 @@ public:
 
 void InitScene() {
 	mainScene = new Scene();
-	
+	mainScene->AddComponent<DebugInspector>();
+	mainScene->AddComponent<InputComponent>();
+
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		Resources::Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
@@ -408,8 +411,6 @@ void InitScene() {
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
-
-	mainScene->AddComponent<DebugInspector>();
 }
 
 int main(int, char**) {
@@ -541,7 +542,7 @@ void ImGuiUpdate() {
 
 	mainScene->DrawImGui();
 
-	ImGui::End();
+  ImGui::End();
 }
 
 void ImGuiRender() {
