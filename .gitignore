@@ -14,3 +14,7 @@ res/testing/
 
 # Nix
 .direnv/
+
+# clang
+.cache/
+.clang-format
