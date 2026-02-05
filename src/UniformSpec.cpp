@@ -22,10 +22,11 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 		{ GL_UNSIGNED_INT_VEC4, { UniformSpec::UniformType::Uint4, 4 * sizeof(GLuint)} },
 		{ GL_FLOAT_MAT3, { UniformSpec::UniformType::Matrix3x3, 9 * sizeof(GLfloat)} },
 		{ GL_FLOAT_MAT4, { UniformSpec::UniformType::Matrix4x4, 16 * sizeof(GLfloat)} },
-		{ GL_SAMPLER_2D, { UniformSpec::UniformType::Sampler2D, sizeof(Texture2D*)} },
-		{ GL_SAMPLER_CUBE, { UniformSpec::UniformType::Cubemap, sizeof(Cubemap*)} },
-		{ GL_IMAGE_2D, { UniformSpec::UniformType::Image2D, sizeof(Texture2D*)} },
-		{ GL_UNSIGNED_INT_IMAGE_2D, { UniformSpec::UniformType::UImage2D, sizeof(Texture2D*)} },
+		{ GL_SAMPLER_2D, { UniformSpec::UniformType::Sampler2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
+		{ GL_SAMPLER_CUBE, { UniformSpec::UniformType::Cubemap, sizeof(UniformSpec::TextureUniform<Cubemap>)} },
+		{ GL_IMAGE_2D, { UniformSpec::UniformType::Image2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
+		{ GL_UNSIGNED_INT_IMAGE_2D, { UniformSpec::UniformType::UImage2D, sizeof(UniformSpec::TextureUniform<Texture2D>)} },
+		{ GL_IMAGE_CUBE, { UniformSpec::UniformType::ImageCube, sizeof(UniformSpec::TextureUniform<Cubemap>)} },
 	};
 
 	if (dict.contains(type)) {
@@ -33,10 +34,6 @@ UniformTypeInfo GetUniformInfo(GLenum type) {
 	}
 
 	return { UniformSpec::UniformType::Unsupported, 0 };
-}
-
-bool IsTextureType(UniformSpec::UniformType type) {
-	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Cubemap || type == UniformSpec::UniformType::Image2D || type == UniformSpec::UniformType::UImage2D;
 }
 
 void UniformSpec::CreateFrom(GLuint programHandle) {
