@@ -114,7 +114,7 @@ void main() {
 		return;
 	}
 
-	vec2 uv = pixelCoord / inputSize;
+	vec2 uv = (pixelCoord + 0.5) / inputSize;
 
 	vec2 integratedBRDF = IntegrateBRDF(uv.x, uv.y);
 

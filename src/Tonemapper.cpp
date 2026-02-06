@@ -44,7 +44,7 @@ void Tonemapper::OnPostProcess(const PostProcessParams* params) {
 
 	if (shader) {
 		shader->GetData()->SetValue("inputTex", params->inputTexture);
-		shader->GetData()->SetValue("outputTex", params->outputTexture);
+		shader->GetData()->SetValue("outputImg", params->outputTexture);
 	
 		glm::vec2 res = GetScene()->GetGraphics()->GetScreenResolution();
 	

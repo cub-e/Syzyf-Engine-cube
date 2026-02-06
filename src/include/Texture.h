@@ -6,8 +6,6 @@
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
 
-#include "stb_image.h"
-
 namespace fs = std::filesystem;
 
 enum class TextureType {

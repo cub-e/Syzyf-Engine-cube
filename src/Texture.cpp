@@ -1,6 +1,6 @@
-#define STB_IMAGE_IMPLEMENTATION
-
 #include <Texture.h>
+
+#include "stb_image.h"
 
 #include <Material.h>
 #include <Mesh.h>
@@ -452,22 +452,8 @@ Cubemap* Cubemap::Load(const fs::path& texturePath, const TextureParams& loadPar
 }
 
 Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams) {
-	static GLuint captureFBO = 0, captureRBO = 0;
-	static ShaderProgram* cubemapBlitProg = nullptr;
-	static Mesh* cubeMesh = nullptr;
+	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapFromEqu.comp"));
 
-	if (captureFBO == 0) {
-		glGenFramebuffers(1, &captureFBO);
-		glGenRenderbuffers(1, &captureRBO);
-
-		cubemapBlitProg = ShaderProgram::Build()
-		.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/cubemapBlit/cubemapBlit.vert"))
-		.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/cubemapBlit/cubemapBlit.frag"))
-		.Link();
-
-		cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
-	}
-	
 	Texture2D* equTex = Texture2D::Load(texturePath, loadParams);
 	
 	if (equTex == nullptr) {
@@ -476,10 +462,16 @@ Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const Texture
 
 	int texSize = equTex->GetHeight() / 3;
 
-	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, texSize, texSize);
-	glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
+	TextureParams creationParams {
+		.channels = TextureChannels::RGBA,
+		.colorSpace = TextureColor::Linear,
+		.format = TextureFormat::Float,
+		.wrapU = loadParams.wrapU,
+		.wrapV = loadParams.wrapV,
+		.wrapW = loadParams.wrapW,
+		.minFilter = loadParams.minFilter,
+		.magFilter = loadParams.magFilter
+	};
 
 	GLenum internalFormat = CalcInternalFormat(loadParams);
 	GLenum format = ToGL(loadParams.channels);
@@ -499,44 +491,13 @@ Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const Texture
 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-	glm::mat4 captureViews[] {
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-	};
-
-	glUseProgram(cubemapBlitProg->GetHandle());
-	glUniform1i(glGetUniformLocation(cubemapBlitProg->GetHandle(), "equirectangularMap"), 0);
-	glUniformMatrix4fv(glGetUniformLocation(cubemapBlitProg->GetHandle(), "projection"), 1, false, &captureProjection[0][0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, equTex->GetHandle());
-
-	glViewport(0, 0, texSize, texSize);
-	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-
-	glCullFace(GL_FRONT);
-
-	for (int face = 0; face < 6; face++) {
-		glUniformMatrix4fv(glGetUniformLocation(cubemapBlitProg->GetHandle(), "view"), 1, false, &captureViews[face][0][0]);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
-							GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, handle, 0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glBindVertexArray(cubeMesh->SubMeshAt(0).GetVertexArrayHandle());
-		glDrawElements(cubeMesh->SubMeshAt(0).GetDrawMode(), cubeMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-		glBindVertexArray(0);
-	}
-
-	glCullFace(GL_BACK);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	
 	Cubemap* result = new Cubemap(texSize, texSize, loadParams, handle);
 	
+	cubemapBlitProg->GetData()->SetValue("equirectangularMap", equTex);
+	cubemapBlitProg->GetData()->SetValue("outputImg", result);
+
+	cubemapBlitProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
+
 	delete equTex;
 
 	return result;
@@ -619,26 +580,18 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 }
 
 Cubemap* Cubemap::GenerateIrradianceMap() {
-	static GLuint captureFBO = 0, captureRBO = 0;
-	static ShaderProgram* cubemapBlitProg = nullptr;
-	static Mesh* cubeMesh = nullptr;
+	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapIrradiance.comp"));
 
-	if (captureFBO == 0) {
-		glGenFramebuffers(1, &captureFBO);
-		glGenRenderbuffers(1, &captureRBO);
-
-		cubemapBlitProg = ShaderProgram::Build()
-		.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/cubemapBlit/cubemapBlit.vert"))
-		.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/cubemapBlit/cubemapIrradiance.frag"))
-		.Link();
-
-		cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
-	}
-
-	TextureParams creationParams;
-	creationParams.channels = this->channels;
-	creationParams.format = this->format;
-	creationParams.colorSpace = this->colorSpace;
+	TextureParams creationParams {
+		.channels = TextureChannels::RGBA,
+		.colorSpace = TextureColor::Linear,
+		.format = TextureFormat::Float,
+		.wrapU = TextureWrap::Repeat,
+		.wrapV = TextureWrap::Repeat,
+		.wrapW = TextureWrap::Repeat,
+		.minFilter = TextureFilter::Linear,
+		.magFilter = TextureFilter::Linear
+	};
 
 	int texSize = 32;
 
@@ -659,87 +612,40 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 	}
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, texSize, texSize);
-
-	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-	glm::mat4 captureViews[] {
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-	};
-
-	glUseProgram(cubemapBlitProg->GetHandle());
-	glUniform1i(glGetUniformLocation(cubemapBlitProg->GetHandle(), "environmentMap"), 0);
-	glUniformMatrix4fv(glGetUniformLocation(cubemapBlitProg->GetHandle(), "projection"), 1, false, &captureProjection[0][0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, this->GetHandle());
-
-	glViewport(0, 0, texSize, texSize);
-	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-
-	glCullFace(GL_FRONT);
-
-	for (int face = 0; face < 6; face++) {
-		glUniformMatrix4fv(glGetUniformLocation(cubemapBlitProg->GetHandle(), "view"), 1, false, &captureViews[face][0][0]);
-		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
-							GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, handle, 0);
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-		glBindVertexArray(cubeMesh->SubMeshAt(0).GetVertexArrayHandle());
-		glDrawElements(cubeMesh->SubMeshAt(0).GetDrawMode(), cubeMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-		glBindVertexArray(0);
-	}
-
-	glCullFace(GL_BACK);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
 	Cubemap* result = new Cubemap(width, height, creationParams, handle);
-		
-	result->SetWrapModeU(this->wrapU.value);
-	result->SetWrapModeV(this->wrapV.value);
-	result->SetWrapModeW(this->wrapW.value);
-	result->SetMinFilter(this->minFilter.value);
-	result->SetMagFilter(this->magFilter.value);
 	
+	irradianceProg->GetData()->SetValue("environmentMap", this);
+	irradianceProg->GetData()->SetValue("outputImg", result);
+
+	irradianceProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
+
+	result->SetMinFilter(TextureFilter::LinearMipmapLinear);
 	result->Update();
 
 	return result;
 }
 
 Cubemap* Cubemap::GeneratePrefilterIBLMap() {
-	static GLuint captureFBO = 0, captureRBO = 0;
-	static ShaderProgram* cubemapBlitProg = nullptr;
-	static Mesh* cubeMesh = nullptr;
+	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapPrefilter.comp"));
 
-	if (captureFBO == 0) {
-		glGenFramebuffers(1, &captureFBO);
-		glGenRenderbuffers(1, &captureRBO);
-
-		cubemapBlitProg = ShaderProgram::Build()
-		.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/cubemapBlit/cubemapBlit.vert"))
-		.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/cubemapBlit/cubemapPrefilter.frag"))
-		.Link();
-
-		cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
-	}
-
-	TextureParams creationParams;
-	creationParams.channels = this->channels;
-	creationParams.format = this->format;
-	creationParams.colorSpace = this->colorSpace;
-
-	int texSize = 128;
+	TextureParams creationParams {
+		.channels = TextureChannels::RGBA,
+		.colorSpace = TextureColor::Linear,
+		.format = TextureFormat::Float,
+		.wrapU = TextureWrap::Repeat,
+		.wrapV = TextureWrap::Repeat,
+		.wrapW = TextureWrap::Repeat,
+		.minFilter = TextureFilter::LinearMipmapLinear,
+		.magFilter = TextureFilter::Linear
+	};
+	
+	constexpr int texSize = 128;
+	constexpr unsigned int maxMipLevels = 5;
 
 	GLenum internalFormat = CalcInternalFormat(creationParams);
 	GLenum format = ToGL(creationParams.channels);
 	GLenum textureType = ToGL(creationParams.format);
-	
+
 	GLuint handle;
 
 	glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &handle);
@@ -751,72 +657,27 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 			internalFormat, texSize, texSize, 0, format, textureType, nullptr
 		);
 	}
-	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
 
-	glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
-
+	glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_LOD, 0);
+	glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LOD, maxMipLevels - 1);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, maxMipLevels - 1);
+	
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
-	glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-	glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, texSize, texSize);
-
-	glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
-	glm::mat4 captureViews[] {
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
-		glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3( 0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
-	};
-
-	glUseProgram(cubemapBlitProg->GetHandle());
-	glUniform1i(glGetUniformLocation(cubemapBlitProg->GetHandle(), "environmentMap"), 0);
-	glUniformMatrix4fv(glGetUniformLocation(cubemapBlitProg->GetHandle(), "projection"), 1, false, &captureProjection[0][0]);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_CUBE_MAP, this->GetHandle());
-
-	glCullFace(GL_FRONT);
-
-	unsigned int maxMipLevels = 5;
+	
+	Cubemap* result = new Cubemap(width, height, creationParams, handle);
+	
+	cubemapPrefilterProg->GetData()->SetValue("environmentMap", this);
+	
 	for (unsigned int mip = 0; mip < maxMipLevels; ++mip) {
-		unsigned int mipWidth  = 128 * std::pow(0.5, mip);
-		unsigned int mipHeight = 128 * std::pow(0.5, mip);
-
-		glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
-		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, mipWidth, mipHeight);
-		glViewport(0, 0, mipWidth, mipHeight);
-
+		unsigned int mipSize  = 128 * std::pow(0.5, mip);
+		
 		float roughness = (float) mip / (float) (maxMipLevels - 1);
 
-		glUniform1f(glGetUniformLocation(cubemapBlitProg->GetHandle(), "roughness"), roughness);
+		cubemapPrefilterProg->GetData()->SetValue("outputImg", result, mip);
+		cubemapPrefilterProg->GetData()->SetValue("roughness", roughness);
 
-		for (int face = 0; face < 6; face++) {
-			glUniformMatrix4fv(glGetUniformLocation(cubemapBlitProg->GetHandle(), "view"), 1, false, &captureViews[face][0][0]);
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 
-								GL_TEXTURE_CUBE_MAP_POSITIVE_X + face, handle, mip);
-			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-			glBindVertexArray(cubeMesh->SubMeshAt(0).GetVertexArrayHandle());
-			glDrawElements(cubeMesh->SubMeshAt(0).GetDrawMode(), cubeMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
-			glBindVertexArray(0);
-		}
+		cubemapPrefilterProg->Dispatch(std::ceil(mipSize / 8.0f), std::ceil(mipSize / 8.0f), 1);
 	}
-
-	glCullFace(GL_BACK);
-
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	Cubemap* result = new Cubemap(width, height, creationParams, handle);
-		
-	result->SetWrapModeU(this->wrapU.value);
-	result->SetWrapModeV(this->wrapV.value);
-	result->SetWrapModeW(this->wrapW.value);
-	result->SetMinFilter(TextureFilter::LinearMipmapLinear);
-	result->SetMagFilter(this->magFilter.value);
-	
-	result->Update();
 
 	return result;
 }

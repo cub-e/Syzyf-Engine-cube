@@ -41,7 +41,7 @@ void main() {
 		return;
 	}
 
-	vec2 uv = pixelCoord / inputSize;
+	vec2 uv = (pixelCoord + 0.5) / inputSize;
 
 	vec4 col = texture(inputTex, uv);
 

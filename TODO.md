@@ -1,16 +1,8 @@
 # Shit that needs doing:
 
-## Assimp version
-
-Assimp version 6.0.4 doesn't require the silly _MSC_VER hack to work, but breaks importing meshes with materials
-
 ## Resources database
 
 Currently, resources are supposed to be cached after loading. However, not only doesn't it work, it also sometimes mistakes assets as loaded when they aren't in the database, causing it to return a nullptr and crash. Ideally, all resource loading would be moved to the Scene to ensure memory safety
-
-## Move IBL generation to compute shaders
-
-I mean come on, blitting on a mesh in 2026? *So passé*
 
 ## Graphics API additions
 

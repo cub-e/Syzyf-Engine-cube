@@ -57,6 +57,7 @@ public:
 		Cubemap,
 		Image2D,
 		UImage2D,
+		ImageCube,
 		Unsupported
 	};
 	
@@ -77,6 +78,12 @@ public:
 		std::string name;
 		int binding;
 		int stride;
+	};
+
+	template<TextureClass T>
+	struct TextureUniform {
+		T* tex;
+		unsigned int level;
 	};
 private:
 	std::vector<UniformVariableSpec> variables;

@@ -36,16 +36,16 @@ void ShaderVariableStorage::Bind() const {
 			break;
 		case UniformSpec::UniformType::Sampler2D:
 		{
-			Texture2D* imageTex = GetValue<Texture2D>(i);
+			UniformSpec::TextureUniform<Texture2D> imageTex = GetValue<Texture2D>(i);
 
 			GLuint imageTexHandle = 0;
 
-			if (imageTex) {
-				if (imageTex->IsDirty()) {
-					imageTex->Update();
+			if (imageTex.tex) {
+				if (imageTex.tex->IsDirty()) {
+					imageTex.tex->Update();
 				}
 				
-				imageTexHandle = imageTex->GetHandle();
+				imageTexHandle = imageTex.tex->GetHandle();
 			}
 			
 			glActiveTexture(GL_TEXTURE0 + samplerIndex);
@@ -58,16 +58,16 @@ void ShaderVariableStorage::Bind() const {
 		}
 		case UniformSpec::UniformType::Cubemap:
 		{
-			Cubemap* cubeTex = GetValue<Cubemap>(i);
+			UniformSpec::TextureUniform<Cubemap> cubeTex = GetValue<Cubemap>(i);
 
 			GLuint cubeTexHandle = 0;
 
-			if (cubeTex) {
-				if (cubeTex->IsDirty()) {
-					cubeTex->Update();
+			if (cubeTex.tex) {
+				if (cubeTex.tex->IsDirty()) {
+					cubeTex.tex->Update();
 				}
 				
-				cubeTexHandle = cubeTex->GetHandle();
+				cubeTexHandle = cubeTex.tex->GetHandle();
 			}
 			
 			glActiveTexture(GL_TEXTURE0 + samplerIndex);
@@ -81,27 +81,55 @@ void ShaderVariableStorage::Bind() const {
 		case UniformSpec::UniformType::Image2D:
 		case UniformSpec::UniformType::UImage2D:
 		{
-			Texture2D* imageTex = GetValue<Texture2D>(i);
+			UniformSpec::TextureUniform<Texture2D> imageTex = GetValue<Texture2D>(i);
 
 			GLuint imageTexHandle = 0;
 			GLenum imageFormat = GL_RGBA16F;
 
-			if (imageTex) {
-				if (imageTex->IsDirty()) {
-					imageTex->Update();
+			if (imageTex.tex) {
+				if (imageTex.tex->IsDirty()) {
+					imageTex.tex->Update();
 				}
 				
-				imageTexHandle = imageTex->GetHandle();
+				imageTexHandle = imageTex.tex->GetHandle();
 				imageFormat = Texture::CalcInternalFormat({
-					.channels = imageTex->GetChannels(),
-					.colorSpace = imageTex->GetColorSpace(),
-					.format = imageTex->GetFormat(),
+					.channels = imageTex.tex->GetChannels(),
+					.colorSpace = imageTex.tex->GetColorSpace(),
+					.format = imageTex.tex->GetFormat(),
 				});
 
 				glUniform1i(this->uniformSpec->VariableAt(i).binding, samplerIndex);
 			}
 
-			glBindImageTexture(samplerIndex, imageTexHandle, 0, false, 0, GL_READ_WRITE, imageFormat);
+			glBindImageTexture(samplerIndex, imageTexHandle, imageTex.level, false, 0, GL_READ_WRITE, imageFormat);
+
+			samplerIndex++;
+
+			break;
+		}
+		case UniformSpec::UniformType::ImageCube:
+		{
+			UniformSpec::TextureUniform<Cubemap> cubeTex = GetValue<Cubemap>(i);
+
+			GLuint imageTexHandle = 0;
+			GLenum imageFormat = GL_RGBA16F;
+
+			if (cubeTex.tex) {
+				if (cubeTex.tex->IsDirty()) {
+					cubeTex.tex->Update();
+				}
+				
+				imageTexHandle = cubeTex.tex->GetHandle();
+				imageFormat = Texture::CalcInternalFormat({
+					.channels = cubeTex.tex->GetChannels(),
+					.colorSpace = cubeTex.tex->GetColorSpace(),
+					.format = cubeTex.tex->GetFormat(),
+				});
+
+				glUniform1i(this->uniformSpec->VariableAt(i).binding, samplerIndex);
+			}
+
+			glBindImageTexture(samplerIndex, imageTexHandle, cubeTex.level, true, 0, GL_READ_WRITE, imageFormat);
 
 			samplerIndex++;
 

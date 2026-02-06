@@ -32,9 +32,9 @@ public:
 	T GetValue(unsigned int uniformIndex) const;
 
 	template<TextureClass T>
-	T* GetValue(const std::string& uniformName) const;
+	UniformSpec::TextureUniform<T> GetValue(const std::string& uniformName) const;
 	template<TextureClass T>
-	T* GetValue(unsigned int uniformIndex) const;
+	UniformSpec::TextureUniform<T> GetValue(unsigned int uniformIndex) const;
 	
 	template<Blittable T>
 	void SetValue(const std::string& uniformName, const T& value);
@@ -42,9 +42,9 @@ public:
 	void SetValue(unsigned int uniformIndex, const T& value);
 
 	template<TextureClass T>
-	void SetValue(const std::string& uniformName, T* value);
+	void SetValue(const std::string& uniformName, T* value, unsigned int level = 0);
 	template<TextureClass T>
-	void SetValue(unsigned int uniformIndex, T* value);
+	void SetValue(unsigned int uniformIndex, T* value, unsigned int level = 0);
 
 	template<typename T_BufferRep>
 	T_BufferRep GetUniformBuffer(const std::string& uniformBufferName);
@@ -90,9 +90,9 @@ public:
 	void SetValue(unsigned int uniformIndex, const T& value);
 
 	template<TextureClass T>
-	void SetValue(const std::string& uniformName, T* value);
+	void SetValue(const std::string& uniformName, T* value, unsigned int level = 0);
 	template<TextureClass T>
-	void SetValue(unsigned int uniformIndex, T* value);
+	void SetValue(unsigned int uniformIndex, T* value, unsigned int level = 0);
 
 	template<typename T_BufferRep>
 	T_BufferRep GetUniformBuffer(const std::string& uniformBufferName);
@@ -139,9 +139,9 @@ public:
 	void SetValue(unsigned int uniformIndex, const T& value);
 
 	template<TextureClass T>
-	void SetValue(const std::string& uniformName, T* value);
+	void SetValue(const std::string& uniformName, T* value, unsigned int level = 0);
 	template<TextureClass T>
-	void SetValue(unsigned int uniformIndex, T* value);
+	void SetValue(unsigned int uniformIndex, T* value, unsigned int level = 0);
 
 	template<typename T_BufferRep>
 	T_BufferRep GetUniformBuffer(const std::string& uniformBufferName);
@@ -187,14 +187,14 @@ T ShaderVariableStorage::GetValue(const std::string& uniformName) const {
 }
 
 template<TextureClass T>
-T* ShaderVariableStorage::GetValue(const std::string& uniformName) const {
+UniformSpec::TextureUniform<T> ShaderVariableStorage::GetValue(const std::string& uniformName) const {
 	for (int i = 0; i < this->uniformSpec->VariableCount(); i++) {
 		if (this->uniformSpec->VariableAt(i).name == uniformName) {
 			return GetValue<T>(i);
 		}
 	}
 
-	return nullptr;
+	return UniformSpec::TextureUniform<T>{nullptr, 0};
 }
 
 template<Blittable T>
@@ -211,16 +211,16 @@ T ShaderVariableStorage::GetValue(unsigned int uniformIndex) const {
 }
 
 template<TextureClass T>
-T* ShaderVariableStorage::GetValue(unsigned int uniformIndex) const {
+UniformSpec::TextureUniform<T> ShaderVariableStorage::GetValue(unsigned int uniformIndex) const {
 	if (uniformIndex < 0 || uniformIndex >= this->uniformSpec->VariableCount()) {
-		return nullptr;
+		return UniformSpec::TextureUniform<T>{nullptr, 0};
 	}
 
 	if (!IsUniformOfRightType<T>(this->uniformSpec->VariableAt(uniformIndex).type)) {
-		return nullptr;
+		return UniformSpec::TextureUniform<T>{nullptr, 0};
 	}
 
-	return *((T**) ((char*) this->dataBuffer + this->uniformSpec->VariableAt(uniformIndex).offset));
+	return *((UniformSpec::TextureUniform<T>*) ((char*) this->dataBuffer + this->uniformSpec->VariableAt(uniformIndex).offset));
 }
 
 template<Blittable T>
@@ -233,10 +233,10 @@ void ShaderVariableStorage::SetValue(const std::string& uniformName, const T& va
 }
 
 template<TextureClass T>
-void ShaderVariableStorage::SetValue(const std::string& uniformName, T* value) {
+void ShaderVariableStorage::SetValue(const std::string& uniformName, T* value, unsigned int level) {
 	for (int i = 0; i < this->uniformSpec->VariableCount(); i++) {
 		if (this->uniformSpec->VariableAt(i).name == uniformName) {
-			SetValue<T>(i, value);
+			SetValue<T>(i, value, level);
 		}
 	}
 }
@@ -254,7 +254,7 @@ void ShaderVariableStorage::SetValue(unsigned int uniformIndex, const T& value) 
 }
 
 template<TextureClass T>
-void ShaderVariableStorage::SetValue(unsigned int uniformIndex, T* value) {
+void ShaderVariableStorage::SetValue(unsigned int uniformIndex, T* value, unsigned int level) {
 	if (uniformIndex < 0 || uniformIndex >= this->uniformSpec->VariableCount()) {
 		return;
 	}
@@ -263,7 +263,7 @@ void ShaderVariableStorage::SetValue(unsigned int uniformIndex, T* value) {
 		return;
 	}
 
-	*((T**) ((char*) this->dataBuffer + this->uniformSpec->VariableAt(uniformIndex).offset)) = value;
+	*((UniformSpec::TextureUniform<T>*) ((char*) this->dataBuffer + this->uniformSpec->VariableAt(uniformIndex).offset)) = UniformSpec::TextureUniform<T>{value, level};
 }
 
 template<typename T_BufferRep>
@@ -357,6 +357,15 @@ T Material::GetValue(unsigned int uniformIndex) const {
 	return this->shaderVariables.GetValue<T>(uniformIndex);
 }
 
+template<TextureClass T>
+T* Material::GetValue(const std::string& uniformName) const {
+	return this->shaderVariables.GetValue<T>(uniformName).tex;
+}
+template<TextureClass T>
+T* Material::GetValue(unsigned int uniformIndex) const {
+	return this->shaderVariables.GetValue<T>(uniformIndex).tex;
+}
+
 template<Blittable T>
 void Material::SetValue(const std::string& uniformName, const T& value) {
 	this->shaderVariables.SetValue(uniformName, value);
@@ -367,12 +376,12 @@ void Material::SetValue(unsigned int uniformIndex, const T& value) {
 }
 
 template<TextureClass T>
-void Material::SetValue(const std::string& uniformName, T* value) {
-	this->shaderVariables.SetValue(uniformName, value);
+void Material::SetValue(const std::string& uniformName, T* value, unsigned int level) {
+	this->shaderVariables.SetValue(uniformName, value, level);
 }
 template<TextureClass T>
-void Material::SetValue(unsigned int uniformIndex, T* value) {
-	this->shaderVariables.SetValue(uniformIndex, value);
+void Material::SetValue(unsigned int uniformIndex, T* value, unsigned int level) {
+	this->shaderVariables.SetValue(uniformIndex, value, level);
 }
 
 template<typename T_BufferRep>
@@ -406,6 +415,14 @@ T ComputeDispatchData::GetValue(unsigned int uniformIndex) const {
 	return this->shaderVariables.GetValue<T>(uniformIndex);
 }
 
+template<TextureClass T>
+T* ComputeDispatchData::GetValue(const std::string& uniformName) const {
+	return this->shaderVariables.GetValue<T>(uniformName).tex;
+}
+template<TextureClass T>
+T* ComputeDispatchData::GetValue(unsigned int uniformIndex) const {
+	return this->shaderVariables.GetValue<T>(uniformIndex).tex;
+}
 template<Blittable T>
 void ComputeDispatchData::SetValue(const std::string& uniformName, const T& value) {
 	this->shaderVariables.SetValue(uniformName, value);
@@ -416,12 +433,12 @@ void ComputeDispatchData::SetValue(unsigned int uniformIndex, const T& value) {
 }
 
 template<TextureClass T>
-void ComputeDispatchData::SetValue(const std::string& uniformName, T* value) {
-	this->shaderVariables.SetValue(uniformName, value);
+void ComputeDispatchData::SetValue(const std::string& uniformName, T* value, unsigned int level) {
+	this->shaderVariables.SetValue(uniformName, value, level);
 }
 template<TextureClass T>
-void ComputeDispatchData::SetValue(unsigned int uniformIndex, T* value) {
-	this->shaderVariables.SetValue(uniformIndex, value);
+void ComputeDispatchData::SetValue(unsigned int uniformIndex, T* value, unsigned int level) {
+	this->shaderVariables.SetValue(uniformIndex, value, level);
 }
 
 template<typename T_BufferRep>
@@ -478,5 +495,5 @@ template<> inline bool IsUniformOfRightType<Texture2D>(UniformSpec::UniformType 
 	return type == UniformSpec::UniformType::Sampler2D || type == UniformSpec::UniformType::Image2D || type == UniformSpec::UniformType::UImage2D;
 }
 template<> inline bool IsUniformOfRightType<Cubemap>(UniformSpec::UniformType type) {
-	return type == UniformSpec::UniformType::Cubemap;
+	return type == UniformSpec::UniformType::Cubemap || type == UniformSpec::UniformType::ImageCube;
 }
