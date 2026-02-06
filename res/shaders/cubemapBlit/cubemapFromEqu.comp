@@ -54,7 +54,7 @@ void main() {
 		return;
 	}
 
-	const vec2 localUV = (pixelCoord.xy / outputSize) - 0.5;
+	const vec2 localUV = ((pixelCoord.xy + 0.5) / outputSize) - 0.5;
 
 	const vec3 forward = directions[gl_GlobalInvocationID.z];
 	const vec3 up = ups[gl_GlobalInvocationID.z];
