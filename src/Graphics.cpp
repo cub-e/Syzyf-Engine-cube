@@ -323,13 +323,13 @@ void SceneGraphics::BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUn
 void SceneGraphics::RenderFullscreenFrameQuad() {
 	static ShaderProgram* quadProg = ShaderProgram::Build()
 	.WithVertexShader(
-		Resources::Get<VertexShader>("./res/shaders/fullscreen.vert")
+		GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
 	)
 	.WithPixelShader(
-		Resources::Get<PixelShader>("./res/shaders/blit.frag")
+		GetScene()->Resources()->Get<PixelShader>("./res/shaders/blit.frag")
 	).Link();
 
-	static Mesh* quadMesh = Resources::Get<Mesh>("./res/models/fullscreenquad.obj");
+	static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

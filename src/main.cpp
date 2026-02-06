@@ -237,15 +237,15 @@ private:
 	int starCount;
 public:
 	Stars(int starCount = 1000) {
-		this->starMesh = Resources::Get<Mesh>("./res/models/star.obj");
+		this->starMesh = GetScene()->Resources()->Get<Mesh>("./res/models/star.obj");
 		
 		ShaderProgram* starProgram = ShaderProgram::Build()
 		.WithVertexShader(
-			Resources::Get<VertexShader>("./res/shaders/star.vert")
+			GetScene()->Resources()->Get<VertexShader>("./res/shaders/star.vert")
 		).WithGeometryShader(
-			Resources::Get<GeometryShader>("./res/shaders/star.geom")
+			GetScene()->Resources()->Get<GeometryShader>("./res/shaders/star.geom")
 		).WithPixelShader(
-			Resources::Get<PixelShader>("./res/shaders/star.frag")
+			GetScene()->Resources()->Get<PixelShader>("./res/shaders/star.frag")
 		).Link();
 		starProgram->SetIgnoresDepthPrepass(true);
 		starProgram->SetCastsShadows(false);
@@ -274,47 +274,47 @@ void InitScene() {
 	mainScene = new Scene();
 	
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
-		Resources::Get<VertexShader>("./res/shaders/skybox.vert")
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
-		Resources::Get<PixelShader>("./res/shaders/skybox.frag")
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/skybox.frag")
 	).Link();
 
 	ShaderProgram* coloredProg = ShaderProgram::Build().WithVertexShader(
-		Resources::Get<VertexShader>("./res/shaders/lit.vert")
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		Resources::Get<PixelShader>("./res/shaders/lambert color.frag")
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert color.frag")
 	).Link();
 
 	ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
-		Resources::Get<VertexShader>("./res/shaders/lit.vert")
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		Resources::Get<PixelShader>("./res/shaders/pbr.frag")
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr.frag")
 	).Link();
 
 	ShaderProgram* pbrRefractProg = ShaderProgram::Build().WithVertexShader(
-		Resources::Get<VertexShader>("./res/shaders/lit.vert")
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		Resources::Get<PixelShader>("./res/shaders/pbr refract.frag")
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
-	Mesh* gmConstructMesh = Resources::Get<Mesh>("./res/models/construct/construct.obj", true);
-	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
-	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
+	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
+	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
+	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
-	Cubemap* skyCubemap = Resources::Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
+	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
 
-	Texture2D* cannonDiffuse = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
-	Texture2D* cannonNormal = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
-	Texture2D* cannonARM = Resources::Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
+	Texture2D* cannonDiffuse = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
+	Texture2D* cannonNormal = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
+	Texture2D* cannonARM = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
 	
-	Texture2D* reflectiveDiffuse = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
-	Texture2D* reflectiveNormal = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
-	Texture2D* reflectiveARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
-	Texture2D* roughARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
-	Texture2D* shinyNonMetalARM = Resources::Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
+	Texture2D* reflectiveDiffuse = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
+	Texture2D* reflectiveNormal = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
+	Texture2D* reflectiveARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
+	Texture2D* roughARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
+	Texture2D* shinyNonMetalARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
 
 	Material* cannonMat = new Material(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
@@ -437,6 +437,8 @@ int main(int, char**) {
 
 		EndFrame();
 	}
+
+	delete mainScene;
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();

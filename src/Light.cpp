@@ -6,10 +6,10 @@
 #include <Graphics.h>
 #include <imgui.h>
 
-ShaderProgram* GetGizmoShader() {
+ShaderProgram* GetGizmoShader(Scene* scene) {
 	static ShaderProgram* gizmoProg = ShaderProgram::Build()
-	.WithVertexShader(Resources::Get<VertexShader>("./res/shaders/lit.vert"))
-	.WithPixelShader(Resources::Get<PixelShader>("./res/shaders/halo.frag"))
+	.WithVertexShader(scene->Resources()->Get<VertexShader>("./res/shaders/lit.vert"))
+	.WithPixelShader(scene->Resources()->Get<PixelShader>("./res/shaders/halo.frag"))
 	.Link();
 	
 	gizmoProg->SetCastsShadows(false);
@@ -50,7 +50,7 @@ linearAttenuation(lightInfo.linearAttenuation),
 quadraticAttenuation(lightInfo.quadraticAttenuation),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader());
+	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
 }
 
 Light::Light(Light::SpotLight lightInfo):
@@ -64,7 +64,7 @@ linearAttenuation(lightInfo.linearAttenuation),
 quadraticAttenuation(lightInfo.quadraticAttenuation),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader());
+	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
 }
 
 Light::Light(Light::DirectionalLight lightInfo):
@@ -78,7 +78,7 @@ linearAttenuation(0),
 quadraticAttenuation(0),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader());
+	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
 }
 
 void Light::Set(Light::PointLight lightInfo) {
@@ -214,9 +214,9 @@ ShaderLightRep Light::GetShaderRepresentation() const {
 }
 
 void Light::DrawGizmos() {
-	static Mesh* directionalGizmoMesh = Resources::Get<Mesh>("./res/models/directional_gizmo.obj");
-	static Mesh* spotGizmoMesh = Resources::Get<Mesh>("./res/models/spot_gizmo.obj");
-	static Mesh* pointGizmoMesh = Resources::Get<Mesh>("./res/models/point_gizmo.obj");
+	static Mesh* directionalGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/directional_gizmo.obj");
+	static Mesh* spotGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/spot_gizmo.obj");
+	static Mesh* pointGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/point_gizmo.obj");
 
 	this->gizmoMat->SetValue("uColor", this->color * (this->intensity * 5));
 

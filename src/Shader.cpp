@@ -537,6 +537,10 @@ handle(handle) {
 	this->uniforms = UniformSpec(this);
 }
 
+ShaderProgram::~ShaderProgram() {
+	glDeleteProgram(this->handle);
+}
+
 ShaderBuilder ShaderProgram::Build() {
 	return ShaderBuilder{};
 }
@@ -605,6 +609,10 @@ ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
 	}
 
 	this->uniforms = UniformSpec(this);	
+}
+
+ComputeShaderProgram::~ComputeShaderProgram() {
+	glDeleteProgram(this->handle);
 }
 
 GLuint ComputeShaderProgram::GetHandle() const {

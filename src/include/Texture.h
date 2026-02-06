@@ -6,6 +6,8 @@
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
 
+#include <Resources.h>
+
 namespace fs = std::filesystem;
 
 enum class TextureType {
@@ -67,7 +69,7 @@ struct TextureParams {
 	}
 };
 
-class Texture {
+class Texture : public Resource {
 protected:
 	template<typename T>
 	struct TextureInfoBit {

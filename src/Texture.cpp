@@ -452,7 +452,7 @@ Cubemap* Cubemap::Load(const fs::path& texturePath, const TextureParams& loadPar
 }
 
 Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams) {
-	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapFromEqu.comp"));
+	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapFromEqu.comp"));
 
 	Texture2D* equTex = Texture2D::Load(texturePath, loadParams);
 	
@@ -580,7 +580,7 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 }
 
 Cubemap* Cubemap::GenerateIrradianceMap() {
-	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapIrradiance.comp"));
+	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapIrradiance.comp"));
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,
@@ -626,7 +626,7 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 }
 
 Cubemap* Cubemap::GeneratePrefilterIBLMap() {
-	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapPrefilter.comp"));
+	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapPrefilter.comp"));
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,
