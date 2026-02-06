@@ -589,7 +589,7 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 		.wrapU = TextureWrap::Repeat,
 		.wrapV = TextureWrap::Repeat,
 		.wrapW = TextureWrap::Repeat,
-		.minFilter = TextureFilter::LinearMipmapLinear,
+		.minFilter = TextureFilter::Linear,
 		.magFilter = TextureFilter::Linear
 	};
 
@@ -619,6 +619,9 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 
 	irradianceProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
 
+	result->SetMinFilter(TextureFilter::LinearMipmapLinear);
+	result->Update();
+
 	return result;
 }
 
@@ -636,7 +639,8 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 		.magFilter = TextureFilter::Linear
 	};
 	
-	int texSize = 128;
+	constexpr int texSize = 128;
+	constexpr unsigned int maxMipLevels = 5;
 
 	GLenum internalFormat = CalcInternalFormat(creationParams);
 	GLenum format = ToGL(creationParams.channels);
@@ -655,6 +659,10 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 			internalFormat, texSize, texSize, 0, format, textureType, nullptr
 		);
 	}
+
+	glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_LOD, 0);
+	glTexParameterf(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LOD, maxMipLevels - 1);
+	glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, maxMipLevels - 1);
 	
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	
@@ -662,7 +670,6 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 	
 	cubemapPrefilterProg->GetData()->SetValue("environmentMap", this);
 	
-	unsigned int maxMipLevels = 5;
 	for (unsigned int mip = 0; mip < maxMipLevels; ++mip) {
 		unsigned int mipSize  = 128 * std::pow(0.5, mip);
 		
