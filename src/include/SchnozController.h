@@ -1,9 +1,8 @@
 #pragma once
 
+#include "GameObject.h"
 #include "events/EventHandler.h"
-#include <GameObject.h>
-#include <events/PushSchnozEvent.h>
-#include <glm/fwd.hpp>
+#include "events/PushSchnozEvent.h"
 
 class SchnozController : public GameObject {
 public:

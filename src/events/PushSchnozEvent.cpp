@@ -1,11 +1,13 @@
-#include <events/PushSchnozEvent.h>
+#include "events/PushSchnozEvent.h"
 
 PushSchnozEvent::PushSchnozEvent() {}
-const std::string PushSchnozEvent::GetStaticEventType() {
+const char* PushSchnozEvent::GetStaticEventType() {
+// In the post it is suggested to use a hash here
+//  https://denyskryvytskyi.github.io/event-system
   return "POOGA";
 }
 
-const std::string PushSchnozEvent::GetEventType() const {
+const char* PushSchnozEvent::GetEventType() const {
   return GetStaticEventType();
 }
 

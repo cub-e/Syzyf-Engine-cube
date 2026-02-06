@@ -13,6 +13,7 @@ class PhysicsObject : public GameObject {
     private:
         JPH::BodyID bodyId;
         bool bodyCreated = false;
+        bool addedToWorld = false;
         float mass = 1.0f;
         float friction = 0.5f;
     public:

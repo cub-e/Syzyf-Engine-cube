@@ -211,6 +211,7 @@ private:
 	void DeleteNodeInternal(SceneNode* node);
 public:
 	Scene();
+  ~Scene();
 	SceneNode* CreateNode();
 	SceneNode* CreateNode(SceneNode* parent);
 	SceneNode* CreateNode(const std::string& name);

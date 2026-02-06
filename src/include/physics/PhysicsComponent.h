@@ -40,9 +40,6 @@ public:
       static constexpr JPH::BroadPhaseLayer MOVING{1};
       static constexpr JPH::uint NUM_LAYERS{2};
   };
-
-  static void TraceImpl(const char *inFMT, ...);
-  static bool AssertFailedImpl(const char *inExpression, const char *inMessage, const char *inFile, JPH::uint inLine);
 private:
     const float cDeltaTime = 1.0f / 60.0f;
 

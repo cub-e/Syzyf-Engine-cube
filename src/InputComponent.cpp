@@ -1,17 +1,25 @@
 #include "InputComponent.h"
+
 #include <unordered_map>
-#include "imgui.h"
+
+#include <imgui.h>
+#include <imgui_impl/imgui_impl_glfw.h>
+#include <GLFW/glfw3.h>
+
 #include "Scene.h"
-#include "imgui_impl/imgui_impl_glfw.h"
 
 InputComponent::InputComponent(Scene* scene): SceneComponent(scene) {};
-InputComponent::~InputComponent() {};
+InputComponent::~InputComponent() {
+  if (m_ownerWindow) {
+    if (glfwGetWindowUserPointer(m_ownerWindow) == this) {
+      glfwSetWindowUserPointer(m_ownerWindow, nullptr);
+    }
+  }
+};
 
-void InputComponent::OnPreUpdate() {
-}
+void InputComponent::OnPreUpdate() {}
 
 void InputComponent::KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-
   if (action == GLFW_PRESS) {
     if (inputMap.contains(key)) {
       const auto& factories = inputMap[key];
@@ -26,32 +34,38 @@ void InputComponent::KeyCallback(GLFWwindow* window, int key, int scancode, int 
 }
 
 void InputComponent::SetGlfwCallbacks(GLFWwindow* window) {
-    glfwSetWindowUserPointer(window, this);
+  if (!window) {
+    spdlog::warn("Window passed to `SetGlfwCallbacks` was null");
+    return;
+  }
 
-    glfwSetKeyCallback(window, InputComponent::DispatchKeyCallback);
-    glfwSetMouseButtonCallback(window, InputComponent::DispatchMouseButtonCallback);
-    glfwSetScrollCallback(window, InputComponent::DispatchScrollCallback);
-    glfwSetCharCallback(window, InputComponent::DispatchCharCallback);
+  m_ownerWindow = window;
+
+  glfwSetWindowUserPointer(window, this);
+  glfwSetKeyCallback(window, InputComponent::DispatchKeyCallback);
+  glfwSetMouseButtonCallback(window, InputComponent::DispatchMouseButtonCallback);
+  glfwSetScrollCallback(window, InputComponent::DispatchScrollCallback);
+  glfwSetCharCallback(window, InputComponent::DispatchCharCallback);
 }
 
 void InputComponent::DispatchKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
-    if (ImGui::GetIO().WantCaptureKeyboard) return;
+  ImGui_ImplGlfw_KeyCallback(window, key, scancode, action, mods);
+  if (ImGui::GetIO().WantCaptureKeyboard) return;
 
-    InputComponent* instance = static_cast<InputComponent*>(glfwGetWindowUserPointer(window));
-    if (instance) {
-        instance->KeyCallback(window, key, scancode, action, mods);
-    }
+  InputComponent* instance = static_cast<InputComponent*>(glfwGetWindowUserPointer(window));
+  if (instance) {
+    instance->KeyCallback(window, key, scancode, action, mods);
+  }
 }
 void InputComponent::DispatchMouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
-    if (ImGui::GetIO().WantCaptureMouse) return;
+  ImGui_ImplGlfw_MouseButtonCallback(window, button, action, mods);
+  if (ImGui::GetIO().WantCaptureMouse) return;
 }
 void InputComponent::DispatchScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
-    ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
-    if (ImGui::GetIO().WantCaptureMouse) return;
+  ImGui_ImplGlfw_ScrollCallback(window, xoffset, yoffset);
+  if (ImGui::GetIO().WantCaptureMouse) return;
 }
 void InputComponent::DispatchCharCallback(GLFWwindow* window, unsigned int codepoint) {
-    ImGui_ImplGlfw_CharCallback(window, codepoint);
-    if (ImGui::GetIO().WantCaptureKeyboard) return;
+  ImGui_ImplGlfw_CharCallback(window, codepoint);
+  if (ImGui::GetIO().WantCaptureKeyboard) return;
 }

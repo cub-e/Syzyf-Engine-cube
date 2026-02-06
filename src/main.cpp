@@ -1,8 +1,11 @@
+#include <Jolt/Jolt.h>
+#include <Jolt/RegisterTypes.h>
 #include "SchnozController.h"
 #include "events/PushSchnozEvent.h"
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
+#include "physics/PhysicsJolt.h"
 #include <stdio.h>
 
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
@@ -132,7 +135,7 @@ public:
 			glfwMakeContextCurrent(window);
 			glfwGetFramebufferSize(window, &display_w, &display_h);
 
-			glfwSetCursorPos(window, display_w / 2, display_h / 2);
+			glfwSetCursorPos(window, display_w / 2.0, display_h / 2.0);
 		}
 
 		this->movementEnabled = capture;
@@ -538,6 +541,10 @@ int main(int, char**) {
 	glfwDestroyWindow(window);
 	glfwTerminate();
 
+  JPH::UnregisterTypes();
+  delete JPH::Factory::sInstance;
+  JPH::Factory::sInstance = nullptr;
+
 	return 0;
 }
 
@@ -584,6 +591,16 @@ bool InitProgram() {
 		spdlog::error("Failed to initialize OpenGL loader!");
 		return false;
 	}
+
+  // Jolt
+  JPH::RegisterDefaultAllocator();
+  JPH::Factory::sInstance = new JPH::Factory();
+  JPH::RegisterTypes();
+  
+  JPH::Trace = TraceImpl;
+  #ifdef JPH_ENABLE_ASSERTS
+    JPH::AssertFailed = AssertFailedImpl;
+  #endif
 
 	return true;
 }

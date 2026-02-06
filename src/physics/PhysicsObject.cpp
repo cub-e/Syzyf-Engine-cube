@@ -1,4 +1,5 @@
 #include "physics/PhysicsObject.h"
+#include "Jolt/Core/Core.h"
 #include "physics/PhysicsComponent.h"
 #include <spdlog/spdlog.h>
 
@@ -9,64 +10,77 @@
 PhysicsObject::PhysicsObject() {};
 
 PhysicsObject::~PhysicsObject() {
-    if (bodyCreated) {
-        // missing logs
-        PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>();
-        if (physics) {
-            physics->GetBodyInterface()->RemoveBody(bodyId);
-            physics->GetBodyInterface()->DestroyBody(bodyId);
-        }
+  if (bodyCreated) {
+    PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>();
+    if (!physics) {
+      spdlog::error("Failed to retrieve `PhysicsComponent` when trying to destruct `PhysicsObject` did it get destructed earlier?");
     }
+
+    if (physics) {
+      if (addedToWorld) {
+        physics->GetBodyInterface()->RemoveBody(bodyId);
+      }
+      physics->GetBodyInterface()->DestroyBody(bodyId);
+    }
+  }
 }
 
 void PhysicsObject::Awake() {
-    PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>();
-    if (!physics) {
-        spdlog::warn("Tried waking up a physics object without a PhysicsComponent");
-        return;
-    }
+  PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>();
+  if (!physics) {
+      spdlog::warn("Tried waking up a physics object without a PhysicsComponent");
+      return;
+  }
 
-    JPH::RVec3 position = JPH::RVec3(0.0_r, 0.0_r, 0.0_r);
-    JPH::Quat rotation = JPH::Quat::sIdentity();
+  JPH::RVec3 position = JPH::RVec3(0.0_r, 0.0_r, 0.0_r);
+  JPH::Quat rotation = JPH::Quat::sIdentity();
 
-    SceneNode* node = GetNode();
-    if (node) {
-        SceneTransform::PositionAccess nodePosition = node->GetTransform().GlobalTransform().Position();
-        SceneTransform::RotationAccess nodeRotation = node->GetTransform().GlobalTransform().Rotation();
-        position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
-        rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
-    }
+  SceneNode* node = GetNode();
 
-    JPH::BodyCreationSettings sphereSettings(new JPH::SphereShape(0.5f),
-        position, rotation,
-        JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING);
+  SceneTransform::PositionAccess nodePosition = node->GetTransform().GlobalTransform().Position();
+  SceneTransform::RotationAccess nodeRotation = node->GetTransform().GlobalTransform().Rotation();
+  position = JPH::RVec3(nodePosition.x, nodePosition.y, nodePosition.z);
+  rotation = JPH::Quat(nodeRotation.x, nodeRotation.y, nodeRotation.z, nodeRotation.w);
 
-    sphereSettings.mRestitution = 0.1f;
+  JPH::BodyCreationSettings sphereSettings(new JPH::SphereShape(0.5f),
+    position, rotation,
+    JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING);
 
-    bodyId = physics->GetBodyInterface()->CreateBody(sphereSettings)->GetID();
-    bodyCreated = !bodyId.IsInvalid();
+  sphereSettings.mRestitution = 0.1f;
+  sphereSettings.mUserData = reinterpret_cast<JPH::uint64>(this);
+
+  JPH::Body* body = physics->GetBodyInterface()->CreateBody(sphereSettings);
+  if (!body) {
+    spdlog::error("Failed to create a Jolt body");
+    bodyCreated = false;
+    return;
+  }
+  bodyId = body->GetID();
+  bodyCreated = !bodyId.IsInvalid();
 }
 
 void PhysicsObject::Enable() {
-    if (!bodyCreated) {
-        spdlog::warn("Tried enabling a body that hasn't been created yet");
-        return;
-    }
+  if (!bodyCreated) {
+    spdlog::warn("Tried enabling a body that hasn't been created yet");
+    return;
+  }
 
-    PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>();
-    if (physics) {
-        physics->GetBodyInterface()->AddBody(bodyId, JPH::EActivation::Activate);
-    }
+  PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>();
+  if (physics) {
+    physics->GetBodyInterface()->AddBody(bodyId, JPH::EActivation::Activate);
+    addedToWorld = true;
+  }
 }
 
 void PhysicsObject::Disable() {
-    if (!bodyCreated) {
-        spdlog::warn("Tried disabling a body that hasn't been created yet");
-        return;
-    }
+  if (!bodyCreated) {
+    spdlog::warn("Tried disabling a body that hasn't been created yet");
+    return;
+  }
 
-    PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>();
-    if (physics) {
-        physics->GetBodyInterface()->RemoveBody(bodyId);
-    }
+  PhysicsComponent* physics = GetScene()->GetComponent<PhysicsComponent>();
+  if (physics) {
+    physics->GetBodyInterface()->RemoveBody(bodyId);
+    addedToWorld = false;
+  }
 }

@@ -167,6 +167,18 @@ nextGameObjectID(0) {
   this->eventManager = EventManager();
 }
 
+Scene::~Scene() {
+  if (this->root) {
+    delete this->root;
+    this->root = nullptr;
+  }
+
+  for (SceneComponent* component : this->components) {
+    delete component;
+  }
+  this->components.clear();
+}
+
 void SceneNode::MessageReceiver::Message() {
 	(*this->objPtr.*this->methodPtr)();
 }
@@ -328,7 +340,6 @@ void Scene::Render() {
 		component->OnPostRender();
 	}
 }
-
 
 void Scene::DrawImGui() {
 	for (auto& component: this->components) {

@@ -1,15 +1,15 @@
 #pragma once
 
-#include "SceneComponent.h"
-#include "events/Event.h"
-#include <GLFW/glfw3.h>
-#include <functional>
-#include <memory>
-#include <spdlog/spdlog.h>
 #include <unordered_map>
-#include <string>
 #include <vector>
-#include "Scene.h"
+#include <memory>
+#include <functional>
+
+#include "SceneComponent.h"
+
+class Scene;
+class Event;
+struct GLFWwindow;
 
 using EventFactory = std::function<std::unique_ptr<Event>()>;
 
@@ -23,8 +23,7 @@ public:
 
   void OnPreUpdate();
 private:
-  // Should perhaps allow for storing different maps and switch them depending on the context eg. opening a menu
-  //  but maybe it's fine as is, godot doesn't differentiate between different contexts
+  GLFWwindow* m_ownerWindow = nullptr;
   std::unordered_map<int, std::vector<EventFactory>> inputMap;
 public:
   void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
@@ -38,7 +37,7 @@ public:
 
 template <typename T_Event, typename... Args>
 void InputComponent::BindAction(int key, Args&&... args) {
-    inputMap[key].push_back([=]() {
-        return std::make_unique<T_Event>(args...);
-    });
+  inputMap[key].push_back([=]() {
+    return std::make_unique<T_Event>(args...);
+  });
 }
