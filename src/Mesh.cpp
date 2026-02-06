@@ -421,8 +421,6 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 			materials.push_back(materialResult);
 		}
-
-		spdlog::info("Prepared materials");
 	}
 
 	Mesh* loadedMesh = new Mesh();

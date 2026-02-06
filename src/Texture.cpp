@@ -646,8 +646,6 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 	GLenum format = ToGL(creationParams.channels);
 	GLenum textureType = ToGL(creationParams.format);
 
-	spdlog::info("Internal format of prefilter: {:x}", (int) internalFormat);
-	
 	GLuint handle;
 
 	glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &handle);
