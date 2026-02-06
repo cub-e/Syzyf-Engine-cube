@@ -210,7 +210,7 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
       return physicsSystem;
   }
 
-  void PhysicsComponent::OnPreUpdate() {
+  void PhysicsComponent::OnPostUpdate() {
       physicsSystem->Update(cDeltaTime, 1, tempAllocator, jobSystem);
 
       std::vector<PhysicsObject*> objects = GetScene()->FindObjectsOfType<PhysicsObject>();

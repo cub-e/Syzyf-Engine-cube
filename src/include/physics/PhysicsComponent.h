@@ -27,7 +27,7 @@ public:
   JPH::BodyInterface* GetBodyInterface();
   JPH::PhysicsSystem* GetSystem();
 
-  void OnPreUpdate();
+  void OnPostUpdate();
 
   struct Layers {
       static constexpr JPH::ObjectLayer NON_MOVING = 0;
