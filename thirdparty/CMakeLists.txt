@@ -30,11 +30,13 @@ CPMAddPackage(
     OPTIONS
         "TARGET_UNIT_TESTS OFF"
         "TARGET_SAMPLES OFF"
+        "TARGET_PERFORMANCE_TEST" OFF
+        "TARGET_VIEWER" OFF
         "TARGET_HELLO_WORLD OFF"
-        "NO_PROFILER OFF"
         "DEBUG_RENDERER ON"
+        "CPP_RTTI_ENABLED ON"
+        "DEBUG_RENDERER_IN_DISTRIBUTION ON"
 )
-
 target_compile_options(Jolt PRIVATE -Wno-array-bounds)
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")

@@ -28,6 +28,7 @@ public:
   JPH::PhysicsSystem* GetSystem();
 
   void OnPostUpdate();
+  void OnPostRender();
 
   struct Layers {
       static constexpr JPH::ObjectLayer NON_MOVING = 0;

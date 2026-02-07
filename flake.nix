@@ -37,9 +37,7 @@
 
           glslls
           clang-tools
-
-          sdl3 # For renderdoc
-          renderdoc
+          glslang
         ];
 
         buildInputs = with pkgs; [

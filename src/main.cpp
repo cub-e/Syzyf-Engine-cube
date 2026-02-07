@@ -5,6 +5,7 @@
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
+#include "physics/PhysicsDebugRenderer.h"
 #include "physics/PhysicsJolt.h"
 #include <stdio.h>
 
@@ -341,6 +342,7 @@ void InitScene() {
 	mainScene->AddComponent<DebugInspector>();
   mainScene->AddComponent<PhysicsComponent>();
   mainScene->AddComponent<InputComponent>();
+  mainScene->AddComponent<MyDebugRenderer>();
 
   InputComponent* input = mainScene->GetComponent<InputComponent>();
   input->BindAction<PushSchnozEvent>(GLFW_KEY_SPACE);
@@ -526,6 +528,8 @@ int main(int, char**) {
 		Update();
 
 		Render();
+
+    mainScene->GetComponent<MyDebugRenderer>()->Render();
 
 		ImGuiBegin();
 		ImGuiUpdate();

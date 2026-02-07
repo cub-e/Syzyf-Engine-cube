@@ -15,6 +15,7 @@
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
 
+#include "physics/PhysicsDebugRenderer.h"
 #include "physics/PhysicsObject.h"
 #include "Scene.h"
 
@@ -165,6 +166,21 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
     return physicsSystem;
   }
 
+  void PhysicsComponent::OnPostRender() {
+    auto* debugRenderer = GetScene()->GetComponent<MyDebugRenderer>();
+    
+    if (debugRenderer) {
+      JPH::BodyManager::DrawSettings settings;
+      settings.mDrawShape = true;
+      settings.mDrawBoundingBox = true;
+      settings.mDrawCenterOfMassTransform = true;
+      settings.mDrawShapeWireframe = true;
+
+      physicsSystem->DrawBodies(settings, debugRenderer);
+      physicsSystem->DrawConstraints(debugRenderer);
+    }
+  }
+
   void PhysicsComponent::OnPostUpdate() {
     physicsSystem->Update(cDeltaTime, 1, tempAllocator, jobSystem);
 
@@ -174,7 +190,6 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
     for (auto const& bodyId : activeBodies) {
       JPH::BodyLockRead lock(physicsSystem->GetBodyLockInterface(), bodyId);
       if (lock.Succeeded()) {
-        spdlog::info("Lock succeeded");
         const Body& body = lock.GetBody();
 
         PhysicsObject* object = reinterpret_cast<PhysicsObject*>(body.GetUserData());
