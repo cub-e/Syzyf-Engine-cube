@@ -64,6 +64,8 @@ public:
 		requires(!std::derived_from<T_Resource, Resource>)
 	bool IsLoaded(const fs::path& path) const;
 
+	void Free(const fs::path& path);
+
 	void Purge();
 };
 
@@ -106,7 +108,7 @@ T_Resource* ResourceDatabase::Get(const fs::path& resourcePath) {
 template <typename T_Resource>
 	requires(std::derived_from<T_Resource, Resource>)
 void ResourceDatabase::Register(T_Resource* resource, const fs::path& path) {
-	if (this->loadedResources.contains(path)) {
+	if (this->loadedResources.contains(path) && this->loadedResources[path].resource) {
 		spdlog::warn("Registering a resource multiple times: {}", path.string().c_str());
 	}
 
@@ -132,11 +134,11 @@ void ResourceDatabase::Register(T_Resource* resource, const fs::path& path) {
 template <typename T_Resource>
 	requires(std::derived_from<T_Resource, Resource>)
 bool ResourceDatabase::IsLoaded(const fs::path& path) const {
-	return this->loadedResources.contains(path) && this->loadedResources.at(path).type == &typeid(T_Resource);
+	return this->loadedResources.contains(path) && this->loadedResources.at(path).type == &typeid(T_Resource) && this->loadedResources.at(path).resource;
 }
 
 template <typename T_Resource>
 	requires(!std::derived_from<T_Resource, Resource>)
 bool ResourceDatabase::IsLoaded(const fs::path& path) const {
-	return this->loadedGenericAssets.contains(path) && this->loadedGenericAssets.at(path).type == &typeid(T_Resource);
+	return this->loadedGenericAssets.contains(path) && this->loadedGenericAssets.at(path).type == &typeid(T_Resource) && this->loadedGenericAssets.at(path).resource;
 }
