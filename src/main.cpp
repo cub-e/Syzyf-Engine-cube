@@ -464,7 +464,7 @@ bool InitProgram() {
 	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
 	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT,  true);
 
-	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "GLGP Project", NULL, NULL);
+	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Syzyf Engine", NULL, NULL);
 	if (window == NULL) {
 		spdlog::error("Failed to create GLFW Window!");
 		return false;
