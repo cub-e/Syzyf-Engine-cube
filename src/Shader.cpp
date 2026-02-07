@@ -632,8 +632,6 @@ ComputeShaderDispatch::ComputeShaderDispatch(ComputeShaderProgram* program) {
 }
 
 void ComputeShaderDispatch::Dispatch(int groupsX, int groupsY, int groupsZ) const {
-	glUseProgram(this->program->GetHandle());
-
 	this->dispatchData->Bind();
 
 	glDispatchCompute(groupsX, groupsY, groupsZ);
