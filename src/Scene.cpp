@@ -179,6 +179,16 @@ Scene::~Scene() {
   this->components.clear();
 }
 
+Scene::~Scene() {
+	this->resources.Purge();
+
+	delete this->root;
+
+	for (auto component : this->components) {
+		delete component;
+	}
+}
+
 void SceneNode::MessageReceiver::Message() {
 	(*this->objPtr.*this->methodPtr)();
 }
@@ -236,6 +246,10 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 	result->name = name;
 
 	return result;
+}
+
+ResourceDatabase* Scene::Resources() {
+	return &this->resources;
 }
 
 SceneGraphics* Scene::GetGraphics() {

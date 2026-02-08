@@ -6,12 +6,13 @@
 
 #include <VertexSpec.h>
 #include <BoundingBox.h>
+#include <Resources.h>
 
 namespace fs = std::filesystem;
 
 class Material;
 
-class Mesh {
+class Mesh : public Resource {
 public:
 	enum class MeshType {
 		Points = 1,
@@ -71,6 +72,7 @@ private:
 	GLuint vertexBuffer;
 public:
 	Mesh() = default;
+	virtual ~Mesh();
 
 	unsigned int GetMaterialsCount() const;
 	std::vector<Material*> GetDefaultMaterials() const;
