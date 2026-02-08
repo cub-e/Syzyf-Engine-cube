@@ -31,6 +31,7 @@
 #include <ReflectionProbeSystem.h>
 #include <Tonemapper.h>
 #include <Debug.h>
+#include <InputSystem.h>
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
@@ -110,37 +111,14 @@ private:
 	float pitch;
 	float rotation;
 	bool movementEnabled;
-	bool spaceKeyTrip;
 	int mode;
 	float movementSpeed = 0.1f;
 	float mouseSensitivity = 1.0f;
 public:
-	void SetCaptureMouse(bool capture) {
-		if (capture) {
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-			glfwSetCursorPos(window, 0, 0);
-		}
-		else {
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-			int display_w, display_h;
-			glfwMakeContextCurrent(window);
-			glfwGetFramebufferSize(window, &display_w, &display_h);
-
-			glfwSetCursorPos(window, display_w / 2, display_h / 2);
-		}
-
-		this->movementEnabled = capture;
-	}
-
 	Mover() {
 		this->pitch = 0;
 		this->rotation = 0;
-		this->spaceKeyTrip = false;
 		this->mode = 0;
-
-		SetCaptureMouse(true);
 	}
 
 	void Update() {
@@ -152,32 +130,23 @@ public:
 			glm::vec3 up = glm::vec3(0, 1, 0);
 			glm::vec3 forward = mode == 0 ? glm::cross(right, up) : this->GlobalTransform().Forward();
 
-			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+			if (GetScene()->Input()->KeyPressed(Key::A)) {
 				movement += right;
 			}
-			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+			if (GetScene()->Input()->KeyPressed(Key::D)) {
 				movement -= right;
 			}
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+			if (GetScene()->Input()->KeyPressed(Key::W)) {
 				movement += forward;
 			}
-			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
 	
-			double xpos, ypos;
-			glfwGetCursorPos(window, &xpos, &ypos);
-
-			glm::vec2 deltaMovement = glm::vec2(xpos, ypos);
-			
-			int display_w, display_h;
-			glfwMakeContextCurrent(window);
-			glfwGetFramebufferSize(window, &display_w, &display_h);
+			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
 			this->rotation -= (deltaMovement.x / 20) * this->mouseSensitivity;
-			this->pitch += (deltaMovement.y / 20) * this->mouseSensitivity * (float(display_h) / display_w);
-
-			glfwSetCursorPos(window, 0, 0);
+			this->pitch -= (deltaMovement.y / 20) * this->mouseSensitivity;
 
 			if (this->rotation < -180) {
 				this->rotation += 360;
@@ -193,15 +162,10 @@ public:
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-			if (!spaceKeyTrip) {
-				SetCaptureMouse(!this->movementEnabled);
+		if (GetScene()->Input()->KeyDown(Key::Escape)) {
+			this->movementEnabled = !this->movementEnabled;
 
-				spaceKeyTrip = true;
-			}
-		}
-		else {
-			spaceKeyTrip = false;
+			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
 		}
 	}
 
@@ -272,6 +236,7 @@ public:
 
 void InitScene() {
 	mainScene = new Scene();
+	mainScene->Input()->SetWindow(window);
 	
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")

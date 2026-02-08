@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 #include <GameObject.h>
 #include <Graphics.h>
+#include <InputSystem.h>
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
@@ -164,6 +165,7 @@ nextSceneNodeID(0),
 nextGameObjectID(0) {
 	this->root = CreateNode("root");
 	this->graphics = AddComponent<SceneGraphics>();
+	this->inputSystem = AddComponent<InputSystem>();
 }
 
 Scene::~Scene() {
@@ -237,6 +239,10 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 
 ResourceDatabase* Scene::Resources() {
 	return &this->resources;
+}
+
+InputSystem* Scene::Input() {
+	return this->inputSystem;
 }
 
 SceneGraphics* Scene::GetGraphics() {
