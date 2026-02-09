@@ -122,7 +122,7 @@ private:
 	bool movementEnabled;
 	bool spaceKeyTrip;
 	int mode;
-	float movementSpeed = 0.1f;
+	float movementSpeed = 0.3f;
 	float mouseSensitivity = 1.0f;
 public:
 	void SetCaptureMouse(bool capture) {
@@ -431,6 +431,7 @@ void InitScene() {
 
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
+  constructNode->AddObject<PhysicsObject>(PhysicsObject::Mesh(gmConstructMesh, JPH::EMotionType::Static, PhysicsComponent::Layers::NON_MOVING));
 
 	auto cannonNode = mainScene->CreateNode("Cannon");
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
@@ -504,13 +505,8 @@ void InitScene() {
   schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMesh->GetDefaultMaterials());
   schnozNode->GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
   schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-  // schnozNode->AddObject<PhysicsObject>(PhysicsObject::Sphere(0.5f, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING));
-  schnozNode->AddObject<PhysicsObject>(PhysicsObject::FromMesh(schnozMesh, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING));
+  schnozNode->AddObject<PhysicsObject>(PhysicsObject::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING));
   schnozNode->AddObject<SchnozController>();
-
-  auto floorNode = mainScene->CreateNode("Floor");
-  floorNode->GlobalTransform().Position().SetY(-1.0f);
-  floorNode->AddObject<PhysicsObject>(PhysicsObject::Box(glm::vec3(10.0f, 1.0f, 10.0f), JPH::EMotionType::Static, PhysicsComponent::Layers::NON_MOVING));
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);

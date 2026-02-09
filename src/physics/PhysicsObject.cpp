@@ -1,12 +1,15 @@
 #include "physics/PhysicsObject.h"
 
 #include "Jolt/Core/Core.h"
+#include "Jolt/Geometry/Triangle.h"
 #include "Jolt/Math/Real.h"
 #include "Jolt/Physics/Body/MotionType.h"
 #include "Jolt/Physics/Collision/ObjectLayer.h"
 #include "Jolt/Physics/Collision/Shape/BoxShape.h"
 #include "Jolt/Physics/Collision/Shape/CapsuleShape.h"
 #include "Jolt/Physics/Collision/Shape/Shape.h"
+#include "Jolt/Physics/Collision/Shape/PlaneShape.h"
+#include "Jolt/Physics/Collision/Shape/MeshShape.h"
 #include "physics/PhysicsComponent.h"
 #include <spdlog/spdlog.h>
 
@@ -58,8 +61,17 @@ JPH::BodyCreationSettings PhysicsObject::Capsule(float halfHeight, float radius,
   );    
 }
 
-JPH::BodyCreationSettings PhysicsObject::FromMesh(const Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
-  // Move to a separate function if needed somewhere else
+JPH::BodyCreationSettings PhysicsObject::Plane(glm::vec3 normal, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
+  return JPH::BodyCreationSettings (
+    new JPH::PlaneShape,
+    JPH::RVec3Arg::sZero(),
+    JPH::QuatArg::sIdentity(),
+    type,
+    layer
+  );
+}
+
+JPH::BodyCreationSettings PhysicsObject::ConvexHullMesh(const class Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
   const uint8_t* vertexDataPointer = reinterpret_cast<const uint8_t*>(mesh->GetVertexData());
   const unsigned int vertexStride = mesh->GetVertexStride() * sizeof(float);
   const unsigned int vertexCount = mesh->GetVertexCount();
@@ -91,6 +103,44 @@ JPH::BodyCreationSettings PhysicsObject::FromMesh(const Mesh* mesh, const JPH::E
     type,
     layer
   );
+}
+
+JPH::BodyCreationSettings PhysicsObject::Mesh(const class Mesh* mesh, const JPH::EMotionType type, const JPH::ObjectLayer layer) {
+  const uint8_t* vertexDataPointer = reinterpret_cast<const uint8_t*>(mesh->GetVertexData());
+  const unsigned int vertexStride = mesh->GetVertexStride() * sizeof(float);
+  const unsigned int vertexCount = mesh->GetVertexCount();
+
+  JPH::TriangleList triangles;
+  triangles.reserve(vertexCount / 3);
+
+  for (unsigned int i = 0; i < vertexCount; i += 3) {
+    const float* p1 = reinterpret_cast<const float*>(vertexDataPointer);
+    JPH::Vec3 v1(p1[0], p1[1], p1[2]);
+    vertexDataPointer += vertexStride;
+
+    const float* p2 = reinterpret_cast<const float*>(vertexDataPointer);
+    JPH::Vec3 v2(p2[0], p2[1], p2[2]);
+    vertexDataPointer += vertexStride;
+
+    const float* p3 = reinterpret_cast<const float*>(vertexDataPointer);
+    JPH::Vec3 v3(p3[0], p3[1], p3[2]);
+    vertexDataPointer += vertexStride;
+
+    triangles.emplace_back(v1, v2, v3);
+  }
+
+  JPH::MeshShapeSettings* shapeSettings = new JPH::MeshShapeSettings(triangles);
+
+  shapeSettings->Sanitize();
+
+  return JPH::BodyCreationSettings(
+    shapeSettings,
+    JPH::RVec3Arg::sZero(),
+    JPH::QuatArg::sIdentity(),
+    type,
+    layer
+  );
+ 
 }
 
 PhysicsObject::~PhysicsObject() {
@@ -151,10 +201,10 @@ void PhysicsObject::Awake() {
     const JPH::ShapeSettings* baseSettings = bodyCreationSettings.GetShapeSettings();
 
     if (baseSettings != nullptr) {
+      // ! Doesn't check whether the scale is valid for the shape !
       JPH::ScaledShapeSettings* scaledSettings = new JPH::ScaledShapeSettings(
         baseSettings,
         JPH::Vec3Arg(nodeScale.x, nodeScale.y, nodeScale.z));
-
       bodyCreationSettings.SetShapeSettings(scaledSettings);
       };
     }

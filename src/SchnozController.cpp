@@ -46,5 +46,6 @@ void SchnozController::PushSchnoz() {
   spdlog::info("Body is active: {}", bodyInterface.IsActive(bodyId));
   
   JPH::Vec3 impulse(0.0f, 1000.0f, -2000.0f);
+  bodyInterface.AddImpulse(bodyId, impulse);
   bodyInterface.AddAngularImpulse(bodyId, impulse);
 }
