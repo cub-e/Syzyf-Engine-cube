@@ -14,7 +14,9 @@
 #include <Jolt/Physics/Body/BodyCreationSettings.h>
 #include <Jolt/Physics/Collision/ContactListener.h>
 #include <Jolt/Physics/Body/BodyActivationListener.h>
+#include <imgui.h>
 
+#include "Jolt/Math/MathTypes.h"
 #include "physics/PhysicsDebugRenderer.h"
 #include "physics/PhysicsObject.h"
 #include "Scene.h"
@@ -133,6 +135,7 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
   objVsBPFilter = new ObjectVsBroadPhaseLayerFilterImpl();
   objVsObjFilter = new ObjectLayerPairFilterImpl();
 
+  // Add a settings struct?
   const uint cMaxBodies = 1024;
   const uint cNumBodyMutexes = 0;
   const uint cMaxBodyPairs = 1024;
@@ -141,13 +144,6 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
   physicsSystem = new PhysicsSystem();
   physicsSystem->Init(cMaxBodies, cNumBodyMutexes, cMaxBodyPairs, cMaxContactConstraints, *bpLayerInterface, *objVsBPFilter, *objVsObjFilter);
   bodyInterface = &physicsSystem->GetBodyInterface();
-
-  BoxShapeSettings floor_shape_settings(Vec3(100.0f, 1.0f, 100.0f));
-  floor_shape_settings.SetEmbedded();
-  ShapeSettings::ShapeResult floor_shape_result = floor_shape_settings.Create();
-
-  BodyCreationSettings floor_settings(floor_shape_result.Get(), RVec3(0.0_r, -1.0_r, 0.0_r), Quat::sIdentity(), EMotionType::Static, Layers::NON_MOVING);
-  bodyInterface->CreateAndAddBody(floor_settings, EActivation::DontActivate);
   }
 
   PhysicsComponent::~PhysicsComponent() {
@@ -159,25 +155,45 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
     delete tempAllocator;
   }
 
-  JPH::BodyInterface* PhysicsComponent::GetBodyInterface() {
-    return bodyInterface;
+  JPH::BodyInterface& PhysicsComponent::GetBodyInterface() {
+    return *bodyInterface;
   }
-  JPH::PhysicsSystem* PhysicsComponent::GetSystem() {
-    return physicsSystem;
+  JPH::PhysicsSystem& PhysicsComponent::GetSystem() {
+    return *physicsSystem;
+  }
+  
+  glm::vec3 PhysicsComponent::GetGravity() const {
+    const JPH::Vec3 gravity = physicsSystem->GetGravity(); 
+    return glm::vec3(
+      gravity.GetX(),
+      gravity.GetY(),
+      gravity.GetZ()
+    );
   }
 
+  void PhysicsComponent::SetGravity(const glm::vec3 gravity) {
+    physicsSystem->SetGravity(Vec3Arg(
+      gravity.x,
+      gravity.y,
+      gravity.z
+    ));
+  }
+
+  // Sends shapes to the debug rendere
   void PhysicsComponent::OnPostRender() {
-    auto* debugRenderer = GetScene()->GetComponent<MyDebugRenderer>();
-    
-    if (debugRenderer) {
-      JPH::BodyManager::DrawSettings settings;
-      settings.mDrawShape = true;
-      settings.mDrawBoundingBox = true;
-      settings.mDrawCenterOfMassTransform = true;
-      settings.mDrawShapeWireframe = true;
+    if (drawDebug) {
+      auto* debugRenderer = GetScene()->GetComponent<MyDebugRenderer>();
+      
+      if (debugRenderer) {
+        JPH::BodyManager::DrawSettings settings;
+        settings.mDrawShape = true;
+        settings.mDrawBoundingBox = true;
+        settings.mDrawCenterOfMassTransform = true;
+        settings.mDrawShapeWireframe = true;
 
-      physicsSystem->DrawBodies(settings, debugRenderer);
-      physicsSystem->DrawConstraints(debugRenderer);
+        physicsSystem->DrawBodies(settings, debugRenderer);
+        physicsSystem->DrawConstraints(debugRenderer);
+      }
     }
   }
 
@@ -204,5 +220,12 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
           glm::quat(rotation.GetW(), rotation.GetX(), rotation.GetY(), rotation.GetZ());
       }
     }
+  }
+}
+
+void PhysicsComponent::DrawImGui() {
+	if (ImGui::TreeNode("Physics Debug")) {
+    ImGui::Checkbox("Draw collision meshes", &drawDebug);   
+	  ImGui::TreePop();
   }
 }

@@ -168,18 +168,6 @@ nextGameObjectID(0) {
 }
 
 Scene::~Scene() {
-  if (this->root) {
-    delete this->root;
-    this->root = nullptr;
-  }
-
-  for (SceneComponent* component : this->components) {
-    delete component;
-  }
-  this->components.clear();
-}
-
-Scene::~Scene() {
 	this->resources.Purge();
 
 	delete this->root;

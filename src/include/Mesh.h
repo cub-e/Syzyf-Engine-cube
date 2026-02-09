@@ -79,6 +79,9 @@ public:
 
 	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;
+  const float* GetVertexData() const;
+  unsigned int GetVertexCount() const;
+  unsigned int GetVertexStride() const;
 
 	const SubMesh& SubMeshAt(unsigned int index) const;
 	const SubMesh& operator[](unsigned int index) const;

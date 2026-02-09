@@ -7,7 +7,9 @@
 #include <Jolt/Physics/Collision/ObjectLayer.h>
 #include <Jolt/Physics/Collision/BroadPhase/BroadPhaseLayer.h>
 #include <Jolt/Physics/PhysicsSystem.h>
+#include <glm/fwd.hpp>
 
+#include "Jolt/Math/Vec3.h"
 #include "SceneComponent.h"
 
 namespace JPH {
@@ -24,12 +26,6 @@ public:
   PhysicsComponent(Scene* scene);
   virtual ~PhysicsComponent();
 
-  JPH::BodyInterface* GetBodyInterface();
-  JPH::PhysicsSystem* GetSystem();
-
-  void OnPostUpdate();
-  void OnPostRender();
-
   struct Layers {
       static constexpr JPH::ObjectLayer NON_MOVING = 0;
       static constexpr JPH::ObjectLayer MOVING = 1;
@@ -42,6 +38,8 @@ public:
       static constexpr JPH::uint NUM_LAYERS{2};
   };
 private:
+    bool drawDebug = false;
+
     const float cDeltaTime = 1.0f / 60.0f;
 
     JPH::PhysicsSystem* physicsSystem = nullptr;
@@ -52,4 +50,16 @@ private:
     JPH::ObjectVsBroadPhaseLayerFilter* objVsBPFilter = nullptr;
     JPH::ObjectLayerPairFilter* objVsObjFilter = nullptr;
     JPH::BodyInterface* bodyInterface = nullptr;
+public:
+  void OnPostUpdate();
+  void OnPostRender();
+
+  void DrawImGui();
+
+  glm::vec3 GetGravity() const;
+  void SetGravity(const glm::vec3 gravity);
+
+  JPH::BodyInterface& GetBodyInterface();
+  JPH::PhysicsSystem& GetSystem();
+private:
 };

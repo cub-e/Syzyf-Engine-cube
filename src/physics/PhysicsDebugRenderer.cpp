@@ -7,8 +7,8 @@
 
 MyDebugRenderer::MyDebugRenderer(Scene *scene) : SceneComponent(scene) {
     shader = ShaderProgram::Build()
-        .WithVertexShader(Resources::Get<VertexShader>("./res/shaders/physics_debug/physics_debug.vert"))
-        .WithPixelShader(Resources::Get<PixelShader>("./res/shaders/physics_debug/physics_debug.frag"))
+        .WithVertexShader(GetScene()->Resources()->Get<VertexShader>("./res/shaders/physics_debug/physics_debug.vert"))
+        .WithPixelShader(GetScene()->Resources()->Get<PixelShader>("./res/shaders/physics_debug/physics_debug.frag"))
         .Link();
     
     if (shader) {

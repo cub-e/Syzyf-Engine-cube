@@ -1,5 +1,7 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/RegisterTypes.h>
+#include "Jolt/Physics/Body/MotionType.h"
+#include "Jolt/Physics/Collision/Shape/SphereShape.h"
 #include "SchnozController.h"
 #include "events/PushSchnozEvent.h"
 #include "imgui.h"
@@ -287,55 +289,55 @@ public:
 	}
 };
 
-class Grass : public GameObject, public ImGuiDrawable {
-private:
-	Mesh* mesh;
-	Material* material;
-	int count;
-public:
-	Grass(int count = 1000) {
-		this->mesh = Resources::Get<Mesh>("./res/models/grass.obj");
-    this->GlobalTransform().Scale() = glm::vec3(3.0f);
-
-		ShaderProgram* shaderProgram = ShaderProgram::Build()
-		.WithVertexShader(
-			Resources::Get<VertexShader>("./res/shaders/grass.vert")
-		).WithGeometryShader(
-      Resources::Get<GeometryShader>("./res/shaders/grass.geom")
-    ).WithPixelShader(
-			Resources::Get<PixelShader>("./res/shaders/grass.frag")
-		).Link();
-
-  	Texture2D* noiseTexture = Resources::Get<Texture2D>("./res/textures/noise/marble10.png", Texture::ColorTextureRGB);
-	  noiseTexture->SetWrapModeU(TextureWrap::Repeat);
-	  noiseTexture->SetWrapModeV(TextureWrap::Repeat);
-
-	  Material* grassMat = new Material(shaderProgram);
-    grassMat->SetValue("noiseTexture", noiseTexture);
-
-		shaderProgram->SetIgnoresDepthPrepass(false);
-		shaderProgram->SetCastsShadows(false);
-
-		this->material = grassMat;
-		this->count = count;
-	}
-
-	void Render() {
-		GetScene()->GetGraphics()->DrawMeshInstanced(
-			this->mesh,
-			0,
-			this->material,
-			this->GlobalTransform(),
-			this->count,
-			BoundingBox::CenterAndExtents(glm::vec3(0, 0, 0), glm::vec3(15, 15, 15)),
-      true
-		);
-	}
-
-	void DrawImGui() {
-		ImGui::InputInt("Grass count", &this->count);
-	}
-};
+// class Grass : public GameObject, public ImGuiDrawable {
+// private:
+// 	Mesh* mesh;
+// 	Material* material;
+// 	int count;
+// public:
+// 	Grass(int count = 1000) {
+// 		this->mesh = Resources::Get<Mesh>("./res/models/grass.obj");
+//     this->GlobalTransform().Scale() = glm::vec3(3.0f);
+//
+// 		ShaderProgram* shaderProgram = ShaderProgram::Build()
+// 		.WithVertexShader(
+// 			Resources::Get<VertexShader>("./res/shaders/grass.vert")
+// 		).WithGeometryShader(
+//       Resources::Get<GeometryShader>("./res/shaders/grass.geom")
+//     ).WithPixelShader(
+// 			Resources::Get<PixelShader>("./res/shaders/grass.frag")
+// 		).Link();
+//
+//   	Texture2D* noiseTexture = Resources::Get<Texture2D>("./res/textures/noise/marble10.png", Texture::ColorTextureRGB);
+// 	  noiseTexture->SetWrapModeU(TextureWrap::Repeat);
+// 	  noiseTexture->SetWrapModeV(TextureWrap::Repeat);
+//
+// 	  Material* grassMat = new Material(shaderProgram);
+//     grassMat->SetValue("noiseTexture", noiseTexture);
+//
+// 		shaderProgram->SetIgnoresDepthPrepass(false);
+// 		shaderProgram->SetCastsShadows(false);
+//
+// 		this->material = grassMat;
+// 		this->count = count;
+// 	}
+//
+// 	void Render() {
+// 		GetScene()->GetGraphics()->DrawMeshInstanced(
+// 			this->mesh,
+// 			0,
+// 			this->material,
+// 			this->GlobalTransform(),
+// 			this->count,
+// 			BoundingBox::CenterAndExtents(glm::vec3(0, 0, 0), glm::vec3(15, 15, 15)),
+//       true
+// 		);
+// 	}
+//
+// 	void DrawImGui() {
+// 		ImGui::InputInt("Grass count", &this->count);
+// 	}
+// };
 
 void InitScene() {
 	mainScene = new Scene();
@@ -372,9 +374,16 @@ void InitScene() {
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
+	ShaderProgram* fadeoutProg = ShaderProgram::Build().WithVertexShader(
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+	).WithPixelShader(
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_fadeout.frag")
+	).Link();
+
 	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+  Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj", true);
 
 	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -391,8 +400,8 @@ void InitScene() {
 	Texture2D* roughARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* shinyNonMetalARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
 
-  Texture2D* schnozDiffuse = Resources::Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
-  Texture2D* bayerMatrix = Resources::Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::ColorTextureRGB);
+  Texture2D* schnozDiffuse = mainScene->Resources()->Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
+  Texture2D* bayerMatrix = mainScene->Resources()->Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::ColorTextureRGB);
 
 	Material* cannonMat = new Material(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
@@ -418,9 +427,6 @@ void InitScene() {
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
   Material* schnozMat = new Material(fadeoutProg);
-  schnozMat->SetValue("albedoMap", schnozDiffuse);
-  schnozMat->SetValue("normalMap", Resources::Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ));
-  schnozMat->SetValue("armMap", Resources::Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ));
   schnozMat->SetValue("bayerMatrix", bayerMatrix);
 
 	auto constructNode = mainScene->CreateNode("gm_construct");
@@ -433,13 +439,6 @@ void InitScene() {
 	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
 	cubeNode->GlobalTransform().Position() = {-2.0f, 1.0f, 0.0f};
 	cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
-
-  auto schnozNode = mainScene->CreateNode("Schnoz");
-  schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-  schnozNode-> GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
-  schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-  schnozNode->AddObject<PhysicsObject>();
-  schnozNode->AddObject<SchnozController>();
 
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
@@ -500,6 +499,18 @@ void InitScene() {
   // auto grassNode = mainScene->CreateNode("Grass");
   // grassNode->AddObject<Grass>(100000);
   // grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
+
+  auto schnozNode = mainScene->CreateNode("Schnoz");
+  schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMesh->GetDefaultMaterials());
+  schnozNode->GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
+  schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
+  // schnozNode->AddObject<PhysicsObject>(PhysicsObject::Sphere(0.5f, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING));
+  schnozNode->AddObject<PhysicsObject>(PhysicsObject::FromMesh(schnozMesh, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING));
+  schnozNode->AddObject<SchnozController>();
+
+  auto floorNode = mainScene->CreateNode("Floor");
+  floorNode->GlobalTransform().Position().SetY(-1.0f);
+  floorNode->AddObject<PhysicsObject>(PhysicsObject::Box(glm::vec3(10.0f, 1.0f, 10.0f), JPH::EMotionType::Static, PhysicsComponent::Layers::NON_MOVING));
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);

@@ -41,10 +41,10 @@ void SchnozController::PushSchnoz() {
     return;
   }
 
-  JPH::BodyInterface* bodyInterface = physics->GetBodyInterface();
+  JPH::BodyInterface& bodyInterface = physics->GetBodyInterface();
 
-  spdlog::info("Body is active: {}", bodyInterface->IsActive(bodyId));
+  spdlog::info("Body is active: {}", bodyInterface.IsActive(bodyId));
   
-  JPH::Vec3 impulse(0.0f, 1000.0f, -5000.0f);
-  bodyInterface->AddImpulse(bodyId, impulse);
+  JPH::Vec3 impulse(0.0f, 1000.0f, -2000.0f);
+  bodyInterface.AddAngularImpulse(bodyId, impulse);
 }

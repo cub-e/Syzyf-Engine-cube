@@ -158,6 +158,18 @@ std::vector<Mesh::SubMesh> Mesh::GetSubMeshes() const {
 	return this->subMeshes;
 }
 
+const float* Mesh::GetVertexData() const {
+  return vertexData;
+}
+
+unsigned int Mesh::GetVertexCount() const {
+  return vertexCount;
+}
+
+unsigned int Mesh::GetVertexStride() const {
+  return vertexStride;
+}
+
 const Mesh::SubMesh& Mesh::SubMeshAt(unsigned int index) const {
 	return this->subMeshes.at(index);
 }
@@ -446,6 +458,7 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	loadedMesh->vertexCount = vertexCount;
 	loadedMesh->vertexStride = VertexSpec::Mesh.VertexSize();
 	loadedMesh->vertexBuffer = vertexBuffer;
+  loadedMesh->vertexData = vertexData;
 
 	return loadedMesh;
 }
