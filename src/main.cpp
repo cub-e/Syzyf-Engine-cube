@@ -286,19 +286,19 @@ private:
 	int count;
 public:
 	Grass(int count = 1000) {
-		this->mesh = Resources::Get<Mesh>("./res/models/grass.obj");
+		this->mesh = mainScene->Resources()->Get<Mesh>("./res/models/grass.obj");
     this->GlobalTransform().Scale() = glm::vec3(3.0f);
 		
 		ShaderProgram* shaderProgram = ShaderProgram::Build()
 		.WithVertexShader(
-			Resources::Get<VertexShader>("./res/shaders/grass.vert")
+			mainScene->Resources()->Get<VertexShader>("./res/shaders/grass.vert")
 		).WithGeometryShader(
-      Resources::Get<GeometryShader>("./res/shaders/grass.geom")
+      mainScene->Resources()->Get<GeometryShader>("./res/shaders/grass.geom")
     ).WithPixelShader(
-			Resources::Get<PixelShader>("./res/shaders/grass.frag")
+			mainScene->Resources()->Get<PixelShader>("./res/shaders/grass.frag")
 		).Link();
 
-  	Texture2D* noiseTexture = Resources::Get<Texture2D>("./res/textures/noise/marble10.png", Texture::ColorTextureRGB);
+  	Texture2D* noiseTexture = mainScene->Resources()->Get<Texture2D>("./res/textures/noise/marble10.png", Texture::ColorTextureRGB);
 	  noiseTexture->SetWrapModeU(TextureWrap::Repeat);
 	  noiseTexture->SetWrapModeV(TextureWrap::Repeat);
 
@@ -356,16 +356,16 @@ void InitScene() {
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
-  ShaderProgram* fadeoutProg = ShaderProgram::Build().WithVertexShader(
-    Resources::Get<VertexShader>("./res/shaders/lit.vert")
+  ShaderProgram* dissolveProg = ShaderProgram::Build().WithVertexShader(
+    mainScene->Resources()->Get<VertexShader>("./res/shaders/pbr_dissolve.vert")
   ).WithPixelShader(
-    Resources::Get<PixelShader>("./res/shaders/pbr_fadeout.frag")
+    mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_dissolve.frag")
   ).Link();
 
-	Mesh* gmConstructMesh = Resources::Get<Mesh>("./res/models/construct/construct.obj", true);
-	Mesh* cannonMesh = Resources::Get<Mesh>("./res/models/cannon/cannon.obj");
-	Mesh* cubeMesh = Resources::Get<Mesh>("./res/models/not_cube.obj");
-  Mesh* schnozMesh = Resources::Get<Mesh>("./res/models/schnoz/schnoz.obj");
+	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
+	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
+	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+  Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
 	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -405,11 +405,12 @@ void InitScene() {
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
-  Material* schnozMat = new Material(fadeoutProg);
-  schnozMat->SetValue("albedoMap", schnozDiffuse);
-  schnozMat->SetValue("normalMap", Resources::Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ));
-  schnozMat->SetValue("armMap", Resources::Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ));
-  schnozMat->SetValue("bayerMatrix", bayerMatrix);
+  Material* schnozMat = new Material(dissolveProg);
+  schnozMat->SetValue("albedoMap", mainScene->Resources()->Get<Texture2D>("./res/models/schnoz/Diffuse.png"));
+  schnozMat->SetValue("normalMap", mainScene->Resources()->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ));
+  schnozMat->SetValue("armMap", mainScene->Resources()->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ));
+  schnozMat->SetValue("bayerMatrix", mainScene->Resources()->Get<Texture2D>("./res/textures/bayer/bayer16.png", Texture::ColorTextureRGB));
+  schnozMat->SetValue("noiseTexture", mainScene->Resources()->Get<Texture2D>("./res/textures/noise/noiseTexture2.png", Texture::ColorTextureRGB));
 
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
@@ -483,9 +484,9 @@ void InitScene() {
 	starsNode->AddObject<Stars>(10);
 	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
 
-  auto grassNode = mainScene->CreateNode("Grass");
-  grassNode->AddObject<Grass>(100000);
-  grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
+  // auto grassNode = mainScene->CreateNode("Grass");
+  // grassNode->AddObject<Grass>(100000);
+  // grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
