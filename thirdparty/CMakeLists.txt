@@ -17,7 +17,7 @@ add_library(stb_image STATIC ${STB_IMAGE_DIR}/stb_image.cpp)
 target_include_directories(stb_image PRIVATE ${STB_IMAGE_DIR})
 
 # other
-CPMAddPackage("gh:assimp/assimp@5.4.3")
+CPMAddPackage("gh:assimp/assimp@6.0.4")
 CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
 CPMAddPackage("gh:ocornut/imgui@1.92.5")

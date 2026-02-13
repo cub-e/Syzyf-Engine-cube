@@ -7,6 +7,7 @@
 
 #include <VertexSpec.h>
 #include <UniformSpec.h>
+#include <Resources.h>
 
 namespace fs = std::filesystem;
 
@@ -36,6 +37,7 @@ private:
 	GLuint handle;
 public:	
 	ComputeShaderProgram(ComputeShader* computeShader);
+	~ComputeShaderProgram();
 
 	GLuint GetHandle() const;
 	const UniformSpec& GetUniforms() const;
@@ -56,7 +58,7 @@ struct ShaderVariantInfo {
 	ShaderVariantInfo(std::initializer_list<ShaderVariantPoint> variantPoints);
 };
 
-class ShaderBase {
+class ShaderBase : public Resource {
 protected:
 	const fs::path filePath;
 	const ShaderVariantInfo variantInfo;
@@ -170,6 +172,7 @@ private:
 
 	ShaderProgram(VertexShader* vertexShader, GeometryShader* geometryShader, PixelShader* pixelShader, GLuint handle);
 public:
+	~ShaderProgram();
 	static ShaderBuilder Build();
 	
 	GLuint GetHandle() const;

@@ -537,6 +537,10 @@ handle(handle) {
 	this->uniforms = UniformSpec(this);
 }
 
+ShaderProgram::~ShaderProgram() {
+	glDeleteProgram(this->handle);
+}
+
 ShaderBuilder ShaderProgram::Build() {
 	return ShaderBuilder{};
 }
@@ -607,6 +611,10 @@ ComputeShaderProgram::ComputeShaderProgram(ComputeShader* computeShader) {
 	this->uniforms = UniformSpec(this);	
 }
 
+ComputeShaderProgram::~ComputeShaderProgram() {
+	glDeleteProgram(this->handle);
+}
+
 GLuint ComputeShaderProgram::GetHandle() const {
 	return this->handle;
 }
@@ -624,8 +632,6 @@ ComputeShaderDispatch::ComputeShaderDispatch(ComputeShaderProgram* program) {
 }
 
 void ComputeShaderDispatch::Dispatch(int groupsX, int groupsY, int groupsZ) const {
-	glUseProgram(this->program->GetHandle());
-
 	this->dispatchData->Bind();
 
 	glDispatchCompute(groupsX, groupsY, groupsZ);

@@ -9,9 +9,9 @@
 #include <Graphics.h>
 
 Tonemapper::Tonemapper() {
-	this->reinhardTonemapperShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/tonemapping/reinhard_tonemapper.comp"));
-	this->acesTonemapperShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/tonemapping/aces_tonemapper.comp"));
-	this->gtTonemapperShader = new ComputeShaderDispatch(Resources::Get<ComputeShader>("./res/shaders/tonemapping/gt_tonemapper.comp"));
+	this->reinhardTonemapperShader = new ComputeShaderDispatch(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/tonemapping/reinhard_tonemapper.comp"));
+	this->acesTonemapperShader = new ComputeShaderDispatch(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/tonemapping/aces_tonemapper.comp"));
+	this->gtTonemapperShader = new ComputeShaderDispatch(GetScene()->Resources()->Get<ComputeShader>("./res/shaders/tonemapping/gt_tonemapper.comp"));
 
 	this->toneOperator = TonemapperOperator::None;
 }
@@ -44,7 +44,7 @@ void Tonemapper::OnPostProcess(const PostProcessParams* params) {
 
 	if (shader) {
 		shader->GetData()->SetValue("inputTex", params->inputTexture);
-		shader->GetData()->SetValue("outputTex", params->outputTexture);
+		shader->GetData()->SetValue("outputImg", params->outputTexture);
 	
 		glm::vec2 res = GetScene()->GetGraphics()->GetScreenResolution();
 	

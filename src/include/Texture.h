@@ -6,7 +6,7 @@
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
 
-#include "stb_image.h"
+#include <Resources.h>
 
 namespace fs = std::filesystem;
 
@@ -69,7 +69,7 @@ struct TextureParams {
 	}
 };
 
-class Texture {
+class Texture : public Resource {
 protected:
 	template<typename T>
 	struct TextureInfoBit {

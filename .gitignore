@@ -12,10 +12,9 @@ CTestTestfile.cmake
 .vscode/
 res/testing/
 
-# Nix
-.direnv
-
-# Clangd
+# Clang
 .clang-format
-compile_commands.json
 .cache/
+
+# Nix
+.direnv/

@@ -1,6 +1,8 @@
 #include <Scene.h>
 
 #include <algorithm>
+#include <stack>
+
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -13,6 +15,10 @@ scene(scene),
 transform(),
 children(),
 parent(nullptr),
+enabled(true),
+updateable(),
+renderable(),
+drawGizmos(),
 name("") {
 	this->transform.parent = this;
 }
@@ -93,6 +99,13 @@ Scene* SceneNode::GetScene() {
 	return this->scene;
 }
 
+bool SceneNode::IsEnabled() const {
+	return this->enabled;
+}
+void SceneNode::SetEnabled(bool value) {
+	this->enabled = value;
+}
+
 const std::vector<SceneNode*> SceneNode::GetChildren() {
 	return this->children;
 }
@@ -146,8 +159,6 @@ void SceneNode::DeleteObject(GameObject* obj) {
 }
 
 Scene::Scene() :
-updateable(),
-renderable(),
 root(nullptr),
 nextSceneNodeID(0),
 nextGameObjectID(0) {
@@ -155,16 +166,28 @@ nextGameObjectID(0) {
 	this->graphics = AddComponent<SceneGraphics>();
 }
 
-void Scene::MessageReceiver::Message() {
+Scene::~Scene() {
+	this->resources.Purge();
+
+	delete this->root;
+
+	for (auto component : this->components) {
+		delete component;
+	}
+}
+
+void SceneNode::MessageReceiver::Message() {
 	(*this->objPtr.*this->methodPtr)();
 }
 
 void Scene::DeleteObjectInternal(GameObject* obj) {
-	this->updateable.remove_if( [obj](const MessageReceiver& msgRcvr) {
+	SceneNode* node = obj->node;
+
+	std::erase_if(node->updateable, [obj](const auto& msgRcvr) {
 		return msgRcvr.objPtr == obj;
 	} );
 
-	this->renderable.remove_if( [obj](const MessageReceiver& msgRcvr) {
+	std::erase_if(node->renderable, [obj](const auto& msgRcvr) {
 		return msgRcvr.objPtr == obj;
 	} );
 
@@ -212,6 +235,10 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 	return result;
 }
 
+ResourceDatabase* Scene::Resources() {
+	return &this->resources;
+}
+
 SceneGraphics* Scene::GetGraphics() {
 	return this->graphics;
 }
@@ -233,10 +260,32 @@ void Scene::Update() {
 		component->OnPreUpdate();
 	}
 
-	for (auto& msgObject : this->updateable) {
-		if (msgObject.objPtr->IsEnabled()) {
-			msgObject.Message();
+	std::stack<SceneNode*> nodeStack;
+	std::stack<SceneNode::MessageReceiver*> updateables;
+
+	nodeStack.push(this->root);
+
+	while (!nodeStack.empty()) {
+		SceneNode* top = nodeStack.top();
+		nodeStack.pop();
+
+		if (!top->enabled) {
+			continue;
 		}
+
+		for (SceneNode* child : top->GetChildren()) {
+			nodeStack.push(child);
+		}
+
+		for (SceneNode::MessageReceiver& msg : top->updateable) {
+			updateables.push(&msg);
+		}
+	}
+
+	while (!updateables.empty()) {
+		
+		updateables.top()->Message();
+		updateables.pop();
 	}
 
 	for (auto& component: this->components) {
@@ -249,16 +298,41 @@ void Scene::Render() {
 		component->OnPreRender();
 	}
 
-	for (auto& msgObject : this->renderable) {
-		if (msgObject.objPtr->IsEnabled()) {
-			msgObject.Message();
+	std::stack<SceneNode*> nodeStack;
+	std::stack<SceneNode::MessageReceiver*> renderables;
+	std::stack<SceneNode::MessageReceiver*> gizmos;
+
+	nodeStack.push(this->root);
+
+	while (!nodeStack.empty()) {
+		SceneNode* top = nodeStack.top();
+		nodeStack.pop();
+
+		if (!top->enabled) {
+			continue;
+		}
+
+		for (SceneNode* child : top->GetChildren()) {
+			nodeStack.push(child);
+		}
+
+		for (SceneNode::MessageReceiver& msg : top->renderable) {
+			renderables.push(&msg);
+		}
+
+		for (SceneNode::MessageReceiver& msg : top->drawGizmos) {
+			gizmos.push(&msg);
 		}
 	}
 
-	for (auto& msgObject : this->drawGizmos) {
-		if (msgObject.objPtr->IsEnabled()) {
-			msgObject.Message();
-		}
+	while (!renderables.empty()) {
+		renderables.top()->Message();
+		renderables.pop();
+	}
+
+	while (!gizmos.empty()) {
+		gizmos.top()->Message();
+		gizmos.pop();
 	}
 
 	for (auto& component: this->components) {

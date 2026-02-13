@@ -126,6 +126,22 @@ unsigned int Mesh::SubMesh::GetFaceCount() const {
 	return this->faceCount;
 }
 
+Mesh::~Mesh() {
+	delete this->vertexData;
+	glDeleteBuffers(1, &this->vertexBuffer);
+
+	for (auto& submesh : this->subMeshes) {
+		delete submesh.indexData;
+
+		glDeleteBuffers(1, &submesh.handle.indexBuffer);
+		glDeleteVertexArrays(1, &submesh.handle.vertexArray);
+	}
+
+	for (auto* mat : this->materials) {
+		delete mat;
+	}
+}
+
 unsigned int Mesh::GetMaterialsCount() const {
 	return this->materialCount;
 }
@@ -383,9 +399,9 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 	if (loadMaterials && loaded_scene->HasMaterials()) {
 		ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
-			Resources::Get<VertexShader>("./res/shaders/lit.vert")
+			ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
 		).WithPixelShader(
-			Resources::Get<PixelShader>("./res/shaders/pbr.frag")
+			ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr.frag")
 		).Link();
 
 		for (int matIndex = 0; matIndex < loaded_scene->mNumMaterials; matIndex++) {
@@ -401,18 +417,18 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 			Texture2D* albedoTex =
 				fs::is_regular_file(modelPath.parent_path() / colorTexturePath.C_Str())
-				? Resources::Get<Texture2D>((modelPath.parent_path() / colorTexturePath.C_Str()), Texture::ColorTextureRGB)
-				: Resources::Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
+				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / colorTexturePath.C_Str()), Texture::ColorTextureRGB)
+				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
 
 			Texture2D* normalTex =
 				fs::is_regular_file(modelPath.parent_path() / normalTexturePath.C_Str())
-				? Resources::Get<Texture2D>((modelPath.parent_path() / normalTexturePath.C_Str()), Texture::TechnicalMapXYZ)
-				: Resources::Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
+				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / normalTexturePath.C_Str()), Texture::TechnicalMapXYZ)
+				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
 			
 			Texture2D* armTex =
 				fs::is_regular_file(modelPath.parent_path() / armTexturePath.C_Str())
-				? Resources::Get<Texture2D>((modelPath.parent_path() / armTexturePath.C_Str()), Texture::TechnicalMapXYZ)
-				: Resources::Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
+				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / armTexturePath.C_Str()), Texture::TechnicalMapXYZ)
+				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
 			
 			Material* materialResult = new Material(pbrProg);
 			materialResult->SetValue("albedoMap", albedoTex);
@@ -421,8 +437,6 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 			materials.push_back(materialResult);
 		}
-
-		spdlog::info("Prepared materials");
 	}
 
 	Mesh* loadedMesh = new Mesh();

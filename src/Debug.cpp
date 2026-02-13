@@ -21,6 +21,12 @@ void DrawNodeImGui(SceneNode* node) {
 	if (ImGui::TreeNode(treeHeader.c_str())) {
 		ImGui::Text("Node ID: %i", node->GetID());
 
+		bool nodeEnabled = node->IsEnabled();
+
+		ImGui::Checkbox("Enabled", &nodeEnabled);
+
+		node->SetEnabled(nodeEnabled);
+
 		if (ImGui::TreeNode("Transform")) {
 			ImGui::Text("Position");
 
