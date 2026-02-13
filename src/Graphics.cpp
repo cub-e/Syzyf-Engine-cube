@@ -1,6 +1,7 @@
 #include <Graphics.h>
 
 #include <glad/glad.h>
+#include <glm/gtc/type_ptr.hpp>
 #include <spdlog/spdlog.h>
 #include <glm/gtc/matrix_access.hpp>
 #include <imgui.h>
@@ -18,6 +19,7 @@
 
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
+#include "physics/PhysicsDebugRenderer.h"
 
 #include <GLFW/glfw3.h>
 
@@ -124,6 +126,7 @@ depthPrepassFramebuffer(nullptr),
 depthPrepassDepthTexture(nullptr),
 colorPassFramebuffer(nullptr),
 colorPassOutputTexture(nullptr),
+drawBounds(false),
 screenResolution(0) {
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
@@ -207,8 +210,11 @@ ReflectionProbeSystem* SceneGraphics::GetEnvMapping() {
 
 void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params) {
 	ShaderObjectUniforms objectUniforms;
-
+    
 	Frustum viewFrustum = ComputeFrustum(globalUniforms.Global_VPMatrix);
+
+  // addn ifdef debugRenderer
+  PhysicsDebugRenderer* debugRenderer = GetScene()->GetComponent<PhysicsDebugRenderer>();
 
 	bool drawsGizmos = ((int) params.pass & (int) RenderPassType::Gizmos) != 0;
 
@@ -218,9 +224,12 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		const Mesh::SubMesh* mesh = node.mesh;
 		const Material* mat = node.material;
 
-		if (!TestFrustum(viewFrustum, node.bounds.Transform(node.transformation))) {
+    BoundingBox transformedBounds = node.bounds.Transform(node.transformation);
+    if (params.pass == RenderPassType::Color && drawBounds)
+      debugRenderer->DrawBoundingBox(transformedBounds, JPH::Color::sGreen);
+
+		if (!TestFrustum(viewFrustum, transformedBounds)) 
 			continue;
-		}
 
 		if (!mat) {
 			spdlog::warn("Tried to render a mesh with no material!");
@@ -587,6 +596,7 @@ void SceneGraphics::DrawImGui() {
 	if (ImGui::TreeNode("Graphics Debug")) {
 		ImGui::Text("Resolution: %i:%i", (int) this->screenResolution.x, (int) this->screenResolution.y);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
+    ImGui::Checkbox("Draw bounds", &drawBounds);   
 
 		ImGui::TreePop();
 	}

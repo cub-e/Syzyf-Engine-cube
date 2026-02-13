@@ -182,7 +182,7 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
   // Sends shapes to the debug rendere
   void PhysicsComponent::OnPostRender() {
     if (drawDebug) {
-      auto* debugRenderer = GetScene()->GetComponent<MyDebugRenderer>();
+      auto* debugRenderer = GetScene()->GetComponent<PhysicsDebugRenderer>();
       
       if (debugRenderer) {
         JPH::BodyManager::DrawSettings settings;

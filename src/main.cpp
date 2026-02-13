@@ -115,6 +115,7 @@ constexpr int32_t GL_VERSION_MINOR = 6;
 
 Scene* mainScene;
 
+
 class Mover : public GameObject, public ImGuiDrawable {
 private:
 	float pitch;
@@ -344,7 +345,7 @@ void InitScene() {
 	mainScene->AddComponent<DebugInspector>();
   mainScene->AddComponent<PhysicsComponent>();
   mainScene->AddComponent<InputComponent>();
-  mainScene->AddComponent<MyDebugRenderer>();
+  mainScene->AddComponent<PhysicsDebugRenderer>();
 
   InputComponent* input = mainScene->GetComponent<InputComponent>();
   input->BindAction<PushSchnozEvent>(GLFW_KEY_SPACE);
@@ -439,7 +440,7 @@ void InitScene() {
 	auto cubeNode = mainScene->CreateNode("Reflective Cube");
 	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
 	cubeNode->GlobalTransform().Position() = {-2.0f, 1.0f, 0.0f};
-	cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
+	cubeNode->GlobalTransform().Scale() = glm::vec3(1.5f);
 
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
@@ -529,7 +530,8 @@ int main(int, char**) {
 
 		Render();
 
-    mainScene->GetComponent<MyDebugRenderer>()->Render();
+    PhysicsDebugRenderer* debugRenderer = mainScene->GetComponent<PhysicsDebugRenderer>();
+    debugRenderer->Render();
 
 		ImGuiBegin();
 		ImGuiUpdate();
