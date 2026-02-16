@@ -495,14 +495,11 @@ template<class T_SC>
 	requires std::derived_from<T_SC, SceneComponent>
 T_SC* Scene::GetComponent() {
 	for (SceneComponent* component : this->components) {
-		
-		if (typeid(T_SC) == typeid(component)) {
-			T_SC* result = dynamic_cast<T_SC*>(component);
-
+		T_SC* result = dynamic_cast<T_SC*>(component);
+		if (result != nullptr) {
 			return result;
-		}
+	    }
 	}
-
 	return nullptr;
 }
 
