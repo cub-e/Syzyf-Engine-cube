@@ -146,6 +146,9 @@ public:
 class Scene {
 	friend class SceneNode;
 private:
+  float deltaTime = 0.0f;
+  float previousTime;
+
 	int nextSceneNodeID;
 	int nextGameObjectID;
 
@@ -217,6 +220,8 @@ public:
 	SceneNode* CreateNode(SceneNode* parent, const std::string& name);
 
 	ResourceDatabase* Resources();
+
+  float DeltaTime() const;
 
 	SceneGraphics* GetGraphics();
 
@@ -492,14 +497,11 @@ template<class T_SC>
 	requires std::derived_from<T_SC, SceneComponent>
 T_SC* Scene::GetComponent() {
 	for (SceneComponent* component : this->components) {
-		
-		if (typeid(T_SC) == typeid(component)) {
-			T_SC* result = dynamic_cast<T_SC*>(component);
-
+		T_SC* result = dynamic_cast<T_SC*>(component);
+		if (result != nullptr) {
 			return result;
-		}
+	    }
 	}
-
 	return nullptr;
 }
 

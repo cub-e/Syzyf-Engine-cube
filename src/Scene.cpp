@@ -1,3 +1,4 @@
+#include <GLFW/glfw3.h>
 #include <Scene.h>
 
 #include <algorithm>
@@ -164,6 +165,7 @@ nextSceneNodeID(0),
 nextGameObjectID(0) {
 	this->root = CreateNode("root");
 	this->graphics = AddComponent<SceneGraphics>();
+  this->previousTime = glfwGetTime();
 }
 
 Scene::~Scene() {
@@ -239,6 +241,10 @@ ResourceDatabase* Scene::Resources() {
 	return &this->resources;
 }
 
+float Scene::DeltaTime() const {
+  return this->deltaTime;
+}
+
 SceneGraphics* Scene::GetGraphics() {
 	return this->graphics;
 }
@@ -256,6 +262,10 @@ void Scene::DeleteNode(SceneNode* node) {
 }
 
 void Scene::Update() {
+  const float now = glfwGetTime();
+  this->deltaTime = now - this->previousTime;
+  this->previousTime = now;
+
 	for (auto& component: this->components) {
 		component->OnPreUpdate();
 	}

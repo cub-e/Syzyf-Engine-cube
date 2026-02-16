@@ -1,3 +1,5 @@
+#include "GameObject.h"
+#include "SchnozController.h"
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
@@ -15,6 +17,8 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
+#include "tweening/TweenSystem.h"
+#include "tweening/Tween.h"
 #include <Formatters.h>
 #include <Shader.h>
 #include <Mesh.h>
@@ -423,11 +427,6 @@ void InitScene() {
 	cubeNode->GlobalTransform().Position() = {-2.0f, 1.0f, 0.0f};
 	cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
 
-  auto schnozNode = mainScene->CreateNode("Schnoz");
-  schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
-  schnozNode-> GlobalTransform().Position() = { 2.0f, 0.5f, 0.0f };
-  schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-
 	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
 	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
 	roughCubeNode->LocalTransform().Position() = {0, 0, 3};
@@ -487,11 +486,19 @@ void InitScene() {
   // auto grassNode = mainScene->CreateNode("Grass");
   // grassNode->AddObject<Grass>(100000);
   // grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
-
+  
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
 	mainScene->AddComponent<DebugInspector>();
+  mainScene->AddComponent<TweenSystem>();
+  mainScene->AddComponent<SchnozController>();
+
+  auto schnozNode = mainScene->CreateNode("Schnoz");
+  schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+  schnozNode->GlobalTransform().Position() = { 2.0f, 0.5f, 0.0f };
+  schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
+  cannonNode->AddObject<SchnozTag>();
 }
 
 int main(int, char**) {
