@@ -28,6 +28,7 @@ uniform sampler2D Builtin_BRDFConvolutionMap;
 
 uniform sampler2D bayerMatrix;
 uniform sampler2D noiseTexture;
+uniform float progress;
 
 vec3 getNormalFromMap() {
 	vec3 tangentNormal = texture(normalMap, ps_in.texcoords).xyz * 2.0 - 1.0;
@@ -65,7 +66,6 @@ void main() {
   float speed = 0.2;
   float noiseValue = texture(noiseTexture, ps_in.texcoords).r;
 
-  float progress = (sin(Global_Time * speed) + 1.0) * 0.5;
   if (noiseValue < progress) {
     discard;
   }

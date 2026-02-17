@@ -1,12 +1,9 @@
-#include "tweening/TweenSystem.h"
-#include "Scene.h"
+#include "TweenSystem.h"
 
-#include <tweening/EasingFunctions.h>
+#include "Scene.h"
 
 #include <spdlog/spdlog.h>
 
-// Add an option to pre-allocate the vectors perhaps
-//  if it matters
 TweenSystem::TweenSystem(Scene* scene) : SceneComponent(scene) {
   this->allocator = Allocator();
 }
@@ -17,51 +14,49 @@ void TweenSystem::OnPreUpdate() {
   for (std::size_t i = 0; i < this->tweens.size(); ++i) {
     if (!this->tweens[i].has_value())
       continue;
+    if (!this->tweens[i]->playing)
+      continue;
 
     Tween& tween = this->tweens[i].value();
     tween.timeActive += deltaTime;
 
-    spdlog::info("TweenSystem: delta time: {}", deltaTime);
-    spdlog::info("TweenSystem: time active: {}", tween.timeActive);
-
-    if (tween.timeActive >= tween.duration) {
+    if (tween.timeActive >= tween.tweenConfig.duration) {
       for (auto& value : tween.values) {
-        *value = tween.targetValue;
+        *value = tween.tweenConfig.targetValue;
       }
 
-      for (auto& onComplete : tween.onComplete) {
-        onComplete();
-      }
+      std::vector<std::function<void()>> cachedCallbacks = std::move(tween.onComplete);
 
       this->allocator.free.push_back(i);
       this->tweens[i].reset();
 
-      spdlog::info("Tween system: Tween removed");
+      for (auto& onComplete : cachedCallbacks) {
+        onComplete();
+      }
 
       continue;
     }
 
     for (auto& value : tween.values) {
-      float difference = tween.targetValue - tween.initialValue;
-      float progress = tween.timeActive / tween.duration;
-      float easingValue = Easing::inOutSine(progress);
+      float difference = tween.tweenConfig.targetValue - tween.tweenConfig.initialValue;
+      float progress = tween.timeActive / tween.tweenConfig.duration;
+      float easingValue = tween.tweenConfig.easingFunction(progress); 
       float step = difference * easingValue;
-      float newValue = tween.initialValue + step;
+      float newValue = tween.tweenConfig.initialValue + step;
       *value = newValue;
-      spdlog::info("Tween system: Value Changed: {}", *value);
     }
   }
 }
 
 void TweenSystem::DrawImGui() {}
 
-TweenId TweenSystem::CreateTween(const float initialValue, const float targetValue, const float duration) {
+TweenId TweenSystem::CreateTween(const TweenConfig config) {
   TweenId id = this->allocator.Allocate();
   
   if (this->tweens.size() <= id.id)
     this->tweens.resize(id.id + 1);
 
-  this->tweens[id.id].emplace(initialValue, targetValue, duration);
+  this->tweens[id.id].emplace(config);
   
   return id;
 }
@@ -78,6 +73,10 @@ bool TweenSystem::IsValid(const TweenId id) const {
   return this->tweens[id.id].has_value() && id.generation == this->allocator.generations[id.id];
 }
 
+// Only values bound/objects captured by the lambda used should be the ones whose lifetimes
+//  are at least as long as the tween, ideally the tween should only be used with the values of the owner
+//  I can't easily make sure the values still are valid after the tween runs
+// To achieve the same behaviour on another entity another tween with the same TweenConfig should be created
 void TweenSystem::SetOnComplete(const TweenId id, const std::function<void()> onComplete) {
   if (!this->IsValid(id)) {
     spdlog::warn("TweenSystem: Tried setting an onComplete callback on an invalid handle");
@@ -100,8 +99,16 @@ void TweenSystem::BindValue(const TweenId id, float* value) {
   this->tweens[id.id]->values.push_back(value);
 }
 
+void TweenSystem::SetPlaying(const TweenId id, const bool playing) {
+  if (!this->IsValid(id)) {
+    spdlog::warn("TweenSystem: Tried setting the 'playing' variable on an invalid tween handle");
+    return;
+  }
 
-Tween* TweenSystem::GetTween(const TweenId id) {
+  this->tweens[id.id]->playing = playing;
+}
+
+TweenSystem::Tween* TweenSystem::GetTween(const TweenId id) {
   if (IsValid(id)) {
     return &this->tweens[id.id].value();
   }

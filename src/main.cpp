@@ -1,5 +1,7 @@
 #include "GameObject.h"
 #include "SchnozController.h"
+#include "TweenSystem.h"
+
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
@@ -17,7 +19,6 @@
 #include <GLFW/glfw3.h>
 #include <spdlog/spdlog.h>
 
-#include "tweening/TweenSystem.h"
 #include <Formatters.h>
 #include <Shader.h>
 #include <Mesh.h>
@@ -497,7 +498,7 @@ void InitScene() {
   schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
   schnozNode->GlobalTransform().Position() = { 2.0f, 0.5f, 0.0f };
   schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-  cannonNode->AddObject<SchnozTag>();
+  schnozNode->AddObject<SchnozTag>();
 }
 
 int main(int, char**) {

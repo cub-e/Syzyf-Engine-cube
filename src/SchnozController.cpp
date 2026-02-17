@@ -1,6 +1,8 @@
 #include "SchnozController.h"
 
-#include "tweening/TweenSystem.h"
+#include "MeshRenderer.h"
+#include "TweenSystem.h"
+
 #include <vector>
 
 SchnozController::SchnozController(Scene* scene) : SceneComponent(scene) {
@@ -21,14 +23,15 @@ void SchnozController::OnPreUpdate() {
   }
 
   if (this->isAnimating) {
-    spdlog::info("Updating scale, value: {}", this->value);
-    this->schnoz->LocalTransform().Scale() = glm::vec3(this->value);
+    this->schnoz->LocalTransform().Position() = glm::vec3(3.0f, 0.25f + this->value * 2.0f, 0.0f);
+    this->schnoz->GetObject<MeshRenderer>()->GetMaterial()->SetValue("progress", this->value * this->value);
+    this->schnoz->LocalTransform().Scale() = glm::vec3(0.25f + this->value * this->value * 0.25f);
   }
 }
 
 void SchnozController::StartGrowing() {
   TweenSystem* tweenSystem = GetScene()->GetComponent<TweenSystem>();
-  TweenId tween = tweenSystem->CreateTween(1.0f, 5.0f, 3.0f);
+  TweenId tween = tweenSystem->CreateTween(TweenConfig {0.0f, 1.0f, 2.0f, Easing::outBounce});
   tweenSystem->BindValue(tween, &this->value);
   tweenSystem->SetOnComplete(tween, [this]() {
     this->StartShrinking();
@@ -37,7 +40,7 @@ void SchnozController::StartGrowing() {
 
 void SchnozController::StartShrinking() {
   TweenSystem* tweenSystem = GetScene()->GetComponent<TweenSystem>();
-  TweenId tween = tweenSystem->CreateTween(5.0f, 1.0f, 3.0f);
+  TweenId tween = tweenSystem->CreateTween(TweenConfig {1.0f, 0.0f, 5.0f, Easing::outBounce});
   tweenSystem->BindValue(tween, &this->value);
   tweenSystem->SetOnComplete(tween, [this]() {
     this->StartGrowing();
