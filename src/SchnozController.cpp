@@ -1,7 +1,6 @@
 #include "SchnozController.h"
 
 #include "tweening/TweenSystem.h"
-#include "tweening/Tween.h"
 #include <vector>
 
 SchnozController::SchnozController(Scene* scene) : SceneComponent(scene) {
@@ -29,18 +28,18 @@ void SchnozController::OnPreUpdate() {
 
 void SchnozController::StartGrowing() {
   TweenSystem* tweenSystem = GetScene()->GetComponent<TweenSystem>();
-  Tween& tween = tweenSystem->CreateTween(1.0f, 5.0f, 3.0f);
-
-  tween.TweenValue(&this->value, [this]() {
+  TweenId tween = tweenSystem->CreateTween(1.0f, 5.0f, 3.0f);
+  tweenSystem->BindValue(tween, &this->value);
+  tweenSystem->SetOnComplete(tween, [this]() {
     this->StartShrinking();
   });
 }
 
 void SchnozController::StartShrinking() {
   TweenSystem* tweenSystem = GetScene()->GetComponent<TweenSystem>();
-  Tween& tween = tweenSystem->CreateTween(5.0f, 1.0f, 3.0f);
-
-  tween.TweenValue(&this->value, [this]() {
+  TweenId tween = tweenSystem->CreateTween(5.0f, 1.0f, 3.0f);
+  tweenSystem->BindValue(tween, &this->value);
+  tweenSystem->SetOnComplete(tween, [this]() {
     this->StartGrowing();
   });
 }
