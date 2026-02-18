@@ -108,6 +108,10 @@ public:
 		requires (std::derived_from<T_Tex, Texture>)
 	static T_Tex* Load(const fs::path& texturePath, const TextureParams& loadParams) = delete;
 
+  template <class T_Tex>
+    requires (std::derived_from<T_Tex, Texture>)
+  static T_Tex* Load(const unsigned char* data, const int length, const TextureParams loadParams) = delete;
+
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)
 	static T_Tex Wrap(GLuint handle);
@@ -150,7 +154,12 @@ public:
 	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams);
 	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle);
 
+
+  static Texture2D* Create(unsigned char* textureData, int width, int height, const TextureParams& loadParams);
+
 	static Texture2D* Load(const fs::path& texturePath, const TextureParams& loadParams);
+
+  static Texture2D* Load(const unsigned char* data, const int length, const TextureParams loadParams);
 
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;
@@ -181,6 +190,7 @@ public:
 };
 
 template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams);
+template<> Texture2D* Texture::Load<Texture2D>(const unsigned char* data, const int length, const TextureParams loadParams);
 template<> Cubemap* Texture::Load<Cubemap>(const fs::path& texturePath, const TextureParams& loadParams);
 
 template <class T_Tex>
