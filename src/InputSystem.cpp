@@ -5,7 +5,7 @@
 #include <format>
 
 #include <imgui.h>
-#include <glfw/glfw3.h>
+#include <GLFW/glfw3.h>
 
 constexpr int MouseButtonOffset = 512;
 
@@ -630,10 +630,10 @@ void InputSystem::DrawImGui() {
 
 				if (strlen(searchString) == 0 || keyName.contains(searchString)) {
 					if (ImGui::TreeNode(keyName.c_str())) {
-						ImGui::Text(std::format("Key Down:     {}", pair.second.GetKeyDownBit()).c_str());
-						ImGui::Text(std::format("Key Pressed:  {}", pair.second.GetKeyPressedBit()).c_str());
-						ImGui::Text(std::format("Key Up:       {}", pair.second.GetKeyUpBit()).c_str());
-						ImGui::Text(std::format("Key Repeated: {}", pair.second.GetKeyRepeatedBit()).c_str());
+						ImGui::TextUnformatted(std::format("Key Down:     {}", pair.second.GetKeyDownBit()).c_str());
+						ImGui::TextUnformatted(std::format("Key Pressed:  {}", pair.second.GetKeyPressedBit()).c_str());
+						ImGui::TextUnformatted(std::format("Key Up:       {}", pair.second.GetKeyUpBit()).c_str());
+						ImGui::TextUnformatted(std::format("Key Repeated: {}", pair.second.GetKeyRepeatedBit()).c_str());
 
 						ImGui::TreePop();
 					}
@@ -649,22 +649,22 @@ void InputSystem::DrawImGui() {
 				const KeyBitMask keyValue = this->keys[mouseButton + MouseButtonOffset];
 	
 				if (ImGui::TreeNode(keyName.c_str())) {
-					ImGui::Text(std::format("Button Down:     {}", keyValue.GetKeyDownBit()).c_str());
-					ImGui::Text(std::format("Button Pressed:  {}", keyValue.GetKeyPressedBit()).c_str());
-					ImGui::Text(std::format("Button Up:       {}", keyValue.GetKeyUpBit()).c_str());
-					ImGui::Text(std::format("Button Repeated: {}", keyValue.GetKeyRepeatedBit()).c_str());
+					ImGui::TextUnformatted(std::format("Button Down:     {}", keyValue.GetKeyDownBit()).c_str());
+					ImGui::TextUnformatted(std::format("Button Pressed:  {}", keyValue.GetKeyPressedBit()).c_str());
+					ImGui::TextUnformatted(std::format("Button Up:       {}", keyValue.GetKeyUpBit()).c_str());
+					ImGui::TextUnformatted(std::format("Button Repeated: {}", keyValue.GetKeyRepeatedBit()).c_str());
 	
 					ImGui::TreePop();
 				}
 			}
 			
-			ImGui::Text(std::format("Mouse Locked: {}", this->mouseLocked).c_str());
-			ImGui::Text(std::format("Mouse Movement: ({:.3f}, {:.3f})",
+			ImGui::TextUnformatted(std::format("Mouse Locked: {}", this->mouseLocked).c_str());
+			ImGui::TextUnformatted(std::format("Mouse Movement: ({:.3f}, {:.3f})",
 				this->mouseLocked ? this->prevMouseMovement.x : 0,
 				this->mouseLocked ? this->prevMouseMovement.y : 0
 			).c_str());
 	
-			ImGui::Text(std::format("Mouse Position: ({:.3f}, {:.3f})",
+			ImGui::TextUnformatted(std::format("Mouse Position: ({:.3f}, {:.3f})",
 				this->mouseLocked ? 0 : this->prevMouseMovement.x,
 				this->mouseLocked ? 0 : this->prevMouseMovement.y
 			).c_str());
