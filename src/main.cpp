@@ -1,3 +1,5 @@
+#include "GltfImporter.h"
+
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
@@ -365,6 +367,8 @@ void InitScene() {
   auto tvsObjNode = mainScene->CreateNode(floorNode, "tvsObj");
   tvsObjNode->AddObject<MeshRenderer>(tvsObjMesh, tvsObjMesh->GetDefaultMaterials());
   tvsObjNode->LocalTransform().Position() = {3.0f, 0.0f, -3.0f};
+
+  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/tvs/tvs.glb");
 
 	// auto lightNode = mainScene->CreateNode("Point Light");
 	// lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);

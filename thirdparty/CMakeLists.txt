@@ -22,6 +22,12 @@ CPMAddPackage("gh:glfw/glfw#3.4")
 CPMAddPackage("gh:g-truc/glm#1.0.3")
 CPMAddPackage("gh:ocornut/imgui@1.92.5")
 CPMAddPackage("gh:gabime/spdlog@1.17.0")
+CPMAddPackage(
+    NAME fastgltf
+    GITHUB_REPOSITORY spnda/fastgltf
+    GIT_TAG v0.9.0
+    OPTIONS "FASTGLTF_COMPILE_AS_CPP20"
+)
 
 set(imgui_SOURCE_DIR ${imgui_SOURCE_DIR} CACHE INTERNAL "")
 add_library(imgui STATIC ${imgui_SOURCE_DIR}/imgui.cpp
@@ -36,7 +42,8 @@ set_target_properties(glad
                       glfw 
                       glm 
                       imgui 
-                      spdlog PROPERTIES FOLDER "thirdparty")
+                      spdlog
+                      fastgltf PROPERTIES FOLDER "thirdparty")
 
 if (TARGET zlibstatic)
     set_target_properties(zlibstatic PROPERTIES FOLDER "thirdparty")
