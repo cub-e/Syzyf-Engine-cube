@@ -142,6 +142,12 @@ public:
 			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
+      if (GetScene()->Input()->KeyPressed(Key::Q)) {
+        movement += up;
+      }
+      if (GetScene()->Input()->KeyPressed(Key::E)) {
+        movement -= up;
+      }
 	
 			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
@@ -262,9 +268,12 @@ void InitScene() {
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
-	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+
+  Mesh* tvsGltfMesh = mainScene->Resources()->Get<Mesh>("./res/models/tvs/tvs.glb", true);
+  Mesh* tvsObjMesh = mainScene->Resources()->Get<Mesh>("./res/models/tvs/tvs.obj", true);
+  Mesh* planeMesh = mainScene->Resources()->Get<Mesh>("./res/models/a_big_plane.obj");
 
 	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -304,9 +313,11 @@ void InitScene() {
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	auto constructNode = mainScene->CreateNode("gm_construct");
-	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
+  Material* floorMat = new Material(coloredProg);
+  floorMat->SetValue("uColor", glm::vec3(0.2f, 0.2f, 0.2f));
 
+  // if you load a mesh with load default materials enabled
+  //  and then give it it's own material it doesnt load the object
 	auto cannonNode = mainScene->CreateNode("Cannon");
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
 
@@ -341,12 +352,23 @@ void InitScene() {
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
 	cameraNode->AddObject<Mover>();
 
-	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
+  auto floorNode = mainScene->CreateNode("Floor");
+  floorNode->AddObject<MeshRenderer>(planeMesh, floorMat);
+
+	auto skyboxNode = mainScene->CreateNode(floorNode, "Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
 
-	auto lightNode = mainScene->CreateNode("Point Light");
-	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
-	lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
+  auto tvsGltfNode = mainScene->CreateNode(floorNode, "tvsGltf");
+  tvsGltfNode->AddObject<MeshRenderer>(tvsGltfMesh, tvsGltfMesh->GetDefaultMaterials());
+  tvsGltfNode->LocalTransform().Position() = {-3.0f, 0.0f, -3.0f};
+
+  auto tvsObjNode = mainScene->CreateNode(floorNode, "tvsObj");
+  tvsObjNode->AddObject<MeshRenderer>(tvsObjMesh, tvsObjMesh->GetDefaultMaterials());
+  tvsObjNode->LocalTransform().Position() = {3.0f, 0.0f, -3.0f};
+
+	// auto lightNode = mainScene->CreateNode("Point Light");
+	// lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
+	// lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
 	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(true);
