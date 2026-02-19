@@ -1,8 +1,8 @@
 #include <Mesh.h>
 
 #include <vector>
-#include <map>
 
+#include "VertexSpec.h"
 #include "assimp/Importer.hpp"
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -355,46 +355,6 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 		subMesh.bounds = BoundingBox(minCorner, maxCorner);
 	}
 
-	GLuint vertexBuffer;
-	glGenBuffers(1, &vertexBuffer);
-	
-	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-	glBufferData(GL_ARRAY_BUFFER, vertexCount * meshSpec.VertexSize() * sizeof(float), vertexData, GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	for (int subMeshIndex = 0; subMeshIndex < subMeshCount; subMeshIndex++) {
-		GLuint subMeshVertexArray, subMeshIndexBuffer;
-
-		glGenVertexArrays(1, &subMeshVertexArray);
-		glGenBuffers(1, &subMeshIndexBuffer);
-
-		subMeshes[subMeshIndex].handle.vertexArray = subMeshVertexArray;
-		subMeshes[subMeshIndex].handle.indexBuffer = subMeshIndexBuffer;
-
-		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
-
-		glBindVertexArray(subMeshVertexArray);
-
-		unsigned int attributeOffset = 0;
-		for (int input = int(VertexInputType::Position) - 1; input < int(VertexInputType::Color); input++) {
-			int length = meshSpec.GetLengthOf(VertexInputType(input + 1));
-
-			if (length > 0) {
-				glVertexAttribPointer(input, length, GL_FLOAT, false, VertexSpec::Mesh.VertexSize() * sizeof(float), (void*) (attributeOffset * sizeof(float)));
-				glEnableVertexAttribArray(input);
-				
-				attributeOffset += length;
-			}
-		}
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, subMeshIndexBuffer);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, subMeshes[subMeshIndex].faceCount * (int) subMeshes[subMeshIndex].type * sizeof(unsigned int), subMeshes[subMeshIndex].indexData, GL_STATIC_DRAW);
-
-		glBindVertexArray(0);
-
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-	}
-
 	std::vector<Material*> materials;
 
 	if (loadMaterials && loaded_scene->HasMaterials()) {
@@ -445,7 +405,55 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	loadedMesh->materials = materials;
 	loadedMesh->vertexCount = vertexCount;
 	loadedMesh->vertexStride = VertexSpec::Mesh.VertexSize();
-	loadedMesh->vertexBuffer = vertexBuffer;
+
+  loadedMesh->vertexData = vertexData;
+  loadedMesh->vertexBuffer = loadedMesh->UploadToGpu();
 
 	return loadedMesh;
+}
+
+GLuint Mesh::UploadToGpu() {
+  VertexSpec meshSpec = VertexSpec::Mesh;
+
+	GLuint vertexBuffer;
+	glGenBuffers(1, &vertexBuffer);
+	
+	glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+	glBufferData(GL_ARRAY_BUFFER, vertexCount * meshSpec.VertexSize() * sizeof(float), vertexData, GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	for (int subMeshIndex = 0; subMeshIndex < subMeshes.size(); subMeshIndex++) {
+		GLuint subMeshVertexArray, subMeshIndexBuffer;
+
+		glGenVertexArrays(1, &subMeshVertexArray);
+		glGenBuffers(1, &subMeshIndexBuffer);
+
+		subMeshes[subMeshIndex].handle.vertexArray = subMeshVertexArray;
+		subMeshes[subMeshIndex].handle.indexBuffer = subMeshIndexBuffer;
+
+		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer);
+
+		glBindVertexArray(subMeshVertexArray);
+
+		unsigned int attributeOffset = 0;
+		for (int input = int(VertexInputType::Position) - 1; input < int(VertexInputType::Color); input++) {
+			int length = meshSpec.GetLengthOf(VertexInputType(input + 1));
+
+			if (length > 0) {
+				glVertexAttribPointer(input, length, GL_FLOAT, false, VertexSpec::Mesh.VertexSize() * sizeof(float), (void*) (attributeOffset * sizeof(float)));
+				glEnableVertexAttribArray(input);
+				
+				attributeOffset += length;
+			}
+		}
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, subMeshIndexBuffer);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, subMeshes[subMeshIndex].faceCount * (int) subMeshes[subMeshIndex].type * sizeof(unsigned int), subMeshes[subMeshIndex].indexData, GL_STATIC_DRAW);
+
+		glBindVertexArray(0);
+
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+	}
+
+  return vertexBuffer;
 }
