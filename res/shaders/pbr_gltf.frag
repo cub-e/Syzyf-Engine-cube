@@ -21,8 +21,11 @@ uniform vec4 baseColorFactor;
 uniform sampler2D albedoMap;
 uniform float roughnessFactor;
 uniform float metallicFactor;
-uniform sampler2D metallicRoughnessMap;
+uniform sampler2D armMap;
 uniform sampler2D normalMap;
+uniform vec3 emissiveFactor;
+uniform float emissiveStrength;
+uniform sampler2D emissiveMap;
 
 uniform samplerCube Builtin_EnvIrradianceMap;
 uniform samplerCube Builtin_EnvPrefilterMap;
@@ -48,12 +51,11 @@ void main() {
   // Ignores alpha for now
 	mat.albedo = albedo.xyz * baseColorFactor.xyz;
 
-  vec3 metallicRoughness = texture(metallicRoughnessMap, ps_in.texcoords).xyz;
+  vec3 arm = texture(armMap, ps_in.texcoords).xyz;
 
-	mat.metallic = metallicRoughness.b * metallicFactor;
-	mat.roughness = metallicRoughness.g * roughnessFactor;
-	// Not loading occlusion yet
-  float ao = 1.0;
+	mat.metallic = arm.b * metallicFactor;
+	mat.roughness = arm.g * roughnessFactor;
+  float ao = arm.r;
 
 	vec3 N = getNormalFromMap();
   vec3 V = normalize(Global_CameraWorldPos - ps_in.worldPos);
@@ -88,6 +90,8 @@ void main() {
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
 	vec3 ambient = (kD * diffuse + specular) * ao;
+	
+  vec3 emissive = texture(emissiveMap, ps_in.texcoords).xyz * emissiveFactor * emissiveStrength;
 
-	fragColor.xyz += ambient;
+  fragColor.xyz += ambient + emissive;
 }

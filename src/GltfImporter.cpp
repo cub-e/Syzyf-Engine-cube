@@ -23,7 +23,7 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProg
   }
 
   // Check options/extensions again later, want to enable clearcoat at least
-  fastgltf::Parser parser(fastgltf::Extensions::None);
+  fastgltf::Parser parser(fastgltf::Extensions::KHR_materials_emissive_strength);
 
   constexpr auto gltfOptions =
     fastgltf::Options::DontRequireValidAssetMember |
@@ -328,7 +328,7 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       material->SetValue("albedoMap", defaultAlbedo);
     }
    
-    // MetallicRoughness
+    // Arm 
     float roughnessFactor = gltfMaterial.pbrData.roughnessFactor;
     material->SetValue("roughnessFactor", roughnessFactor);
     float metallicFactor = gltfMaterial.pbrData.metallicFactor;
@@ -339,11 +339,11 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       if (asset.textures[textureIndex].imageIndex.has_value()) {
         std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
         Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], Texture::TechnicalMapXYZ);
-        material->SetValue("metallicRoughnessMap", texture);
+        material->SetValue("armMap", texture);
       }
     } else {
-      Texture2D* defaultMetallicRoughness = resources->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
-      material->SetValue("metallicRoughnessMap", defaultMetallicRoughness);
+      Texture2D* defaultArm = resources->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
+      material->SetValue("armMap", defaultArm);
     }
    
     // Normal
@@ -359,9 +359,27 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       material->SetValue("normalMap", defaultNormal);
     }
 
+    // Emissive
+    glm::vec3 emissiveFactor = glm::make_vec3(gltfMaterial.emissiveFactor.data());
+    material->SetValue("emissiveFactor", emissiveFactor);
+    float emissiveStrength = gltfMaterial.emissiveStrength;
+    material->SetValue("emissiveStrength", emissiveStrength);
+
+    if (gltfMaterial.emissiveTexture.has_value()) {
+      std::size_t textureIndex = gltfMaterial.emissiveTexture->textureIndex;
+      if (asset.textures[textureIndex].imageIndex.has_value()) {
+        std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
+        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], Texture::TechnicalMapXYZ);
+        material->SetValue("emissiveMap", texture);
+      }
+    } else {
+      Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::ColorTextureRGB);
+      material->SetValue("emissiveMap", defaultEmissive);
+    }
+
     materials.push_back(material);
 
-    // Add other textures/properties eg. emissive, clearcoat, occlusion, alpha threshold
+    // Add other textures/properties eg. clearcoat, occlusion, alpha threshold
   }
   
   return materials;
