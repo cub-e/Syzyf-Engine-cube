@@ -164,10 +164,6 @@ public:
 	bool KeyUp(const std::string& key) const;
 	bool KeyUp(char key) const;
 
-	bool KeyRepeated(Key key) const;
-	bool KeyRepeated(const std::string& key) const;
-	bool KeyRepeated(char key) const;
-
 	bool ButtonDown(MouseButton button) const;
 	bool ButtonDown(int button) const;
 

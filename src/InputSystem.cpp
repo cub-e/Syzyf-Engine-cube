@@ -210,10 +210,6 @@ struct InputSystem::KeyBitMask {
 		return value & 4;
 	}
 
-	inline bool GetKeyRepeatedBit() const {
-		return value & 8;
-	}
-
 	inline void SetKeyDownBit(bool set) {
 		value &= ~1;
 		value |= set;
@@ -227,11 +223,6 @@ struct InputSystem::KeyBitMask {
 	inline void SetKeyUpBit(bool set) {
 		value &= ~4;
 		value |= ((uint8_t) set) << 2;
-	}
-
-	inline void SetKeyRepeatedBit(bool set) {
-		value &= ~8;
-		value |= ((uint8_t) set) << 3;
 	}
 };
 
@@ -460,36 +451,6 @@ bool InputSystem::KeyUp(char key) const {
 	return keyMask != this->keys.end() && keyMask->second.GetKeyUpBit();
 }
 
-bool InputSystem::KeyRepeated(Key key) const {
-	auto keyMask = this->keys.find((int) key);
-
-	return keyMask != this->keys.end() && keyMask->second.GetKeyRepeatedBit();
-}
-
-bool InputSystem::KeyRepeated(const std::string& key) const {
-	auto keyCode = charToKey.find(toupper(key.front()));
-
-	if (keyCode == charToKey.end()) {
-		return false;
-	}
-
-	auto keyMask = this->keys.find((int) keyCode->second);
-
-	return keyMask != this->keys.end() && keyMask->second.GetKeyRepeatedBit();
-}
-
-bool InputSystem::KeyRepeated(char key) const {
-	auto keyCode = charToKey.find(toupper(key));
-
-	if (keyCode == charToKey.end()) {
-		return false;
-	}
-
-	auto keyMask = this->keys.find((int) keyCode->second);
-
-	return keyMask != this->keys.end() && keyMask->second.GetKeyRepeatedBit();
-}
-
 bool InputSystem::ButtonDown(MouseButton button) const {
 	auto keyMask = this->keys.find((int) button + MouseButtonOffset);
 
@@ -593,7 +554,6 @@ void InputSystem::OnPreUpdate() {
 		mask.SetKeyUpBit(!pressed > 0 && mask.GetKeyPressedBit());
 		mask.SetKeyDownBit(pressed > 0 && !mask.GetKeyPressedBit());
 		mask.SetKeyPressedBit(pressed > 0);
-		mask.SetKeyRepeatedBit(pressed > 1);
 
 		key.second = mask;
 	}
@@ -633,7 +593,6 @@ void InputSystem::DrawImGui() {
 						ImGui::Text(std::format("Key Down:     {}", pair.second.GetKeyDownBit()).c_str());
 						ImGui::Text(std::format("Key Pressed:  {}", pair.second.GetKeyPressedBit()).c_str());
 						ImGui::Text(std::format("Key Up:       {}", pair.second.GetKeyUpBit()).c_str());
-						ImGui::Text(std::format("Key Repeated: {}", pair.second.GetKeyRepeatedBit()).c_str());
 
 						ImGui::TreePop();
 					}
@@ -652,7 +611,6 @@ void InputSystem::DrawImGui() {
 					ImGui::Text(std::format("Button Down:     {}", keyValue.GetKeyDownBit()).c_str());
 					ImGui::Text(std::format("Button Pressed:  {}", keyValue.GetKeyPressedBit()).c_str());
 					ImGui::Text(std::format("Button Up:       {}", keyValue.GetKeyUpBit()).c_str());
-					ImGui::Text(std::format("Button Repeated: {}", keyValue.GetKeyRepeatedBit()).c_str());
 	
 					ImGui::TreePop();
 				}
