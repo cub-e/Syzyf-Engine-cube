@@ -3,6 +3,7 @@
 #include "GameObject.h"
 #include <vector>
 
+// This needs to be separated into data and a component that tracks the animation progress
 class AnimationComponent : public GameObject {
 public:
   enum Property {
@@ -29,6 +30,11 @@ public:
   struct Animation {
     std::string name = "";
     std::vector<Track> tracks;
+
+    float duration = 0.0f;
+
+    float timeActive = 0.0f;
+    bool playing = true;
   };
 
   std::vector<Animation> animations;

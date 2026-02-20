@@ -92,6 +92,7 @@ std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
   ) {
   AnimationComponent::Animation animation;
   animation.name = gltfAnimation.name;
+  animation.duration = 0.0f;
   
   for (std::size_t i = 0; i < gltfAnimation.channels.size(); ++i) {
     fastgltf::AnimationChannel& channel = gltfAnimation.channels[i];
@@ -124,6 +125,12 @@ std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
       spdlog::warn("GltfImporter: Tried loading an animation track with missing input data");
       continue;
     }
+
+    const float maxInput = static_cast<float>(inputAccessor.max->get<double>(0));
+    if (animation.duration < maxInput) {
+      animation.duration = maxInput; 
+    }
+
     track.inputs.resize(inputAccessor.count);
     fastgltf::iterateAccessorWithIndex<float>(asset, inputAccessor, [&](float input, std::size_t index) {
       track.inputs[index] = input;
@@ -147,9 +154,9 @@ std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
       track.outputs.resize(outputAccessor.count * 4);
       fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, outputAccessor, [&](fastgltf::math::fvec4 output, std::size_t index) {
         track.outputs[index * 4] = output.x();
-        track.outputs[index * 4] = output.y();
-        track.outputs[index * 4] = output.z();
-        track.outputs[index * 4] = output.w();
+        track.outputs[index * 4 + 1] = output.y();
+        track.outputs[index * 4 + 2] = output.z();
+        track.outputs[index * 4 + 3] = output.w();
       });
     } else {
       track.outputs.resize(outputAccessor.count);
@@ -157,6 +164,9 @@ std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
         track.outputs[index] = output;
       });
     }
+
+    // maybe resize at the start idk dnsfdafdfnkjdsabfksavsa
+    animation.tracks.push_back(track);
   }
 
   return animation;
