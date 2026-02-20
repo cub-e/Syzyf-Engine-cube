@@ -8,6 +8,7 @@
 #include <GLFW/glfw3.h>
 
 #include <Engine.h>
+#include <TimeSystem.h>
 
 constexpr int MouseButtonOffset = 512;
 
@@ -192,12 +193,15 @@ std::map<Key, const std::string> keyToString {
 };
 
 struct InputSystem::KeyBitMask {
-	uint8_t value;
+	constexpr static int TimeBits = 29;
+	constexpr static int FractionalTimeBits = 10;
+
+	uint32_t value;
 
 	KeyBitMask():
 	value(0) { }
 
-	KeyBitMask(uint8_t value):
+	KeyBitMask(uint32_t value):
 	value(value) { }
 
 	inline bool GetKeyDownBit() const {
@@ -210,6 +214,11 @@ struct InputSystem::KeyBitMask {
 
 	inline bool GetKeyUpBit() const {
 		return value & 4;
+	}
+
+	inline float GetPressTime() const {
+		int pressTime = this->value >> (32 - TimeBits);
+		return ((float) pressTime) / (1 << FractionalTimeBits);
 	}
 
 	inline void SetKeyDownBit(bool set) {
@@ -226,11 +235,17 @@ struct InputSystem::KeyBitMask {
 		value &= ~4;
 		value |= ((uint8_t) set) << 2;
 	}
+
+	inline void SetPressTime(float pressTime) {
+		int timeRep = (int) (pressTime * (1 << FractionalTimeBits)) << (32 - TimeBits);
+		
+		this->value &= (1 << (32 - TimeBits)) - 1;
+		this->value |= timeRep;
+	}
 };
 
 InputSystem::InputSystem(Scene* scene):
 SceneComponent(scene),
-window(nullptr),
 prevMouseMovement(0),
 mouseLocked(false) {
 	keys = {
@@ -541,10 +556,14 @@ void InputSystem::OnPreUpdate() {
 
 		bool pressed = (key.first < MouseButtonOffset ? glfwGetKey(Engine::GetWindow(), keyCode) : glfwGetMouseButton(Engine::GetWindow(), keyCode));
 
+		if (pressed ^ mask.GetKeyPressedBit()) {
+			mask.SetPressTime(Time::Current());
+		}
+
 		mask.SetKeyUpBit(!pressed && mask.GetKeyPressedBit());
 		mask.SetKeyDownBit(pressed && !mask.GetKeyPressedBit());
 		mask.SetKeyPressedBit(pressed);
-
+		
 		key.second = mask;
 	}
 
@@ -583,6 +602,7 @@ void InputSystem::DrawImGui() {
 						ImGui::Text(std::format("Key Down:     {}", pair.second.GetKeyDownBit()).c_str());
 						ImGui::Text(std::format("Key Pressed:  {}", pair.second.GetKeyPressedBit()).c_str());
 						ImGui::Text(std::format("Key Up:       {}", pair.second.GetKeyUpBit()).c_str());
+						ImGui::Text(std::format("Key Time:     {}", pair.second.GetPressTime()).c_str());
 
 						ImGui::TreePop();
 					}
@@ -601,6 +621,7 @@ void InputSystem::DrawImGui() {
 					ImGui::Text(std::format("Button Down:     {}", keyValue.GetKeyDownBit()).c_str());
 					ImGui::Text(std::format("Button Pressed:  {}", keyValue.GetKeyPressedBit()).c_str());
 					ImGui::Text(std::format("Button Up:       {}", keyValue.GetKeyUpBit()).c_str());
+					ImGui::Text(std::format("Button Time:     {}", keyValue.GetPressTime()).c_str());
 	
 					ImGui::TreePop();
 				}
