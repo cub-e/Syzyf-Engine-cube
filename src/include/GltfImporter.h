@@ -1,5 +1,8 @@
 #pragma once
 
+#include "animation/AnimationComponent.h"
+#include "fastgltf/types.hpp"
+
 #include <filesystem>
 
 #include <fastgltf/core.hpp>
@@ -16,10 +19,10 @@ class GltfImporter {
 public:
   static SceneNode* LoadScene(Scene* scene, const std::filesystem::path path, ShaderProgram* shaderProgram, std::string name = "");
 private:
-  static SceneNode* CreateNode(fastgltf::Node& gltfNode, std::vector<Material*>& materials, fastgltf::Asset& asset, Scene* scene, SceneNode* parent = nullptr);
+  static SceneNode* CreateNode(fastgltf::Node& gltfNode, std::vector<Material*>& materials, fastgltf::Asset& asset, Scene* scene, std::vector<SceneNode*>& sceneNodes, SceneNode* parent = nullptr);
+
   static std::vector<Material*> LoadMaterials(Scene* scene, fastgltf::Asset& asset, ShaderProgram* shaderProgram);
-
-  static Mesh* LoadMesh(fastgltf::Mesh&, fastgltf::Asset&, std::vector<Material*>& materials);
-
+  static std::optional<AnimationComponent::Animation> LoadAnimation(std::vector<SceneNode*>& sceneNodes, fastgltf::Animation& gltfAnimation, fastgltf::Asset& asset);
+  static Mesh* LoadMesh(fastgltf::Mesh& mesh, fastgltf::Asset& asset, std::vector<Material*>& materials);
   static Texture2D* LoadImage(Scene* scene, fastgltf::Asset& asset, fastgltf::Image& image, const TextureParams loadParams);
 };

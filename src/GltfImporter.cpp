@@ -6,6 +6,7 @@
 #include "Scene.h"
 #include "Texture.h"
 #include "VertexSpec.h"
+#include "animation/AnimationComponent.h"
 
 #include <fastgltf/math.hpp>
 #include <fastgltf/types.hpp>
@@ -14,6 +15,7 @@
 #include <fastgltf/tools.hpp>
 
 #include <glm/gtc/type_ptr.hpp>
+#include <optional>
 #include <spdlog/spdlog.h>
 
 SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProgram* shaderProgram, std::string name) {
@@ -54,15 +56,120 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProg
 
   auto& nodeIndices = asset->scenes[asset->defaultScene.value()].nodeIndices;
 
+  // Saving scene nodes to be able to add them as targets when adding animations
+  std::vector<SceneNode*> sceneNodes;
+  sceneNodes.resize(nodeIndices.size());
+
   for (auto& index : nodeIndices) {
     auto& node = asset->nodes[index];
-    CreateNode(node, materials, asset.get(), scene, root);
-  }  
+    SceneNode* sceneNode = CreateNode(node, materials, asset.get(), scene, sceneNodes, root);
+    sceneNodes[index] = sceneNode;
+  }
+
+  // Animation
+  if (!asset->animations.empty()) {
+  root->AddObject<AnimationComponent>();
+  auto* animationComponent = root->GetObject<AnimationComponent>();
+  animationComponent->animations.reserve(asset->animations.size());
+    for (auto& gltfAnimation : asset->animations) {
+      spdlog::warn("Animation: {} added", gltfAnimation.name);
+      auto animation = LoadAnimation(sceneNodes, gltfAnimation, asset.get());
+      if (animation.has_value()) {
+        animationComponent->animations.push_back(std::move(animation.value()));
+      } else {
+        continue;
+      }
+    }
+  }
 
   return root; 
 }
 
-SceneNode* GltfImporter::CreateNode(fastgltf::Node& gltfNode, std::vector<Material*>& materials, fastgltf::Asset& asset, Scene* scene, SceneNode* parent) {
+std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
+  std::vector<SceneNode*>& sceneNodes,
+  fastgltf::Animation& gltfAnimation,
+  fastgltf::Asset& asset
+  ) {
+  AnimationComponent::Animation animation;
+  animation.name = gltfAnimation.name;
+  
+  for (std::size_t i = 0; i < gltfAnimation.channels.size(); ++i) {
+    fastgltf::AnimationChannel& channel = gltfAnimation.channels[i];
+    
+    if (!channel.nodeIndex.has_value()) {
+      spdlog::warn("GltfImporter: Tried loading an animation track without missing target node");
+      return std::nullopt;
+    }
+
+    AnimationComponent::Track track;
+    track.target = sceneNodes[channel.nodeIndex.value()];
+
+    switch (channel.path) {
+      case fastgltf::AnimationPath::Rotation: track.property = AnimationComponent::Property::ROTATION; break;
+      case fastgltf::AnimationPath::Scale: track.property = AnimationComponent::Property::SCALE; break;
+      case fastgltf::AnimationPath::Translation: track.property = AnimationComponent::Property::POSITION; break;
+      case fastgltf::AnimationPath::Weights: track.property = AnimationComponent::Property::WEIGHTS; break;
+    }
+
+    fastgltf::AnimationSampler& sampler = gltfAnimation.samplers[channel.samplerIndex];
+
+    switch (sampler.interpolation) {
+      case fastgltf::AnimationInterpolation::CubicSpline: track.interpolation = AnimationComponent::Interpolation::CUBICSPLINE; break;
+      case fastgltf::AnimationInterpolation::Linear: track.interpolation = AnimationComponent::Interpolation::LINEAR; break;
+      case fastgltf::AnimationInterpolation::Step: track.interpolation = AnimationComponent::Interpolation::STEP; break;
+    }
+    
+    auto& inputAccessor = asset.accessors[sampler.inputAccessor];
+    if (!inputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfImporter: Tried loading an animation track with missing input data");
+      continue;
+    }
+    track.inputs.resize(inputAccessor.count);
+    fastgltf::iterateAccessorWithIndex<float>(asset, inputAccessor, [&](float input, std::size_t index) {
+      track.inputs[index] = input;
+    });
+
+    auto& outputAccessor = asset.accessors[sampler.outputAccessor];
+    if (!outputAccessor.bufferViewIndex.has_value()) {
+      spdlog::warn("GltfImporter: Tried loading an animation track with missing output data");
+      continue;
+    }
+
+    if (track.property == AnimationComponent::Property::POSITION
+        || track.property == AnimationComponent::Property::SCALE) {
+      track.outputs.resize(outputAccessor.count * 3);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec3>(asset, outputAccessor, [&](fastgltf::math::fvec3 output, std::size_t index) {
+        track.outputs[index * 3] = output.x();
+        track.outputs[index * 3 + 1] = output.y();
+        track.outputs[index * 3 + 2] = output.z();
+      });
+    } else if (track.property == AnimationComponent::Property::ROTATION) {
+      track.outputs.resize(outputAccessor.count * 4);
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, outputAccessor, [&](fastgltf::math::fvec4 output, std::size_t index) {
+        track.outputs[index * 4] = output.x();
+        track.outputs[index * 4] = output.y();
+        track.outputs[index * 4] = output.z();
+        track.outputs[index * 4] = output.w();
+      });
+    } else {
+      track.outputs.resize(outputAccessor.count);
+      fastgltf::iterateAccessorWithIndex<float>(asset, outputAccessor, [&](float output, std::size_t index) {
+        track.outputs[index] = output;
+      });
+    }
+  }
+
+  return animation;
+}
+
+SceneNode* GltfImporter::CreateNode(
+    fastgltf::Node& gltfNode,
+    std::vector<Material*>& materials,
+    fastgltf::Asset& asset,
+    Scene* scene,
+    std::vector<SceneNode*>& sceneNodes,
+    SceneNode* parent
+  ) {
   SceneNode* node = scene->CreateNode(parent, gltfNode.name.c_str());
   
   // LocalTransform
@@ -83,13 +190,12 @@ SceneNode* GltfImporter::CreateNode(fastgltf::Node& gltfNode, std::vector<Materi
     Mesh* mesh = LoadMesh(gltfMesh, asset, materials);
     node->AddObject<MeshRenderer>(mesh, materials);
   }
-  
-  // Animation ?
 
   for (auto& childIndex : gltfNode.children) {
     auto& childNode = asset.nodes[childIndex];
-    CreateNode(childNode, materials, asset, scene, node);
-} 
+    SceneNode* sceneNode = CreateNode(childNode, materials, asset, scene, sceneNodes, node);
+    sceneNodes[childIndex] = sceneNode;
+  }
 
   return node;
 }
@@ -166,8 +272,9 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
 
     auto& positionAccessor = asset.accessors[positionIt->accessorIndex];
     
-    if (positionAccessor.min.value().size() == 3 && positionAccessor.max.value().size() == 3 
-        && positionAccessor.min.has_value() && positionAccessor.max.has_value()) {
+    if (positionAccessor.min.has_value() && positionAccessor.max.has_value()
+        && positionAccessor.min.value().size() == 3 && positionAccessor.max.value().size() == 3
+      ) {
       primitive.bounds = BoundingBox(
         glm::vec3(
           static_cast<float>(positionAccessor.min->get<double>(0)),

@@ -1,4 +1,6 @@
 #include "GltfImporter.h"
+#include "animation/AnimationComponent.h"
+#include "animation/AnimationSystem.h"
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
@@ -237,6 +239,7 @@ public:
 
 void InitScene() {
   mainScene = new Scene();
+  mainScene->AddComponent<AnimationSystem>();
   mainScene->Input()->SetWindow(window);
   
   ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
@@ -380,7 +383,7 @@ void InitScene() {
 	).WithPixelShader(
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
 	).Link();
-  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/tvs/tvs.glb", pbrGltfProg, "tvs");
+  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", pbrGltfProg, "tvs");
 
   mainScene->AddComponent<DebugInspector>();
 }
