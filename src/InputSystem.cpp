@@ -7,6 +7,8 @@
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 
+#include <Engine.h>
+
 constexpr int MouseButtonOffset = 512;
 
 std::map<char, Key> charToKey {
@@ -495,21 +497,21 @@ void InputSystem::SetMouseLocked(bool locked) {
 	static glm::vec2 prevMousePos;
 
 	if (locked) {
-		glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(Engine::GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		
 		double xpos, ypos;
-		glfwGetCursorPos(this->window, &xpos, &ypos);
+		glfwGetCursorPos(Engine::GetWindow(), &xpos, &ypos);
 		
 		prevMousePos = glm::vec2(xpos, ypos);
 
-		glfwSetCursorPos(this->window, 0, 0);
+		glfwSetCursorPos(Engine::GetWindow(), 0, 0);
 
 		this->prevMouseMovement = glm::vec2(0, 0);
 	}
 	else {
-		glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		glfwSetInputMode(Engine::GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
-		glfwSetCursorPos(this->window, prevMousePos.x, prevMousePos.y);
+		glfwSetCursorPos(Engine::GetWindow(), prevMousePos.x, prevMousePos.y);
 	}
 
 	this->mouseLocked = locked;
@@ -531,40 +533,28 @@ glm::vec2 InputSystem::GetMousePosition() {
 	return this->prevMouseMovement;
 }
 
-GLFWwindow* InputSystem::GetWindow() const {
-	return this->window;
-}
-
-void InputSystem::SetWindow(GLFWwindow* window) {
-	this->window = window;
-}
-
 void InputSystem::OnPreUpdate() {
-	if (this->window == nullptr) {
-		return;
-	}
-
 	for (auto& key : this->keys) {
 		int keyCode = key.first % MouseButtonOffset;
 
 		KeyBitMask mask = key.second;
 
-		int pressed = (key.first < MouseButtonOffset ? glfwGetKey(this->window, keyCode) : glfwGetMouseButton(this->window, keyCode));
+		bool pressed = (key.first < MouseButtonOffset ? glfwGetKey(Engine::GetWindow(), keyCode) : glfwGetMouseButton(Engine::GetWindow(), keyCode));
 
-		mask.SetKeyUpBit(!pressed > 0 && mask.GetKeyPressedBit());
-		mask.SetKeyDownBit(pressed > 0 && !mask.GetKeyPressedBit());
-		mask.SetKeyPressedBit(pressed > 0);
+		mask.SetKeyUpBit(!pressed && mask.GetKeyPressedBit());
+		mask.SetKeyDownBit(pressed && !mask.GetKeyPressedBit());
+		mask.SetKeyPressedBit(pressed);
 
 		key.second = mask;
 	}
 
 	double xpos, ypos;
-	glfwGetCursorPos(this->window, &xpos, &ypos);
+	glfwGetCursorPos(Engine::GetWindow(), &xpos, &ypos);
 	
 	this->prevMouseMovement = glm::vec2(xpos, ypos);
 	
 	if (this->mouseLocked) {
-		glfwSetCursorPos(this->window, 0, 0);
+		glfwSetCursorPos(Engine::GetWindow(), 0, 0);
 
 		this->prevMouseMovement.y = -this->prevMouseMovement.y;
 	}
@@ -629,8 +619,6 @@ void InputSystem::DrawImGui() {
 			
 			ImGui::TreePop();
 		}
-
-
 
 		ImGui::TreePop();
 	}
