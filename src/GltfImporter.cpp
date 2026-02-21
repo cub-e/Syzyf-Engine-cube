@@ -92,8 +92,8 @@ std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
   fastgltf::Asset& asset
   ) {
   AnimationComponent::Animation animation;
-  animation.name = gltfAnimation.name;
-  animation.duration = 0.0f;
+  animation.data.name = gltfAnimation.name;
+  animation.data.duration = 0.0f;
   
   for (std::size_t i = 0; i < gltfAnimation.channels.size(); ++i) {
     fastgltf::AnimationChannel& channel = gltfAnimation.channels[i];
@@ -128,8 +128,8 @@ std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
     }
 
     const float maxInput = static_cast<float>(inputAccessor.max->get<double>(0));
-    if (animation.duration < maxInput) {
-      animation.duration = maxInput; 
+    if (animation.data.duration < maxInput) {
+      animation.data.duration = maxInput; 
     }
 
     track.inputs.resize(inputAccessor.count);
@@ -167,7 +167,7 @@ std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
     }
 
     // maybe resize at the start idk dnsfdafdfnkjdsabfksavsa
-    animation.tracks.push_back(track);
+    animation.data.tracks.push_back(track);
   }
 
   return animation;

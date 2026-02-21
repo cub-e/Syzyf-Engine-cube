@@ -1,5 +1,4 @@
 #include "GltfImporter.h"
-#include "animation/AnimationComponent.h"
 #include "animation/AnimationSystem.h"
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"

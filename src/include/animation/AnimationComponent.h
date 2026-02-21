@@ -2,7 +2,7 @@
 
 #include "GameObject.h"
 #include <vector>
-
+  
 // This needs to be separated into data and a component that tracks the animation progress
 class AnimationComponent : public GameObject {
 public:
@@ -27,14 +27,18 @@ public:
     std::vector<float> outputs;
   };
 
-  struct Animation {
+  struct AnimationData {
     std::string name = "";
     std::vector<Track> tracks;
-
     float duration = 0.0f;
+  };
 
+  struct Animation {
+    AnimationData data;
+    
     float timeActive = 0.0f;
     bool playing = true;
+    bool looping = true;
   };
 
   std::vector<Animation> animations;
