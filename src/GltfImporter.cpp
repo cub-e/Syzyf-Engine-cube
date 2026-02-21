@@ -1,5 +1,6 @@
 #include "GltfImporter.h"
 
+#include "Camera.h"
 #include "Material.h"
 #include "Mesh.h"
 #include "MeshRenderer.h"
@@ -14,8 +15,10 @@
 #include <fastgltf/core.hpp>
 #include <fastgltf/tools.hpp>
 
+#include <glm/ext/quaternion_trigonometric.hpp>
 #include <glm/gtc/type_ptr.hpp>
 #include <optional>
+#include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
 SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProgram* shaderProgram, std::string name) {
@@ -24,7 +27,6 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProg
     return nullptr;
   }
 
-  // Check options/extensions again later, want to enable clearcoat at least
   fastgltf::Parser parser(fastgltf::Extensions::KHR_materials_emissive_strength);
 
   constexpr auto gltfOptions =
@@ -45,15 +47,14 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProg
     return nullptr;
   }
   
-  std::vector<Material*> materials = LoadMaterials(scene, asset.get(), shaderProgram);
-
-  SceneNode* root = scene->CreateNode(name);
-
   if (!asset->defaultScene.has_value()) {
     spdlog::warn("glTF file is missing a default scene: {}", path.string());
     return nullptr;
   }
 
+  std::vector<Material*> materials = LoadMaterials(scene, asset.get(), shaderProgram);
+  
+  SceneNode* root = scene->CreateNode(name);
   auto& nodeIndices = asset->scenes[asset->defaultScene.value()].nodeIndices;
 
   // Saving scene nodes to be able to add them as targets when adding animations
@@ -201,6 +202,35 @@ SceneNode* GltfImporter::CreateNode(
     node->AddObject<MeshRenderer>(mesh, materials);
   }
 
+  // Camera
+  //
+  // gltf cameras look down the negative -z
+  //  so it's looking in the opposite direction i guess
+  //  couldn't rotate it here
+  if (gltfNode.cameraIndex.has_value()) {
+    auto& gltfCamera = asset.cameras[gltfNode.cameraIndex.value()].camera;
+    std::visit(fastgltf::visitor {
+      [&](fastgltf::Camera::Orthographic& camera) {
+        node->AddObject<Camera>(Camera::Orthographic(
+          -camera.xmag,
+          camera.xmag,
+          camera.ymag,
+          -camera.ymag,
+          camera.znear,
+          camera.zfar
+        ));
+      },
+      [&](fastgltf::Camera::Perspective& camera) {
+        node->AddObject<Camera>(Camera::Perspective(
+          glm::degrees(camera.yfov),
+          camera.aspectRatio.value_or(1.7f), // these should be somewhere else
+          camera.znear,      // or it should fail to add the camera if these are missing
+          camera.zfar.value_or(300.0f)
+        ));
+      },
+    }, gltfCamera);
+  }
+  
   for (auto& childIndex : gltfNode.children) {
     auto& childNode = asset.nodes[childIndex];
     SceneNode* sceneNode = CreateNode(childNode, materials, asset, scene, sceneNodes, node);
@@ -427,7 +457,6 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
   for (auto& gltfMaterial : asset.materials) {
     Material* material = new Material(shaderProgram);
     material->name = gltfMaterial.name;
-    spdlog::info("Loading material: {}", gltfMaterial.name);
 
     // Diffuse
     glm::vec4 baseColorFactor = glm::make_vec4(gltfMaterial.pbrData.baseColorFactor.data());
@@ -494,9 +523,13 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       material->SetValue("emissiveMap", defaultEmissive);
     }
 
+    // Alpha Cutoff
+    material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+
     materials.push_back(material);
 
-    // Add other textures/properties eg. clearcoat, occlusion, alpha threshold
+    // Add other stuff:
+    //  clearcoat, culling, alpha blending
   }
   
   return materials;
