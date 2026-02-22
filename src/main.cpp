@@ -384,7 +384,7 @@ void InitScene() {
 	).WithPixelShader(
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
 	).Link();
-  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", pbrGltfProg, "tvs");
+  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", pbrGltfProg, "Animated Thing");
 
   mainScene->AddComponent<DebugInspector>();
 }

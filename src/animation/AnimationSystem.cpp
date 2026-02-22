@@ -5,6 +5,28 @@
 #include <algorithm>
 #include <glm/ext/quaternion_common.hpp>
 
+glm::quat cubicSpline(const glm::quat previousPoint, const glm::quat previousTangent, const glm::quat nextPoint, const glm::quat nextTangent, const float interpolationValue) {
+  const float t = interpolationValue;
+  const float t2 = t * t;
+  const float t3 = t2 * t;
+
+  return (2.0f * t3 - 3.0f * t2 + 1.0f)
+    * previousPoint + (t3 - 2.0f * t2 + t)
+    * previousTangent + (-2.0f * t3 + 3.0f * t2)
+    * nextPoint + (t3 - t2) * nextTangent;
+}
+
+glm::vec3 cubicSpline(const glm::vec3 previousPoint, const glm::vec3 previousTangent, const glm::vec3 nextPoint, const glm::vec3 nextTangent, const float interpolationValue) {
+  const float t = interpolationValue;
+  const float t2 = t * t;
+  const float t3 = t2 * t;
+
+  return (2.0f * t3 - 3.0f * t2 + 1.0f)
+    * previousPoint + (t3 - 2.0f * t2 + t)
+    * previousTangent + (-2.0f * t3 + 3.0f * t2)
+    * nextPoint + (t3 - t2) * nextTangent;
+}
+
 AnimationSystem::AnimationSystem(Scene* scene) : SceneComponent(scene) {
   spdlog::info("Animation system added");
 }
@@ -67,7 +89,7 @@ void AnimationSystem::OnPreUpdate() {
                 track.outputs[lowerIndex * 4 + 2],
               };
 
-              // Skips interpolation if the track hasn't started yet/ended 
+              // Skips interpolation if the track hasn't started yet/ended already 
               if (upperIndex == lowerIndex) {
                 rotation = lower;
                 track.target->LocalTransform().Rotation() = rotation;
@@ -89,8 +111,31 @@ void AnimationSystem::OnPreUpdate() {
                   rotation = lower;
                   break;
                 case AnimationComponent::Interpolation::CUBICSPLINE:
-                  // TODO
-                  rotation = lower;
+                  glm::quat lowerValue = {
+                    track.outputs[lowerIndex * 4 + 7],
+                    track.outputs[lowerIndex * 4 + 4],
+                    track.outputs[lowerIndex * 4 + 5],
+                    track.outputs[lowerIndex * 4 + 6],
+                  };
+                  glm::quat lowerOutputTangent = {
+                    track.outputs[lowerIndex * 4 + 11],
+                    track.outputs[lowerIndex * 4 + 8],
+                    track.outputs[lowerIndex * 4 + 9],
+                    track.outputs[lowerIndex * 4 + 10],
+                  };
+
+                  glm::quat upperInputTangent = upper;
+                  glm::quat upperValue = {
+                    track.outputs[upperIndex * 4 + 7],
+                    track.outputs[upperIndex * 4 + 4],
+                    track.outputs[upperIndex * 4 + 5],
+                    track.outputs[upperIndex * 4 + 6],
+                  };
+
+                  glm::quat previousTangent = deltaTime * lowerOutputTangent;
+                  glm::quat nextTangent = deltaTime * upperInputTangent;
+
+                  rotation = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
                   break;
                 }
               track.target->LocalTransform().Rotation() = rotation;
@@ -98,6 +143,8 @@ void AnimationSystem::OnPreUpdate() {
             }
           case AnimationComponent::Property::POSITION:
             {
+              glm::vec3 position;
+
               glm::vec3 lower = {
                 track.outputs[lowerIndex * 3],
                 track.outputs[lowerIndex * 3 + 1],
@@ -105,7 +152,8 @@ void AnimationSystem::OnPreUpdate() {
               };
 
               if (upperIndex == lowerIndex) {
-                track.target->LocalTransform().Position() = lower;
+                position = lower;
+                track.target->LocalTransform().Position() = position;
                 break;
               }
 
@@ -114,14 +162,46 @@ void AnimationSystem::OnPreUpdate() {
                 track.outputs[upperIndex * 3 + 1],
                 track.outputs[upperIndex * 3 + 2],
               };
+ 
+              switch (track.interpolation) {
+                case AnimationComponent::Interpolation::LINEAR:
+                  position = glm::mix(lower, upper, interpolationValue);
+                  break;
+                case AnimationComponent::Interpolation::STEP:
+                  position = lower;
+                  break;
+                case AnimationComponent::Interpolation::CUBICSPLINE:
+                  glm::vec3 lowerValue = {
+                    track.outputs[lowerIndex * 3 + 3],
+                    track.outputs[lowerIndex * 3 + 4],
+                    track.outputs[lowerIndex * 3 + 5],
+                  };
+                  glm::vec3 lowerOutputTangent = {
+                    track.outputs[lowerIndex * 3 + 6],
+                    track.outputs[lowerIndex * 3 + 7],
+                    track.outputs[lowerIndex * 3 + 8],
+                  };
 
-              glm::vec3 position = glm::mix(lower, upper, interpolationValue);
+                  glm::vec3 upperInputTangent = upper;
+                  glm::vec3 upperValue = {
+                    track.outputs[upperIndex * 4 + 3],
+                    track.outputs[upperIndex * 4 + 4],
+                    track.outputs[upperIndex * 4 + 5],
+                  };
 
+                  glm::vec3 previousTangent = deltaTime * lowerOutputTangent;
+                  glm::vec3 nextTangent = deltaTime * upperInputTangent;
+
+                  position = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
+                  break;
+                }
               track.target->LocalTransform().Position() = position;
               break;
             }
           case AnimationComponent::Property::SCALE:
             {
+              glm::vec3 scale;
+
               glm::vec3 lower = {
                 track.outputs[lowerIndex * 3],
                 track.outputs[lowerIndex * 3 + 1],
@@ -129,7 +209,8 @@ void AnimationSystem::OnPreUpdate() {
               };
 
               if (upperIndex == lowerIndex) {
-                track.target->LocalTransform().Scale() = lower;
+                scale = lower;
+                track.target->LocalTransform().Scale() = scale;
                 break;
               }
 
@@ -138,10 +219,40 @@ void AnimationSystem::OnPreUpdate() {
                 track.outputs[upperIndex * 3 + 1],
                 track.outputs[upperIndex * 3 + 2],
               };
+ 
+              switch (track.interpolation) {
+                case AnimationComponent::Interpolation::LINEAR:
+                  scale = glm::mix(lower, upper, interpolationValue);
+                  break;
+                case AnimationComponent::Interpolation::STEP:
+                  scale = lower;
+                  break;
+                case AnimationComponent::Interpolation::CUBICSPLINE:
+                  glm::vec3 lowerValue = {
+                    track.outputs[lowerIndex * 3 + 3],
+                    track.outputs[lowerIndex * 3 + 4],
+                    track.outputs[lowerIndex * 3 + 5],
+                  };
+                  glm::vec3 lowerOutputTangent = {
+                    track.outputs[lowerIndex * 3 + 6],
+                    track.outputs[lowerIndex * 3 + 7],
+                    track.outputs[lowerIndex * 3 + 8],
+                  };
 
-              glm::vec3 scale = glm::mix(lower, upper, interpolationValue);
+                  glm::vec3 upperInputTangent = upper;
+                  glm::vec3 upperValue = {
+                    track.outputs[upperIndex * 4 + 3],
+                    track.outputs[upperIndex * 4 + 4],
+                    track.outputs[upperIndex * 4 + 5],
+                  };
 
-              track.target->LocalTransform().Position() = scale;
+                  glm::vec3 previousTangent = deltaTime * lowerOutputTangent;
+                  glm::vec3 nextTangent = deltaTime * upperInputTangent;
+
+                  scale = cubicSpline(lowerValue, previousTangent, upperValue, nextTangent, interpolationValue);
+                  break;
+                }
+              track.target->LocalTransform().Scale() = scale;
               break;
             }
           case AnimationComponent::Property::WEIGHTS:
