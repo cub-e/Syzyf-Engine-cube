@@ -9,6 +9,7 @@
 
 #include <Transform.h>
 #include <Resources.h>
+#include <Messaging.h>
 
 class GameObject;
 class InputSystem;
@@ -16,55 +17,11 @@ class SceneGraphics;
 class SceneComponent;
 class Light;
 
-typedef void (GameObject::*MessageMethod)();
-
-template<class T>
-concept Updateable = requires (T a) {
-	{ a.Update() } -> std::same_as<void>;
-};
-
-template<class T>
-concept Awakeable = requires (T a) {
-	{ a.Awake() } -> std::same_as<void>;
-};
-
-template<class T>
-concept Renderable = requires (T a) {
-	{ a.Render() } -> std::same_as<void>;
-};
-
-template<class T>
-concept Enableable = requires (T a) {
-	{ a.Enable() } -> std::same_as<void>;
-};
-
-template<class T>
-concept Disableable = requires (T a) {
-	{ a.Disable() } -> std::same_as<void>;
-};
-
-template<class T>
-concept DrawsGizmos = requires (T a) {
-	{ a.DrawGizmos() } -> std::same_as<void>;
-};
-
-template<class T>
-concept DrawsImGui = requires (T a) {
-	{ a.OnImGui() } -> std::same_as<void>;
-};
-
 class Scene;
 
 class SceneNode {
 	friend class Scene;
 private:
-	struct MessageReceiver {
-		GameObject* objPtr;
-		MessageMethod methodPtr;
-
-		void Message();
-	};
-
 	SceneNode* parent;
 
 	int id;
@@ -74,10 +31,6 @@ private:
 
 	Scene* const scene;
 	std::vector<GameObject*> objects;
-
-	std::vector<MessageReceiver> updateable;
-	std::vector<MessageReceiver> renderable;
-	std::vector<MessageReceiver> drawGizmos;
 
 	std::vector<SceneNode*> children;
 	SceneTransform transform;
@@ -144,8 +97,9 @@ public:
 	void DeleteObject(GameObject* obj);
 };
 
-class Scene {
+class Scene : public MessageReceiver{
 	friend class SceneNode;
+	friend class GameObject;
 private:
 	int nextSceneNodeID;
 	int nextGameObjectID;
@@ -153,61 +107,16 @@ private:
 	ResourceDatabase resources;
 
 	std::vector<SceneComponent*> components;
+	MessageTree messageTree;
 	SceneNode* root;
 
 	InputSystem* inputSystem;
 	SceneGraphics* graphics;
 
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject>
-	bool TryCreateAwakeable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject> && Awakeable<T_GO>
-	bool TryCreateAwakeable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject>
-	bool TryCreateUpdateable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject> && Updateable<T_GO>
-	bool TryCreateUpdateable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject>
-	bool TryCreateRenderable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject> && Renderable<T_GO>
-	bool TryCreateRenderable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject>
-	bool TryCreateEnableable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject> && Enableable<T_GO>
-	bool TryCreateEnableable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject>
-	bool TryCreateDisableable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject> && Disableable<T_GO>
-	bool TryCreateDisableable(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject>
-	bool TryCreateDrawingGizmos(SceneNode* node, T_GO* object);
-
-	template<class T_GO>
-		requires std::derived_from<T_GO, GameObject> && DrawsGizmos<T_GO>
-	bool TryCreateDrawingGizmos(SceneNode* node, T_GO* object);
-
 	void DeleteObjectInternal(GameObject* obj);
 	void DeleteNodeInternal(SceneNode* node);
+	void SetNodeEnabledInternal(SceneNode* node, bool enabled);
+	void SetGameObjectEnabledInternal(GameObject* obj, bool enabled);
 public:
 	Scene();
 
@@ -357,96 +266,6 @@ std::vector<T_GO*> SceneNode::GetAllObjectsInChildren() const {
 	return result;
 }
 
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateAwakeable(SceneNode* node, T_GO* object) {
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && Awakeable<T_GO>
-bool Scene::TryCreateAwakeable(SceneNode* node, T_GO* object) {
-	object->Awake();
-
-	return true;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateUpdateable(SceneNode* node, T_GO* object) {
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && Updateable<T_GO>
-bool Scene::TryCreateUpdateable(SceneNode* node, T_GO* object) {
-	node->updateable.push_back({ object, reinterpret_cast<MessageMethod>(&T_GO::Update) });
-
-	return true;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateEnableable(SceneNode* node, T_GO* object) {
-	object->onEnable = nullptr;
-
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && Enableable<T_GO>
-bool Scene::TryCreateEnableable(SceneNode* node, T_GO* object) {
-	object->onEnable = reinterpret_cast<MessageMethod>(&T_GO::Enable);
-	
-	object->Enable();
-
-	return true;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateDisableable(SceneNode* node, T_GO* object) {
-	object->onDisable = nullptr;
-
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && Disableable<T_GO>
-bool Scene::TryCreateDisableable(SceneNode* node, T_GO* object) {
-	object->onDisable = reinterpret_cast<MessageMethod>(&T_GO::Disable);
-	
-	return true;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateRenderable(SceneNode* node, T_GO* object) {
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && Renderable<T_GO>
-bool Scene::TryCreateRenderable(SceneNode* node, T_GO* object) {
-	node->renderable.push_back({ object, reinterpret_cast<MessageMethod>(&T_GO::Render) });
-
-	return true;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject>
-bool Scene::TryCreateDrawingGizmos(SceneNode* node, T_GO* object) {
-	return false;
-}
-
-template<class T_GO>
-	requires std::derived_from<T_GO, GameObject> && DrawsGizmos<T_GO>
-bool Scene::TryCreateDrawingGizmos(SceneNode* node, T_GO* object) {
-	node->drawGizmos.push_back({ object, reinterpret_cast<MessageMethod>(&T_GO::DrawGizmos) });
-
-	return true;
-}
-
 template<class T_GO, typename... T_Param>
 	requires std::derived_from<T_GO, GameObject>
 T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
@@ -463,12 +282,7 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 	
 	node->objects.push_back(created);
 
-	TryCreateAwakeable(node, created);
-	TryCreateEnableable(node, created);
-	TryCreateDisableable(node, created);
-	TryCreateUpdateable(node, created);
-	TryCreateRenderable(node, created);
-	TryCreateDrawingGizmos(node, created);
+	this->messageTree.AddMessageReceiver(created, node);
 
 	for (SceneComponent* component : this->components) {
 		GameObjectSystemBase* sys = dynamic_cast<GameObjectSystemBase*>(component);

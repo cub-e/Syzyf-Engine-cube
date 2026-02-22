@@ -4,15 +4,14 @@
 #include <typeinfo>
 
 #include <Scene.h>
+#include <Messaging.h>
 
-class GameObject {
+class GameObject : public MessageReceiver {
 	friend class Scene;
 private:
 	int id;
 	const std::type_info* runtimeTypeInfo;
 	bool enabled;
-	MessageMethod onEnable;
-	MessageMethod onDisable;
 	SceneNode* node;
 protected:
 	SceneTransform& GetTransform() const;

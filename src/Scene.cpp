@@ -17,9 +17,6 @@ transform(),
 children(),
 parent(nullptr),
 enabled(true),
-updateable(),
-renderable(),
-drawGizmos(),
 name("") {
 	this->transform.parent = this;
 }
@@ -104,7 +101,11 @@ bool SceneNode::IsEnabled() const {
 	return this->enabled;
 }
 void SceneNode::SetEnabled(bool value) {
-	this->enabled = value;
+	if (this->enabled != value) {
+		this->enabled = value;
+
+		GetScene()->SetNodeEnabledInternal(this, value);
+	}
 }
 
 const std::vector<SceneNode*> SceneNode::GetChildren() {
@@ -166,6 +167,7 @@ nextGameObjectID(0) {
 	this->root = CreateNode("root");
 	this->graphics = AddComponent<SceneGraphics>();
 	this->inputSystem = AddComponent<InputSystem>();
+	this->messageTree.AddNode(this->root);
 }
 
 Scene::~Scene() {
@@ -178,20 +180,10 @@ Scene::~Scene() {
 	}
 }
 
-void SceneNode::MessageReceiver::Message() {
-	(*this->objPtr.*this->methodPtr)();
-}
-
 void Scene::DeleteObjectInternal(GameObject* obj) {
 	SceneNode* node = obj->node;
 
-	std::erase_if(node->updateable, [obj](const auto& msgRcvr) {
-		return msgRcvr.objPtr == obj;
-	} );
-
-	std::erase_if(node->renderable, [obj](const auto& msgRcvr) {
-		return msgRcvr.objPtr == obj;
-	} );
+	this->messageTree.RemoveMessageReceiver(obj, node);
 
 	for (auto* component : this->components) {
 		GameObjectSystemBase* componentAsSystem = dynamic_cast<GameObjectSystemBase*>(component);
@@ -203,8 +195,28 @@ void Scene::DeleteObjectInternal(GameObject* obj) {
 }
 
 void Scene::DeleteNodeInternal(SceneNode* node) {
+	this->messageTree.RemoveNode(node);
+
 	if (node == this->root) {
 		this->root = CreateNode("root");
+	}
+}
+
+void Scene::SetNodeEnabledInternal(SceneNode* node, bool enabled) {
+	if (enabled) {
+		this->messageTree.PropagateMessage<Message::OnEnable>(node);
+	}
+	else {
+		this->messageTree.PropagateMessage<Message::OnDisable>(node);
+	}
+}
+
+void Scene::SetGameObjectEnabledInternal(GameObject* obj, bool enabled) {
+	if (enabled) {
+		this->messageTree.MessageObject<Message::OnEnable>(obj, obj->GetNode());
+	}
+	else {
+		this->messageTree.MessageObject<Message::OnDisable>(obj, obj->GetNode());
 	}
 }
 
@@ -233,6 +245,8 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 
 	result->id = this->nextSceneNodeID++;
 	result->name = name;
+
+	this->messageTree.AddNode(result);
 
 	return result;
 }
@@ -266,33 +280,7 @@ void Scene::Update() {
 		component->OnPreUpdate();
 	}
 
-	std::stack<SceneNode*> nodeStack;
-	std::stack<SceneNode::MessageReceiver*> updateables;
-
-	nodeStack.push(this->root);
-
-	while (!nodeStack.empty()) {
-		SceneNode* top = nodeStack.top();
-		nodeStack.pop();
-
-		if (!top->enabled) {
-			continue;
-		}
-
-		for (SceneNode* child : top->GetChildren()) {
-			nodeStack.push(child);
-		}
-
-		for (SceneNode::MessageReceiver& msg : top->updateable) {
-			updateables.push(&msg);
-		}
-	}
-
-	while (!updateables.empty()) {
-		
-		updateables.top()->Message();
-		updateables.pop();
-	}
+	this->messageTree.PropagateMessage<Message::Update>(this->root);
 
 	for (auto& component: this->components) {
 		component->OnPostUpdate();
@@ -303,43 +291,9 @@ void Scene::Render() {
 	for (auto& component: this->components) {
 		component->OnPreRender();
 	}
-
-	std::stack<SceneNode*> nodeStack;
-	std::stack<SceneNode::MessageReceiver*> renderables;
-	std::stack<SceneNode::MessageReceiver*> gizmos;
-
-	nodeStack.push(this->root);
-
-	while (!nodeStack.empty()) {
-		SceneNode* top = nodeStack.top();
-		nodeStack.pop();
-
-		if (!top->enabled) {
-			continue;
-		}
-
-		for (SceneNode* child : top->GetChildren()) {
-			nodeStack.push(child);
-		}
-
-		for (SceneNode::MessageReceiver& msg : top->renderable) {
-			renderables.push(&msg);
-		}
-
-		for (SceneNode::MessageReceiver& msg : top->drawGizmos) {
-			gizmos.push(&msg);
-		}
-	}
-
-	while (!renderables.empty()) {
-		renderables.top()->Message();
-		renderables.pop();
-	}
-
-	while (!gizmos.empty()) {
-		gizmos.top()->Message();
-		gizmos.pop();
-	}
+	
+	this->messageTree.PropagateMessage<Message::Render>(this->root);
+	this->messageTree.PropagateMessage<Message::DrawGizmos>(this->root);
 
 	for (auto& component: this->components) {
 		component->OnPostRender();

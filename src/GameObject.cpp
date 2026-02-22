@@ -72,12 +72,7 @@ void GameObject::SetEnabled(bool enabled) {
 		return;
 	}
 
-	if (enabled && this->onEnable) {
-		(*this.*this->onEnable)();
-	}
-	else if (!enabled && this->onDisable) {
-		(*this.*this->onDisable)();
-	}
+	GetScene()->SetGameObjectEnabledInternal(this, enabled);
 
 	this->enabled = enabled;
 }
