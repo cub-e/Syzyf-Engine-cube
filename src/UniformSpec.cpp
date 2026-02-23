@@ -93,7 +93,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		GLint* bufferVariables = (GLint*) alloca(sizeof(GLint) * propValues.variablesCount);
 		GLenum variableProp = GL_ACTIVE_VARIABLES;
 
-		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, 1, &variableProp, sizeof(bufferVariables) / sizeof(GLint), nullptr, bufferVariables);
+		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, 1, &variableProp, propValues.variablesCount, nullptr, bufferVariables);
 
 		for (int bufferVariableIndex = 0; bufferVariableIndex < propValues.variablesCount; bufferVariableIndex++) {
 			GLint bufferVariable = bufferVariables[bufferVariableIndex];
@@ -167,7 +167,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		GLint* bufferVars = (GLint*) alloca(sizeof(GLint) * propValues.bufferVariableCount);
 		GLenum variableProp = GL_ACTIVE_VARIABLES;
 
-		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, 1, &variableProp, sizeof(bufferVars) / sizeof(GLint), nullptr, bufferVars);
+		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, 1, &variableProp, propValues.bufferVariableCount, nullptr, bufferVars);
 
 		struct {
 			int nameLength;
