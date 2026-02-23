@@ -147,9 +147,6 @@ public:
 class Scene {
 	friend class SceneNode;
 private:
-  float deltaTime = 0.0f;
-  float previousTime;
-
 	int nextSceneNodeID;
 	int nextGameObjectID;
 
@@ -222,8 +219,6 @@ public:
 	SceneNode* CreateNode(SceneNode* parent, const std::string& name);
 
 	ResourceDatabase* Resources();
-
-  float DeltaTime() const;
 
 	InputSystem* Input();
 	SceneGraphics* GetGraphics();

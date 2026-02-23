@@ -1,7 +1,9 @@
 #include "animation/AnimationSystem.h"
 #include "animation/AnimationComponent.h"
 
+#include "TimeSystem.h"
 #include "Scene.h"
+
 #include <algorithm>
 #include <glm/ext/quaternion_common.hpp>
 
@@ -32,7 +34,7 @@ AnimationSystem::AnimationSystem(Scene* scene) : SceneComponent(scene) {
 }
 
 void AnimationSystem::OnPreUpdate() {
-  const float deltaTime = GetScene()->DeltaTime();
+  const float deltaTime = Time::Delta(); 
 
   auto objects = GetScene()->FindObjectsOfType<AnimationComponent>();
   for (auto* object : objects) {

@@ -294,6 +294,7 @@ void InitScene(Scene* mainScene) {
   auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", pbrGltfProg, "Animated Thing");
 
 	mainScene->AddComponent<DebugInspector>();
+  mainScene->AddComponent<AnimationSystem>();
 }
 
 int main(int, char**) {
