@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <cmath>
+#include <malloc.h>
 
 #include <Shader.h>
 
@@ -46,13 +47,13 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 	int uniformNameBufferSize = 0;
 	glGetProgramiv(programHandle, GL_ACTIVE_UNIFORM_MAX_LENGTH, &uniformNameBufferSize);
-	char uniformName[uniformNameBufferSize];
+	char* uniformName = (char*) alloca(sizeof(char) * uniformNameBufferSize);
 
 	// spdlog::info("┬─Uniform buffer count = {}", uniformBufferCount);
 	// spdlog::info("├─Uniform variable count = {}", uniformVariablesCount);
 	// spdlog::info("├─Storage buffer count = {}", storageBufferCount);
 
-	bool freeUniforms[uniformVariablesCount];
+	bool* freeUniforms = (bool*) alloca(sizeof(bool) * uniformVariablesCount);
 	for (int i = 0; i < uniformVariablesCount; i++) {
 		freeUniforms[i] = true;
 	}
@@ -77,7 +78,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, sizeof(bufferProps) / sizeof(GLenum), bufferProps, sizeof(bufferProps) / sizeof(GLenum), nullptr, (int*) &propValues);
 		
-		char nameBuf[propValues.nameLength];
+		char* nameBuf = (char*) alloca(sizeof(char) * propValues.nameLength);
 
 		glGetProgramResourceName(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, propValues.nameLength, nullptr, nameBuf);
 
@@ -89,7 +90,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 //		spdlog::info("│{}├──Binding = {}", isLast ? " " : "│", propValues.binding);
 //		spdlog::info("│{}└┬─Variables count = {}", isLast ? " " : "│", propValues.variablesCount);
 
-		GLint bufferVariables[propValues.variablesCount];
+		GLint* bufferVariables = (GLint*) alloca(sizeof(GLint) * propValues.variablesCount);
 		GLenum variableProp = GL_ACTIVE_VARIABLES;
 
 		glGetProgramResourceiv(programHandle, GL_UNIFORM_BLOCK, uniformBufferIndex, 1, &variableProp, sizeof(bufferVariables) / sizeof(GLint), nullptr, bufferVariables);
@@ -156,14 +157,14 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 
 		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, 3, bufferProps, 3, nullptr, (int*) &propValues);
 
-		char nameBuf[propValues.nameLength];
+		char* nameBuf = (char*) alloca(sizeof(char) * propValues.nameLength);
 		glGetProgramResourceName(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, propValues.nameLength, nullptr, nameBuf);
 
 		bool isLast = storageBufferIndex == storageBufferCount - 1;
 
 //		spdlog::info(" {}┬─Buffer no {} : {}", isLast ? "└" : "├", storageBufferIndex, std::string(nameBuf));
 
-		GLint bufferVars[propValues.bufferVariableCount];
+		GLint* bufferVars = (GLint*) alloca(sizeof(GLint) * propValues.bufferVariableCount);
 		GLenum variableProp = GL_ACTIVE_VARIABLES;
 
 		glGetProgramResourceiv(programHandle, GL_SHADER_STORAGE_BLOCK, storageBufferIndex, 1, &variableProp, sizeof(bufferVars) / sizeof(GLint), nullptr, bufferVars);
@@ -186,7 +187,7 @@ void UniformSpec::CreateFrom(GLuint programHandle) {
 		for (int bufVarIndex = 0; bufVarIndex <  propValues.bufferVariableCount; bufVarIndex++) {
 			glGetProgramResourceiv(programHandle, GL_BUFFER_VARIABLE, bufferVars[bufVarIndex], sizeof(variableProps) / sizeof(GLenum), variableProps, sizeof(variableProps) / sizeof(GLenum), nullptr, (int*) &varPropValues);
 
-			char varNameBuf[varPropValues.nameLength];
+			char* varNameBuf = (char*) alloca(sizeof(char) * varPropValues.nameLength);
 			
 			glGetProgramResourceName(programHandle, GL_BUFFER_VARIABLE, bufferVars[bufVarIndex], varPropValues.nameLength, nullptr, varNameBuf);
 
