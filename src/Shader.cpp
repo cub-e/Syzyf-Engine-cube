@@ -3,6 +3,7 @@
 #include <fstream>
 #include <sstream>
 #include <queue>
+#include <malloc.h>
 
 #include <PreComp.h>
 #include <Material.h>
@@ -221,8 +222,8 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 		code.segments = newCodeSegments;
 	}
 
-	char* segmentsStrings[code.segments.size()];
-	int segmentsLengths[code.segments.size()];
+	char** segmentsStrings = (char**) alloca(sizeof(char*) * code.segments.size());
+	int* segmentsLengths = (int*) alloca(sizeof(int) * code.segments.size());
 
 	for (int i = 0; i < code.segments.size(); i++) {
 		segmentsStrings[i] = code.segments[i].str;
@@ -240,14 +241,14 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 	if (!compileSuccess) {
 		int logLength = 0;
 		glGetShaderiv(shaderHandle, GL_INFO_LOG_LENGTH, &logLength);
-		char compileMsg[logLength];
+		char* compileMsg = (char*) alloca(sizeof(char) * logLength);
 		glGetShaderInfoLog(shaderHandle, logLength, nullptr, compileMsg);
 
 		spdlog::error("Error compiling shader {}:\n{}", filePath.string(), std::string(compileMsg));
 
 		int sourceLength = 0;
 		glGetShaderiv(shaderHandle, GL_SHADER_SOURCE_LENGTH, &sourceLength);
-		char shaderSource[sourceLength];
+		char* shaderSource = (char*)alloca(sizeof(char) * sourceLength);
 
 		glGetShaderSource(shaderHandle, sourceLength, nullptr, shaderSource);
 
@@ -304,7 +305,9 @@ ShaderBase* ShaderBase::Load(fs::path filePath) {
 }
 
 ShaderBase* ShaderBase::Load(fs::path filePath, const ShaderVariantInfo& variantInfo) {
+#ifndef _MSC_VER
 #warning TODO
+#endif
 	return nullptr;
 }
 

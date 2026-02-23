@@ -2,7 +2,7 @@
 
 #include <spdlog/fmt/bundled/format.h>
 
-#include <glm/fwd.hpp>
+#include <glm/glm.hpp>
 
 template<>
 struct fmt::formatter<glm::vec3> : fmt::formatter<std::string> {

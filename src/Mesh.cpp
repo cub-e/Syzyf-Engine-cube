@@ -1,6 +1,8 @@
 #include <Mesh.h>
 
 #include <vector>
+#include <map>
+#include <malloc.h>
 
 #include "VertexSpec.h"
 #include "assimp/Importer.hpp"
@@ -236,7 +238,7 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 	int subMeshCount = 0;
 	
-	int materialRemap[loaded_scene->mNumMaterials];
+	int* materialRemap = (int*) alloca(sizeof(int) * loaded_scene->mNumMaterials);
 	for (int i = 0; i < loaded_scene->mNumMaterials; i++) {
 		materialRemap[i] = -1;
 	}

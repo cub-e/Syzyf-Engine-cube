@@ -146,7 +146,6 @@ private:
 	struct KeyBitMask;
 
 	std::map<int, KeyBitMask> keys;
-	GLFWwindow* window;
 	glm::vec2 prevMouseMovement;
 	bool mouseLocked;
 public:
@@ -164,10 +163,6 @@ public:
 	bool KeyUp(const std::string& key) const;
 	bool KeyUp(char key) const;
 
-	bool KeyRepeated(Key key) const;
-	bool KeyRepeated(const std::string& key) const;
-	bool KeyRepeated(char key) const;
-
 	bool ButtonDown(MouseButton button) const;
 	bool ButtonDown(int button) const;
 
@@ -183,10 +178,6 @@ public:
 
 	glm::vec2 GetMouseMovement();
 	glm::vec2 GetMousePosition();
-
-	GLFWwindow* GetWindow() const;
-
-	void SetWindow(GLFWwindow* window);
 
 	virtual void OnPreUpdate();
 

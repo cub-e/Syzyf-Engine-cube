@@ -3,6 +3,7 @@
 
 #include <algorithm>
 #include <stack>
+#include <malloc.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -27,7 +28,7 @@ name("") {
 
 SceneNode::~SceneNode() {
 	int objectsCount = this->objects.size();
-	GameObject* objectsCopy[objectsCount];
+	GameObject** objectsCopy = (GameObject**) alloca(sizeof(GameObject*) * objectsCount);
 
 	std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
 
@@ -38,7 +39,7 @@ SceneNode::~SceneNode() {
 	this->SetParent(nullptr);
 
 	int childrenCount = this->children.size();
-	SceneNode* childrenCopy[childrenCount];
+	SceneNode** childrenCopy = (SceneNode**) alloca(sizeof(SceneNode*) * childrenCount);
 
 	std::copy(this->children.begin(), this->children.end(), childrenCopy);
 
