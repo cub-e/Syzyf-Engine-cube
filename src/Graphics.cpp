@@ -126,14 +126,10 @@ screenResolution(0) {
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
 	
-	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
-
 	glGenBuffers(1, &this->objectUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->objectUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderObjectUniforms), nullptr, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
-	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
 
 	this->lightSystem = GetScene()->AddComponent<LightSystem>();
 	this->postProcessing = GetScene()->AddComponent<PostProcessingSystem>();
@@ -238,7 +234,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		glBindBuffer(GL_UNIFORM_BUFFER, objectUniformsBuffer);
 		glBufferData(GL_UNIFORM_BUFFER, sizeof(objectUniforms), &objectUniforms, GL_STREAM_DRAW);
 		glBindBuffer(GL_UNIFORM_BUFFER, 0);
-
+		
 		mat->Bind();
 
 		if (params.pass == RenderPassType::Color) {
@@ -318,6 +314,8 @@ void SceneGraphics::BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUn
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(globalUniforms), &globalUniforms, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_UNIFORM_BUFFER, 0);
+	
+	glBindBufferBase(GL_UNIFORM_BUFFER, 0, this->globalUniformsBuffer);
 }
 
 void SceneGraphics::RenderFullscreenFrameQuad() {
@@ -450,6 +448,8 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 	glViewport(params.viewport.x, params.viewport.y, params.viewport.z, params.viewport.w);
 
 	BindGlobalUniformBuffer(uniforms);
+
+	glBindBufferBase(GL_UNIFORM_BUFFER, 1, objectUniformsBuffer);
 
 	if (params.clearDepth) {
 		glClear(GL_DEPTH_BUFFER_BIT);

@@ -25,7 +25,12 @@ inline void Add##MessageName(MessageNode* node, T* object) { \
 	AddMessageReceiverInternal(node, { object, reinterpret_cast<MessageHandle>(&T::MessageName) }, Message::MessageName::id); \
 } \
 
-class MessageReceiver { };
+class MessageReceiver {
+// Force msvc to use the proper pointer representation, unnecessary in all other cases
+#ifdef _MSC_VER
+public: virtual ~MessageReceiver() = default;
+#endif
+};
 class MessageTag { };
 
 enum { COUNTER_BASE = __COUNTER__ };
@@ -108,6 +113,8 @@ public:
 	void AddMessageReceiver(T* obj, SceneNode* owner);
 
 	void RemoveMessageReceiver(MessageReceiver* obj, SceneNode* owner);
+
+	void SwapNode(SceneNode* current, SceneNode* changed);
 };
 
 template<typename TMessage>

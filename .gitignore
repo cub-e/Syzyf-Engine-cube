@@ -10,6 +10,8 @@ CTestTestfile.cmake
 
 [Bb]uild/
 .vscode/
+.vs/
+out/
 res/testing/
 
 # Clang

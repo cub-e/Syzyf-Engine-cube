@@ -1,5 +1,7 @@
 #include <LightSystem.h>
 
+#include <malloc.h>
+
 #include <glm/glm.hpp>
 #include <GLFW/glfw3.h>
 #include <imgui.h>
@@ -264,7 +266,7 @@ void LightSystem::OnPostRender() {
 		}
 	}
 
-	ShadowMapRegion rects[shadowmapTexturesCount];
+	ShadowMapRegion* rects = (ShadowMapRegion*) alloca(sizeof(ShadowMapRegion) * shadowmapTexturesCount);
 
 	int shadowMapIndex = 0;
 	int sizeDivisor = 1 << (int) (

@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <stack>
+#include <malloc.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -23,7 +24,7 @@ name("") {
 
 SceneNode::~SceneNode() {
 	int objectsCount = this->objects.size();
-	GameObject* objectsCopy[objectsCount];
+	GameObject** objectsCopy = (GameObject**) alloca(sizeof(GameObject*) * objectsCount);
 
 	std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
 
@@ -34,7 +35,7 @@ SceneNode::~SceneNode() {
 	this->SetParent(nullptr);
 
 	int childrenCount = this->children.size();
-	SceneNode* childrenCopy[childrenCount];
+	SceneNode** childrenCopy = (SceneNode**) alloca(sizeof(SceneNode*) * childrenCount);
 
 	std::copy(this->children.begin(), this->children.end(), childrenCopy);
 
@@ -117,6 +118,8 @@ SceneNode* SceneNode::GetParent() {
 }
 
 void SceneNode::SetParent(SceneNode* newParent) {
+	GetScene()->ChangeNodeParentInternal(this, newParent);
+
 	if (this->parent) {
 		auto posInParentChildren = std::find(this->parent->children.begin(), this->parent->children.end(), this);
 		if (posInParentChildren != this->parent->children.end()) {
@@ -160,6 +163,16 @@ void SceneNode::DeleteObject(GameObject* obj) {
 	this->scene->DeleteObjectInternal(obj);
 }
 
+void SceneNode::AttachScene(Scene* scene) {
+	this->attachedScenes.push_back(scene);
+
+	GetScene()->AttachSceneToNodeInternal(this, scene);
+}
+
+std::vector<Scene*> SceneNode::GetAttachedScenes() const {
+	return this->attachedScenes;
+}
+
 Scene::Scene() :
 root(nullptr),
 nextSceneNodeID(0),
@@ -167,7 +180,6 @@ nextGameObjectID(0) {
 	this->root = CreateNode("root");
 	this->graphics = AddComponent<SceneGraphics>();
 	this->inputSystem = AddComponent<InputSystem>();
-	this->messageTree.AddNode(this->root);
 }
 
 Scene::~Scene() {
@@ -220,6 +232,34 @@ void Scene::SetGameObjectEnabledInternal(GameObject* obj, bool enabled) {
 	}
 }
 
+void Scene::ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent) {
+	if (newParent != nullptr) {
+		this->messageTree.MoveNode(node, newParent);
+	}
+}
+
+void Scene::AttachSceneToNodeInternal(SceneNode* node, Scene* scene) {
+	scene->messageTree.SwapNode(scene->root, node);
+
+	node->children.append_range(scene->root->children);
+	node->objects.append_range(scene->root->objects);
+
+	scene->root = node;
+
+	if (scene->graphics && scene->graphics != this->graphics) {
+		scene->RemoveComponent<SceneGraphics>();
+	}
+
+	if (scene->inputSystem && scene->inputSystem != this->inputSystem) {
+		scene->RemoveComponent<InputSystem>();
+	}
+
+	scene->graphics = this->graphics;
+	scene->inputSystem = this->inputSystem;
+
+	this->messageTree.AddMessageReceiver(scene, node);
+}
+
 SceneNode* Scene::CreateNode() {
 	return CreateNode(this->root, "");
 }
@@ -233,6 +273,12 @@ SceneNode* Scene::CreateNode(const std::string& name) {
 SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 	SceneNode* result = new SceneNode(this);
 
+	result->id = this->nextSceneNodeID;
+	result->name = name;
+	result->parent = nullptr;
+
+	this->messageTree.AddNode(result);
+
 	if (parent) {
 		result->SetParent(parent);
 	}
@@ -243,10 +289,7 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 		this->root = result;
 	}
 
-	result->id = this->nextSceneNodeID++;
-	result->name = name;
-
-	this->messageTree.AddNode(result);
+	this->nextSceneNodeID += 1;
 
 	return result;
 }

@@ -276,10 +276,16 @@ void InitScene(Scene* mainScene) {
 
 	auto envProbe4 = mainScene->CreateNode(shinyCubeNode, "Reflection Probe");
 	envProbe4->AddObject<ReflectionProbe>();
+	
+	auto starsAttachmentNode = mainScene->CreateNode("Stars Scene Attachment");
+	
+	auto starsScene = new Scene();
 
-	auto starsNode = mainScene->CreateNode("Stars");
+	auto starsNode = starsScene->CreateNode("Stars");
 	starsNode->AddObject<Stars>(1000);
 	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
+
+	starsAttachmentNode->AttachScene(starsScene);
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);

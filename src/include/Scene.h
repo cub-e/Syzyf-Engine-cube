@@ -31,6 +31,7 @@ private:
 
 	Scene* const scene;
 	std::vector<GameObject*> objects;
+	std::vector<Scene*> attachedScenes;
 
 	std::vector<SceneNode*> children;
 	SceneTransform transform;
@@ -95,6 +96,10 @@ public:
 	std::vector<T_GO*> GetAllObjectsInChildren() const;
 
 	void DeleteObject(GameObject* obj);
+
+	void AttachScene(Scene* scene);
+
+	std::vector<Scene*> GetAttachedScenes() const;
 };
 
 class Scene : public MessageReceiver{
@@ -117,6 +122,8 @@ private:
 	void DeleteNodeInternal(SceneNode* node);
 	void SetNodeEnabledInternal(SceneNode* node, bool enabled);
 	void SetGameObjectEnabledInternal(GameObject* obj, bool enabled);
+	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
+	void AttachSceneToNodeInternal(SceneNode* node, Scene* scene);
 public:
 	Scene();
 
@@ -160,6 +167,10 @@ public:
 	template<class T_SC>
 		requires std::derived_from<T_SC, SceneComponent>
 	T_SC* AddComponent();
+
+	template<class T_SC>
+		requires std::derived_from<T_SC, SceneComponent>
+	void RemoveComponent();
 
 	void Update();
 	void Render();
@@ -292,7 +303,7 @@ T_GO* Scene::CreateObjectOn(SceneNode* node, T_Param... params) {
 		}
 	}
 
-	created->id = this->nextSceneNodeID++;
+	created->id = this->nextGameObjectID++;
 
 	created->enabled = true;
 
@@ -353,4 +364,16 @@ T_SC* Scene::AddComponent() {
 	}
 	
 	return component;
+}
+
+template<class T_SC>
+	requires std::derived_from<T_SC, SceneComponent>
+void Scene::RemoveComponent() {
+	T_SC* component = GetComponent<T_SC>();
+
+	if (component != nullptr) {
+		std::erase(this->components, component);
+
+		delete component;
+	}
 }

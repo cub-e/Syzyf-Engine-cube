@@ -125,7 +125,6 @@ float Camera::GetFarPlane() const {
 	return INFINITY;
 }
 
-#warning TODO: Make setters consistent with getters
 void Camera::SetFov(float newFov) {
 	this->perspectiveData.fovyDegrees = newFov;
 }
@@ -134,6 +133,12 @@ void Camera::SetFovRad(float newFovRad) {
 }
 void Camera::SetAspectRatio(float newAspectRatio) {
 	this->perspectiveData.aspectRatio = newAspectRatio;
+
+	const float orthoHeight = this->orthoData.top - this->orthoData.bottom;
+	const float correctWidth = orthoHeight * newAspectRatio;
+
+	this->orthoData.right = correctWidth / 2;
+	this->orthoData.left = correctWidth / -2;
 }
 void Camera::SetNearPlane(float newNearPlane) {
 	this->perspectiveData.nearPlane = newNearPlane;
