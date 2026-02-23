@@ -7,6 +7,9 @@
 #include <imgui.h>
 #include <GLFW/glfw3.h>
 
+#include <Engine.h>
+#include <TimeSystem.h>
+
 constexpr int MouseButtonOffset = 512;
 
 std::map<char, Key> charToKey {
@@ -190,12 +193,15 @@ std::map<Key, const std::string> keyToString {
 };
 
 struct InputSystem::KeyBitMask {
-	uint8_t value;
+	constexpr static int TimeBits = 29;
+	constexpr static int FractionalTimeBits = 10;
+
+	uint32_t value;
 
 	KeyBitMask():
 	value(0) { }
 
-	KeyBitMask(uint8_t value):
+	KeyBitMask(uint32_t value):
 	value(value) { }
 
 	inline bool GetKeyDownBit() const {
@@ -210,8 +216,9 @@ struct InputSystem::KeyBitMask {
 		return value & 4;
 	}
 
-	inline bool GetKeyRepeatedBit() const {
-		return value & 8;
+	inline float GetPressTime() const {
+		int pressTime = this->value >> (32 - TimeBits);
+		return ((float) pressTime) / (1 << FractionalTimeBits);
 	}
 
 	inline void SetKeyDownBit(bool set) {
@@ -229,15 +236,16 @@ struct InputSystem::KeyBitMask {
 		value |= ((uint8_t) set) << 2;
 	}
 
-	inline void SetKeyRepeatedBit(bool set) {
-		value &= ~8;
-		value |= ((uint8_t) set) << 3;
+	inline void SetPressTime(float pressTime) {
+		int timeRep = (int) (pressTime * (1 << FractionalTimeBits)) << (32 - TimeBits);
+		
+		this->value &= (1 << (32 - TimeBits)) - 1;
+		this->value |= timeRep;
 	}
 };
 
 InputSystem::InputSystem(Scene* scene):
 SceneComponent(scene),
-window(nullptr),
 prevMouseMovement(0),
 mouseLocked(false) {
 	keys = {
@@ -460,36 +468,6 @@ bool InputSystem::KeyUp(char key) const {
 	return keyMask != this->keys.end() && keyMask->second.GetKeyUpBit();
 }
 
-bool InputSystem::KeyRepeated(Key key) const {
-	auto keyMask = this->keys.find((int) key);
-
-	return keyMask != this->keys.end() && keyMask->second.GetKeyRepeatedBit();
-}
-
-bool InputSystem::KeyRepeated(const std::string& key) const {
-	auto keyCode = charToKey.find(toupper(key.front()));
-
-	if (keyCode == charToKey.end()) {
-		return false;
-	}
-
-	auto keyMask = this->keys.find((int) keyCode->second);
-
-	return keyMask != this->keys.end() && keyMask->second.GetKeyRepeatedBit();
-}
-
-bool InputSystem::KeyRepeated(char key) const {
-	auto keyCode = charToKey.find(toupper(key));
-
-	if (keyCode == charToKey.end()) {
-		return false;
-	}
-
-	auto keyMask = this->keys.find((int) keyCode->second);
-
-	return keyMask != this->keys.end() && keyMask->second.GetKeyRepeatedBit();
-}
-
 bool InputSystem::ButtonDown(MouseButton button) const {
 	auto keyMask = this->keys.find((int) button + MouseButtonOffset);
 
@@ -534,21 +512,21 @@ void InputSystem::SetMouseLocked(bool locked) {
 	static glm::vec2 prevMousePos;
 
 	if (locked) {
-		glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+		glfwSetInputMode(Engine::GetWindow(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 		
 		double xpos, ypos;
-		glfwGetCursorPos(this->window, &xpos, &ypos);
+		glfwGetCursorPos(Engine::GetWindow(), &xpos, &ypos);
 		
 		prevMousePos = glm::vec2(xpos, ypos);
 
-		glfwSetCursorPos(this->window, 0, 0);
+		glfwSetCursorPos(Engine::GetWindow(), 0, 0);
 
 		this->prevMouseMovement = glm::vec2(0, 0);
 	}
 	else {
-		glfwSetInputMode(this->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+		glfwSetInputMode(Engine::GetWindow(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 
-		glfwSetCursorPos(this->window, prevMousePos.x, prevMousePos.y);
+		glfwSetCursorPos(Engine::GetWindow(), prevMousePos.x, prevMousePos.y);
 	}
 
 	this->mouseLocked = locked;
@@ -570,41 +548,32 @@ glm::vec2 InputSystem::GetMousePosition() {
 	return this->prevMouseMovement;
 }
 
-GLFWwindow* InputSystem::GetWindow() const {
-	return this->window;
-}
-
-void InputSystem::SetWindow(GLFWwindow* window) {
-	this->window = window;
-}
-
 void InputSystem::OnPreUpdate() {
-	if (this->window == nullptr) {
-		return;
-	}
-
 	for (auto& key : this->keys) {
 		int keyCode = key.first % MouseButtonOffset;
 
 		KeyBitMask mask = key.second;
 
-		int pressed = (key.first < MouseButtonOffset ? glfwGetKey(this->window, keyCode) : glfwGetMouseButton(this->window, keyCode));
+		bool pressed = (key.first < MouseButtonOffset ? glfwGetKey(Engine::GetWindow(), keyCode) : glfwGetMouseButton(Engine::GetWindow(), keyCode));
 
-		mask.SetKeyUpBit(!pressed > 0 && mask.GetKeyPressedBit());
-		mask.SetKeyDownBit(pressed > 0 && !mask.GetKeyPressedBit());
-		mask.SetKeyPressedBit(pressed > 0);
-		mask.SetKeyRepeatedBit(pressed > 1);
+		if (pressed ^ mask.GetKeyPressedBit()) {
+			mask.SetPressTime(Time::Current());
+		}
 
+		mask.SetKeyUpBit(!pressed && mask.GetKeyPressedBit());
+		mask.SetKeyDownBit(pressed && !mask.GetKeyPressedBit());
+		mask.SetKeyPressedBit(pressed);
+		
 		key.second = mask;
 	}
 
 	double xpos, ypos;
-	glfwGetCursorPos(this->window, &xpos, &ypos);
+	glfwGetCursorPos(Engine::GetWindow(), &xpos, &ypos);
 	
 	this->prevMouseMovement = glm::vec2(xpos, ypos);
 	
 	if (this->mouseLocked) {
-		glfwSetCursorPos(this->window, 0, 0);
+		glfwSetCursorPos(Engine::GetWindow(), 0, 0);
 
 		this->prevMouseMovement.y = -this->prevMouseMovement.y;
 	}
@@ -630,10 +599,10 @@ void InputSystem::DrawImGui() {
 
 				if (strlen(searchString) == 0 || keyName.contains(searchString)) {
 					if (ImGui::TreeNode(keyName.c_str())) {
-						ImGui::TextUnformatted(std::format("Key Down:     {}", pair.second.GetKeyDownBit()).c_str());
-						ImGui::TextUnformatted(std::format("Key Pressed:  {}", pair.second.GetKeyPressedBit()).c_str());
-						ImGui::TextUnformatted(std::format("Key Up:       {}", pair.second.GetKeyUpBit()).c_str());
-						ImGui::TextUnformatted(std::format("Key Repeated: {}", pair.second.GetKeyRepeatedBit()).c_str());
+						ImGui::Text("%s", std::format("Key Down:     {}", pair.second.GetKeyDownBit()).c_str());
+						ImGui::Text("%s", std::format("Key Pressed:  {}", pair.second.GetKeyPressedBit()).c_str());
+						ImGui::Text("%s", std::format("Key Up:       {}", pair.second.GetKeyUpBit()).c_str());
+						ImGui::Text("%s", std::format("Key Time:     {}", pair.second.GetPressTime()).c_str());
 
 						ImGui::TreePop();
 					}
@@ -649,30 +618,28 @@ void InputSystem::DrawImGui() {
 				const KeyBitMask keyValue = this->keys[mouseButton + MouseButtonOffset];
 	
 				if (ImGui::TreeNode(keyName.c_str())) {
-					ImGui::TextUnformatted(std::format("Button Down:     {}", keyValue.GetKeyDownBit()).c_str());
-					ImGui::TextUnformatted(std::format("Button Pressed:  {}", keyValue.GetKeyPressedBit()).c_str());
-					ImGui::TextUnformatted(std::format("Button Up:       {}", keyValue.GetKeyUpBit()).c_str());
-					ImGui::TextUnformatted(std::format("Button Repeated: {}", keyValue.GetKeyRepeatedBit()).c_str());
+					ImGui::Text("%s", std::format("Button Down:     {}", keyValue.GetKeyDownBit()).c_str());
+					ImGui::Text("%s", std::format("Button Pressed:  {}", keyValue.GetKeyPressedBit()).c_str());
+					ImGui::Text("%s", std::format("Button Up:       {}", keyValue.GetKeyUpBit()).c_str());
+					ImGui::Text("%s", std::format("Button Time:     {}", keyValue.GetPressTime()).c_str());
 	
 					ImGui::TreePop();
 				}
 			}
 			
-			ImGui::TextUnformatted(std::format("Mouse Locked: {}", this->mouseLocked).c_str());
-			ImGui::TextUnformatted(std::format("Mouse Movement: ({:.3f}, {:.3f})",
+			ImGui::Text("%s", std::format("Mouse Locked: {}", this->mouseLocked).c_str());
+			ImGui::Text("%s", std::format("Mouse Movement: ({:.3f}, {:.3f})",
 				this->mouseLocked ? this->prevMouseMovement.x : 0,
 				this->mouseLocked ? this->prevMouseMovement.y : 0
 			).c_str());
 	
-			ImGui::TextUnformatted(std::format("Mouse Position: ({:.3f}, {:.3f})",
+			ImGui::Text("%s", std::format("Mouse Position: ({:.3f}, {:.3f})",
 				this->mouseLocked ? 0 : this->prevMouseMovement.x,
 				this->mouseLocked ? 0 : this->prevMouseMovement.y
 			).c_str());
 			
 			ImGui::TreePop();
 		}
-
-
 
 		ImGui::TreePop();
 	}

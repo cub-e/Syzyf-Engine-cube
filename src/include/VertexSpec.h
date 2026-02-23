@@ -29,59 +29,11 @@ private:
 	
 	void SetInputAt(int index, VertexInput input);
 public:
-	constexpr static VertexInputType TypeFromSemantic(const std::string& s) {
-		const static std::map<std::string, VertexInputType> nameToTypeMap({
-			{ "POSITION", VertexInputType::Position },
-			{ "NORMAL", VertexInputType::Normal },
-			{ "BINORMAL", VertexInputType::Binormal },
-			{ "TANGENT", VertexInputType::Tangent },
-			{ "UV1", VertexInputType::UV1 },
-			{ "UV2", VertexInputType::UV2 },
-			{ "COLOR", VertexInputType::Color },
-		});
+	static VertexInputType TypeFromSemantic(const std::string& s);
 
-		if (nameToTypeMap.contains(s)) {
-			return nameToTypeMap.at(s);
-		}
+	static VertexInputType TypeFromName(const std::string& s);
 
-		return VertexInputType::Invalid;
-	}
-	constexpr static VertexInputType TypeFromName(const std::string& s) {
-		const static std::map<std::string, VertexInputType> nameToTypeMap({
-			{ "Position", VertexInputType::Position },
-			{ "Normal", VertexInputType::Normal },
-			{ "Binormal", VertexInputType::Binormal },
-			{ "Tangent", VertexInputType::Tangent },
-			{ "UV1", VertexInputType::UV1 },
-			{ "UV2", VertexInputType::UV2 },
-			{ "Color", VertexInputType::Color },
-		});
-
-		if (nameToTypeMap.contains(s)) {
-			return nameToTypeMap.at(s);
-		}
-
-		return VertexInputType::Invalid;
-	}
-	constexpr static const std::string& TypeToName(VertexInputType t) {
-		static std::map<VertexInputType, std::string> nameToTypeMap({
-			{ VertexInputType::Invalid, "Invalid" },
-			{ VertexInputType::Position, "Position" },
-			{ VertexInputType::Normal, "Normal" },
-			{ VertexInputType::Binormal, "Binormal" },
-			{ VertexInputType::Tangent, "Tangent" },
-			{ VertexInputType::UV1, "UV1" },
-			{ VertexInputType::UV2, "UV2" },
-			{ VertexInputType::Color, "Color" },
-		});
-
-		if (nameToTypeMap.contains(t)) {
-			return nameToTypeMap[t];
-		}
-
-		return nameToTypeMap[VertexInputType::Invalid];
-	}
-	
+	static const std::string& TypeToName(VertexInputType t);
 
 	VertexSpec(std::initializer_list<VertexInput> inputs);
 	VertexSpec(std::vector<VertexInput> inputs);
