@@ -248,12 +248,7 @@ void Scene::ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent) {
 }
 
 void Scene::AttachSceneToNodeInternal(SceneNode* node, Scene* scene) {
-	scene->messageTree.SwapNode(scene->root, node);
-
-	node->children.append_range(scene->root->children);
-	node->objects.append_range(scene->root->objects);
-
-	scene->root = node;
+	node->children.push_back(scene->root);
 
 	if (scene->graphics && scene->graphics != this->graphics) {
 		scene->RemoveComponent<SceneGraphics>();
