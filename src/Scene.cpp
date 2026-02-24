@@ -103,9 +103,11 @@ bool SceneNode::IsEnabled() const {
 }
 void SceneNode::SetEnabled(bool value) {
 	if (this->enabled != value) {
-		this->enabled = value;
+		this->enabled = true;
 
 		GetScene()->SetNodeEnabledInternal(this, value);
+
+		this->enabled = value;
 	}
 }
 
@@ -343,6 +345,15 @@ void Scene::Render() {
 	}
 }
 
+void Scene::DrawGizmos() {
+	this->messageTree.PropagateMessage<Message::DrawGizmos>(this->root);
+}
+void Scene::OnEnable() {
+	this->messageTree.PropagateMessage<Message::OnEnable>(this->root);
+}
+void Scene::OnDisable() {
+	this->messageTree.PropagateMessage<Message::OnDisable>(this->root);
+}
 
 void Scene::DrawImGui() {
 	for (auto& component: this->components) {

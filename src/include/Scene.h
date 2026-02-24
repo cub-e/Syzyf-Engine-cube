@@ -174,6 +174,10 @@ public:
 
 	void Update();
 	void Render();
+	void DrawGizmos();
+	void OnEnable();
+	void OnDisable();
+
 	void DrawImGui();
 };
 
