@@ -125,6 +125,8 @@ private:
 	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
 	void AttachSceneToNodeInternal(SceneNode* node, Scene* scene);
 public:
+	static Scene* CreateStandaloneScene();
+
 	Scene();
 
 	~Scene();

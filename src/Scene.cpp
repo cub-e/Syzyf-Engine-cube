@@ -175,13 +175,20 @@ std::vector<Scene*> SceneNode::GetAttachedScenes() const {
 	return this->attachedScenes;
 }
 
+Scene* Scene::CreateStandaloneScene() {
+	Scene* created = new Scene();
+
+	created->graphics = created->AddComponent<SceneGraphics>();
+	created->inputSystem = created->AddComponent<InputSystem>();
+
+	return created;
+}
+
 Scene::Scene() :
 root(nullptr),
 nextSceneNodeID(0),
 nextGameObjectID(0) {
 	this->root = CreateNode("root");
-	this->graphics = AddComponent<SceneGraphics>();
-	this->inputSystem = AddComponent<InputSystem>();
 }
 
 Scene::~Scene() {
@@ -333,6 +340,10 @@ void Scene::Update() {
 }
 
 void Scene::Render() {
+	if (this->GetGraphics() == nullptr) {
+		return;
+	}
+
 	for (auto& component: this->components) {
 		component->OnPreRender();
 	}
