@@ -98,6 +98,7 @@ public:
 	void DeleteObject(GameObject* obj);
 
 	void AttachScene(Scene* scene);
+	void DetachScene(Scene* scene);
 
 	std::vector<Scene*> GetAttachedScenes() const;
 };
@@ -124,6 +125,7 @@ private:
 	void SetGameObjectEnabledInternal(GameObject* obj, bool enabled);
 	void ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent);
 	void AttachSceneToNodeInternal(SceneNode* node, Scene* scene);
+	void DetachSceneFromNodeInternal(SceneNode* node, Scene* scene);
 public:
 	static Scene* CreateStandaloneScene();
 
@@ -173,6 +175,10 @@ public:
 	template<class T_SC>
 		requires std::derived_from<T_SC, SceneComponent>
 	void RemoveComponent();
+
+	void QueueDelete(SceneNode* node);
+	void QueueDelete(GameObject* object);
+	void QueueDelete(Scene* scene);
 
 	void Update();
 	void Render();

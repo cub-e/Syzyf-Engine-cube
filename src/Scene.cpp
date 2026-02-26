@@ -171,6 +171,12 @@ void SceneNode::AttachScene(Scene* scene) {
 	GetScene()->AttachSceneToNodeInternal(this, scene);
 }
 
+void SceneNode::DetachScene(Scene* scene) {
+	std::erase(this->attachedScenes, scene);
+
+	GetScene()->DetachSceneFromNodeInternal(this, scene);
+}
+
 std::vector<Scene*> SceneNode::GetAttachedScenes() const {
 	return this->attachedScenes;
 }
@@ -193,6 +199,10 @@ nextGameObjectID(0) {
 
 Scene::~Scene() {
 	this->resources.Purge();
+
+	if (this->root->parent) {
+		this->root->parent->DetachScene(this);
+	}
 
 	delete this->root;
 
@@ -249,6 +259,7 @@ void Scene::ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent) {
 
 void Scene::AttachSceneToNodeInternal(SceneNode* node, Scene* scene) {
 	node->children.push_back(scene->root);
+	scene->root->parent = node;
 
 	if (scene->graphics && scene->graphics != this->graphics) {
 		scene->RemoveComponent<SceneGraphics>();
@@ -262,6 +273,12 @@ void Scene::AttachSceneToNodeInternal(SceneNode* node, Scene* scene) {
 	scene->inputSystem = this->inputSystem;
 
 	this->messageTree.AddMessageReceiver(scene, node);
+}
+
+void Scene::DetachSceneFromNodeInternal(SceneNode* node, Scene* scene) {
+	std::erase(node->children, scene->root);
+
+	this->messageTree.RemoveMessageReceiver(scene, node);
 }
 
 SceneNode* Scene::CreateNode() {

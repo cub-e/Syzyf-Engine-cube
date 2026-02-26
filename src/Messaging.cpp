@@ -81,15 +81,22 @@ void MessageTree::AddMessageReceiverInternal(MessageNode* node, Messenger msg, i
 	added->content.msg = msg;
 	added->type = type;
 	added->parent = node;
+	
+	spdlog::info("added {:x}", (intptr_t) added);
+	spdlog::info("added type {}", added->type);
+	spdlog::info("added node {}", node->content.node->GetName());
 
 	node->children.push_back(added);
 }
 
 void MessageTree::RemoveNode(MessageNode* node) {
 	for (auto child : node->children) {
-		if (child->type == 0) {
-			RemoveNode(child);
-		}
+		spdlog::info("deleted {:x}", (intptr_t) child);
+		spdlog::info("deleted type {}", child->type);
+		spdlog::info("deleted node {}", node->content.node->GetName());
+		// if (child->type == 0) {
+		// 	RemoveNode(child);
+		// }
 
 		delete child;
 	}
@@ -99,7 +106,9 @@ MessageTree::MessageTree():
 root(nullptr) { }
 
 MessageTree::~MessageTree() {
-	RemoveNode(root);
+	if (root != nullptr) {
+		RemoveNode(root);
+	}
 }
 
 void MessageTree::AddNode(SceneNode* node) {
@@ -138,7 +147,7 @@ void MessageTree::RemoveNode(SceneNode* node) {
 
 	RemoveNode(removed);
 
-	if (removed) {
+	if (removed->parent) {
 		std::erase(removed->parent->children, removed);
 	}
 }
@@ -180,15 +189,22 @@ void MessageTree::RemoveMessageReceiver(MessageReceiver* obj, SceneNode* owner) 
 		return;
 	}
 
+	std::vector<MessageNode*> newChildren;
+
+	spdlog::info("Removing message receiver");
+	spdlog::info("Old size: {}", ownerNode->children.size());
 	for (auto child : ownerNode->children) {
 		if (child->type != 0 && child->content.msg.receiver == obj) {
 			delete child;
 		}
+		else {
+			newChildren.push_back(child);
+		}
 	}
 
-	std::erase_if(ownerNode->children, [obj](MessageNode* child) -> bool {
-		return child->type != 0 && child->content.msg.receiver == obj;
-	});
+	ownerNode->children = newChildren;
+
+	spdlog::info("New size: {}", ownerNode->children.size());
 }
 
 void MessageTree::SwapNode(SceneNode* current, SceneNode* changed) {
