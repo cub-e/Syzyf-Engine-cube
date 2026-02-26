@@ -2,8 +2,8 @@
 
 #include <concepts>
 #include <vector>
-#include <list>
 #include <typeinfo>
+#include <queue>
 
 #include <spdlog/spdlog.h>
 
@@ -101,6 +101,8 @@ public:
 	void DetachScene(Scene* scene);
 
 	std::vector<Scene*> GetAttachedScenes() const;
+
+	static void operator delete(SceneNode* ptr, std::destroying_delete_t);
 };
 
 class Scene : public MessageReceiver{
@@ -118,6 +120,9 @@ private:
 
 	InputSystem* inputSystem;
 	SceneGraphics* graphics;
+
+	std::queue<MessageReceiver*> deletedReceiversQueue;
+	std::queue<SceneNode*> deletedNodesQueue;
 
 	void DeleteObjectInternal(GameObject* obj);
 	void DeleteNodeInternal(SceneNode* node);
@@ -187,6 +192,8 @@ public:
 	void OnDisable();
 
 	void DrawImGui();
+
+	static void operator delete(Scene* ptr, std::destroying_delete_t);
 };
 
 #include <GameObject.h>

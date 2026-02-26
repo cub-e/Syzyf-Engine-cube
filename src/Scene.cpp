@@ -181,6 +181,10 @@ std::vector<Scene*> SceneNode::GetAttachedScenes() const {
 	return this->attachedScenes;
 }
 
+void SceneNode::operator delete(SceneNode* ptr, std::destroying_delete_t) {
+	ptr->GetScene()->QueueDelete(ptr);
+}
+
 Scene* Scene::CreateStandaloneScene() {
 	Scene* created = new Scene();
 
@@ -339,6 +343,18 @@ void Scene::DeleteNode(SceneNode* node) {
 	delete node;
 }
 
+void Scene::QueueDelete(SceneNode* node) {
+	this->deletedNodesQueue.push(node);
+	node->SetEnabled(false);
+}
+void Scene::QueueDelete(GameObject* object) {
+	this->deletedReceiversQueue.push(object);
+	object->SetEnabled(false);
+}
+void Scene::QueueDelete(Scene* scene) {
+	this->deletedReceiversQueue.push(scene);
+}
+
 void Scene::Update() {
 	for (auto& component: this->components) {
 		component->OnPreUpdate();
@@ -348,6 +364,20 @@ void Scene::Update() {
 
 	for (auto& component: this->components) {
 		component->OnPostUpdate();
+	}
+
+	while(!this->deletedReceiversQueue.empty()) {
+		auto deleted = this->deletedReceiversQueue.front();
+		deleted->~MessageReceiver();
+		std::free(deleted);
+		this->deletedReceiversQueue.pop();
+	}
+	
+	while(!this->deletedNodesQueue.empty()) {
+		auto deleted = this->deletedNodesQueue.front();
+		deleted->~SceneNode();
+		std::free(deleted);
+		this->deletedNodesQueue.pop();
 	}
 }
 
@@ -381,5 +411,11 @@ void Scene::OnDisable() {
 void Scene::DrawImGui() {
 	for (auto& component: this->components) {
 		component->DrawImGui();
+	}
+}
+
+void Scene::operator delete(Scene* ptr, std::destroying_delete_t) {
+	if (ptr->root->parent) {
+		ptr->root->parent->GetScene()->QueueDelete(ptr);
 	}
 }

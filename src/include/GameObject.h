@@ -49,6 +49,8 @@ public:
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
 	bool TryGetObject(T_GO*& target) const;
+
+	static void operator delete(GameObject* ptr, std::destroying_delete_t);
 };
 
 template<class T_GO>

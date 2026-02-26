@@ -26,10 +26,7 @@ inline void Add##MessageName(MessageNode* node, T* object) { \
 } \
 
 class MessageReceiver {
-// Force msvc to use the proper pointer representation, unnecessary in all other cases
-#ifdef _MSC_VER
 public: virtual ~MessageReceiver() = default;
-#endif
 };
 class MessageTag { };
 
