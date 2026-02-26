@@ -403,6 +403,10 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 void SceneGraphics::Render() {
 	Camera* mainCamera = Camera::GetMainCamera();
 
+	if (mainCamera == nullptr) {
+		return;
+	}
+
 	ShaderGlobalUniforms globalUniforms;
 	globalUniforms.Global_ViewMatrix = mainCamera->ViewMatrix();
 	globalUniforms.Global_ProjectionMatrix = mainCamera->ProjectionMatrix();
