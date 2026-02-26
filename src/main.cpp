@@ -19,6 +19,9 @@
 #include <Debug.h>
 #include <InputSystem.h>
 #include <Engine.h>
+#include <spdlog/spdlog.h>
+
+class AnimatedThingTag : public GameObject {};
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -56,6 +59,14 @@ public:
 			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
+
+      if (GetScene()->Input()->KeyPressed(Key::Enter)) {
+        auto* thing = this->GetScene()->FindObjectsOfType<AnimatedThingTag>().front();
+        if (thing) {
+          auto* animationObject = thing->GetObject<AnimationComponent>();
+          animationObject->Play("pivotAction");
+        }
+      }
 	
 			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
@@ -292,6 +303,7 @@ void InitScene(Scene* mainScene) {
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
 	).Link();
   auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", pbrGltfProg, "Animated Thing");
+  tvsGltfImporterNode->AddObject<AnimatedThingTag>();
 
 	mainScene->AddComponent<DebugInspector>();
   mainScene->AddComponent<AnimationSystem>();

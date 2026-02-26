@@ -102,6 +102,7 @@ void DrawNodeImGui(SceneNode* node) {
             ImGui::Text("%s", std::format("Progress: {}", animation.timeActive).c_str());
             ImGui::Checkbox("Playing", &animation.playing);
             ImGui::Checkbox("Looping", &animation.looping);
+            ImGui::DragFloat("Speed", &animation.speed, 1.0f, 0.0f, 5.0f, "%.2f");
             // animation.data.tracks.front().inputs add this maybe
             ImGui::TreePop();
           }

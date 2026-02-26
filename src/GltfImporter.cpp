@@ -73,7 +73,6 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProg
   auto* animationComponent = root->GetObject<AnimationComponent>();
   animationComponent->animations.reserve(asset->animations.size());
     for (auto& gltfAnimation : asset->animations) {
-      spdlog::warn("Animation: {} added", gltfAnimation.name);
       auto animation = LoadAnimation(sceneNodes, gltfAnimation, asset.get());
       if (animation.has_value()) {
         animationComponent->animations.push_back(std::move(animation.value()));

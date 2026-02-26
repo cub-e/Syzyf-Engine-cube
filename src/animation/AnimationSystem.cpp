@@ -42,7 +42,7 @@ void AnimationSystem::OnPreUpdate() {
       if (!animation.playing)
         continue;
 
-      animation.timeActive += deltaTime;
+      animation.timeActive += deltaTime * animation.speed;
 
       spdlog::info("Animation: {}, duration: {}, timeactive: {}", animation.data.name, animation.data.duration, animation.timeActive);
       if (animation.timeActive >= animation.data.duration) {
