@@ -93,6 +93,7 @@ std::optional<AnimationComponent::Animation> GltfImporter::LoadAnimation(
   AnimationComponent::Animation animation;
   animation.data.name = gltfAnimation.name;
   animation.data.duration = 0.0f;
+  animation.currentKeyframes.resize(gltfAnimation.channels.size());
   
   for (std::size_t i = 0; i < gltfAnimation.channels.size(); ++i) {
     fastgltf::AnimationChannel& channel = gltfAnimation.channels[i];

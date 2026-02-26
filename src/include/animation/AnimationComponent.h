@@ -33,9 +33,12 @@ public:
   };
 
   struct Animation {
-    AnimationData data;
-    
+    AnimationData data;    
+
     float timeActive = 0.0f;
+    // Per track 
+    std::vector<size_t> currentKeyframes;
+
     float speed = 1.0f;
 
     bool playing = false;

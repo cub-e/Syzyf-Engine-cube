@@ -4,7 +4,6 @@
 #include "TimeSystem.h"
 #include "Scene.h"
 
-#include <algorithm>
 #include <glm/ext/quaternion_common.hpp>
 
 glm::quat cubicSpline(const glm::quat previousPoint, const glm::quat previousTangent, const glm::quat nextPoint, const glm::quat nextTangent, const float interpolationValue) {
@@ -46,7 +45,9 @@ void AnimationSystem::OnPreUpdate() {
 
       spdlog::info("Animation: {}, duration: {}, timeactive: {}", animation.data.name, animation.data.duration, animation.timeActive);
       if (animation.timeActive >= animation.data.duration) {
-        spdlog::info("Animation over");
+        for (std::size_t& i : animation.currentKeyframes) {
+          i = 0;
+        }
         if (animation.looping) {
           animation.timeActive = 0.0f;
         } else {
@@ -58,26 +59,23 @@ void AnimationSystem::OnPreUpdate() {
       for (std::size_t i = 0; i < animation.data.tracks.size(); ++i) {
         auto& track = animation.data.tracks[i];
 
-        auto upper = std::upper_bound(track.inputs.begin(), track.inputs.end(), animation.timeActive);
-        std::size_t upperIndex = std::distance(track.inputs.begin(), upper);
         std::size_t lowerIndex = 0;
-
-        // Because of how this is done this will interpolate the values for no reason sometimes but maybe it doesn't matter
-        // Checks if the track hasn't started yet and sets the values to that of the first keyframe
-        if (upperIndex == 0) {
+        std::size_t upperIndex = 0;
+        if (animation.timeActive < track.inputs.front()) {
           lowerIndex = 0;
-        // Checks if the track ended, set's the value to the last keyframe
-        } else if (upper == track.inputs.end()) {
-          upperIndex = track.inputs.size() - 1;
+          upperIndex = 0;
+        } else if (animation.timeActive >= track.inputs.back()) {
           lowerIndex = track.inputs.size() - 1;
+          upperIndex = lowerIndex;
         } else {
-          // Animation plays normally
-          lowerIndex = upperIndex - 1;
-        }
+          while (animation.currentKeyframes[i] < track.inputs.size() - 1
+            && animation.timeActive >= track.inputs[animation.currentKeyframes[i] + 1]) {
+            animation.currentKeyframes[i] += 1;
+          }
 
-        const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
-        const float keyFrameTimeActive = animation.timeActive - track.inputs[lowerIndex];
-        const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
+          lowerIndex = animation.currentKeyframes[i];
+          upperIndex = animation.currentKeyframes[i] + 1;
+        }
 
         switch (track.property) {
           case AnimationComponent::Property::ROTATION:
@@ -97,6 +95,10 @@ void AnimationSystem::OnPreUpdate() {
                 track.target->LocalTransform().Rotation() = rotation;
                 break;
               }
+
+              const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
+              const float keyFrameTimeActive = animation.timeActive - track.inputs[lowerIndex];
+              const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
 
               glm::quat upper = {
                 track.outputs[upperIndex * 4 + 3],
@@ -159,6 +161,10 @@ void AnimationSystem::OnPreUpdate() {
                 break;
               }
 
+              const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
+              const float keyFrameTimeActive = animation.timeActive - track.inputs[lowerIndex];
+              const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
+
               glm::vec3 upper = {
                 track.outputs[upperIndex * 3],
                 track.outputs[upperIndex * 3 + 1],
@@ -186,9 +192,9 @@ void AnimationSystem::OnPreUpdate() {
 
                   glm::vec3 upperInputTangent = upper;
                   glm::vec3 upperValue = {
-                    track.outputs[upperIndex * 4 + 3],
-                    track.outputs[upperIndex * 4 + 4],
-                    track.outputs[upperIndex * 4 + 5],
+                    track.outputs[upperIndex * 3 + 3],
+                    track.outputs[upperIndex * 3 + 4],
+                    track.outputs[upperIndex * 3 + 5],
                   };
 
                   glm::vec3 previousTangent = deltaTime * lowerOutputTangent;
@@ -215,6 +221,10 @@ void AnimationSystem::OnPreUpdate() {
                 track.target->LocalTransform().Scale() = scale;
                 break;
               }
+
+              const float keyFrameDuration = track.inputs[upperIndex] - track.inputs[lowerIndex];
+              const float keyFrameTimeActive = animation.timeActive - track.inputs[lowerIndex];
+              const float interpolationValue = keyFrameTimeActive / keyFrameDuration;
 
               glm::vec3 upper = {
                 track.outputs[upperIndex * 3],
@@ -243,9 +253,9 @@ void AnimationSystem::OnPreUpdate() {
 
                   glm::vec3 upperInputTangent = upper;
                   glm::vec3 upperValue = {
-                    track.outputs[upperIndex * 4 + 3],
-                    track.outputs[upperIndex * 4 + 4],
-                    track.outputs[upperIndex * 4 + 5],
+                    track.outputs[upperIndex * 3 + 3],
+                    track.outputs[upperIndex * 3 + 4],
+                    track.outputs[upperIndex * 3 + 5],
                   };
 
                   glm::vec3 previousTangent = deltaTime * lowerOutputTangent;
