@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Texture.h"
+
 #include <filesystem>
 
 #include <fastgltf/core.hpp>
@@ -7,8 +9,6 @@
 class Scene;
 class SceneNode;
 class Material;
-class Texture2D;
-class TextureParams;
 class Mesh;
 
 class GltfImporter {
@@ -21,4 +21,7 @@ private:
   static Mesh* LoadMesh(fastgltf::Mesh&, fastgltf::Asset&, std::vector<Material*>& materials);
 
   static Texture2D* LoadImage(Scene* scene, fastgltf::Asset& asset, fastgltf::Image& image, const TextureParams loadParams);
+
+  static TextureFilter GltfFilterToTextureFilter(fastgltf::Filter filter);
+  static TextureWrap GltfWrapToTextureWrap(fastgltf::Wrap);
 };

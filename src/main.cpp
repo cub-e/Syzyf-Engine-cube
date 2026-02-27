@@ -1,5 +1,6 @@
 #include "GltfImporter.h"
 
+#include "TimeSystem.h"
 #include "imgui.h"
 #include <Formatters.h>
 #include <Shader.h>
@@ -26,7 +27,7 @@ private:
 	float rotation;
 	bool movementEnabled;
 	int mode;
-	float movementSpeed = 0.1f;
+	float movementSpeed = 10.0f;
 	float mouseSensitivity = 1.0f;
 public:
 	Mover() {
@@ -70,7 +71,7 @@ public:
 			}
 
 			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
-			this->GlobalTransform().Position() += movement * this->movementSpeed;
+			this->GlobalTransform().Position() += movement * this->movementSpeed * Time::Delta();
 			this->GlobalTransform().Rotation() = glm::angleAxis(
 				glm::radians(this->rotation), glm::vec3(0, 1, 0)
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
@@ -287,8 +288,9 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
   // auto* tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/tvs/tvs.glb", pbrGltfProg, "tvs");
+  auto* sponzaNewNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/main_sponza/NewSponza_Main_glTF_003.gltf", "Sponza New");
   
-  auto* testGltfSceneNode = GltfImporter::LoadScene(mainScene, "./res/models/sponza/Sponza.gltf");
+  // auto* testGltfSceneNode = GltfImporter::LoadScene(mainScene, "./res/models/sponza/Sponza.gltf");
 
 	mainScene->AddComponent<DebugInspector>();
 }

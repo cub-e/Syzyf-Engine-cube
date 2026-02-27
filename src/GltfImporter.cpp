@@ -330,6 +330,50 @@ result = Texture2D::Load(data, length, loadParams);
   return result;
 }
 
+TextureFilter GltfFilterToTextureFilter(fastgltf::Filter filter) {
+  switch (filter) {
+    case fastgltf::Filter::Linear:
+      return TextureFilter::Linear;
+    case fastgltf::Filter::LinearMipMapLinear:
+      return TextureFilter::LinearMipmapLinear;
+    case fastgltf::Filter::LinearMipMapNearest:
+      return TextureFilter::LinearMipmapNearest;
+    case fastgltf::Filter::Nearest:
+      return TextureFilter::Nearest;
+    case fastgltf::Filter::NearestMipMapLinear:
+      return TextureFilter::NearestMipmapLinear;
+    case fastgltf::Filter::NearestMipMapNearest:
+      return TextureFilter::NearestMipmapNearest;
+    default:
+      return TextureFilter::Linear;
+  }
+}
+
+TextureWrap GltfWrapToTextureWrap(fastgltf::Wrap wrap) {
+  switch (wrap) {
+    case fastgltf::Wrap::ClampToEdge:
+      return TextureWrap::Clamp;
+    case fastgltf::Wrap::MirroredRepeat:
+      return TextureWrap::MirrorRepeat;
+    case fastgltf::Wrap::Repeat:
+      return TextureWrap::Repeat;
+    default:
+      return TextureWrap::Repeat;
+  }
+}
+
+void GltfSamplerToTextureParams(TextureParams& params, fastgltf::Sampler& sampler) {
+  if (sampler.magFilter.has_value()) {
+    params.magFilter = GltfFilterToTextureFilter(sampler.magFilter.value()); 
+  }
+  if (sampler.minFilter.has_value()) {
+    params.minFilter = GltfFilterToTextureFilter(sampler.minFilter.value());
+  }
+
+  params.wrapU = GltfWrapToTextureWrap(sampler.wrapS);
+  params.wrapV = GltfWrapToTextureWrap(sampler.wrapT);
+}
+
 std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset& asset) {
   std::vector<Material*> materials;
   materials.reserve(asset.materials.size());
@@ -372,7 +416,14 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       std::size_t textureIndex = gltfMaterial.pbrData.baseColorTexture->textureIndex;
       if (asset.textures[textureIndex].imageIndex.has_value()) {
         std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
-        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], Texture::ColorTextureRGBA);
+
+        TextureParams texParams = Texture::ColorTextureRGBA;
+        if (asset.textures[textureIndex].samplerIndex.has_value()) {
+          auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
+          GltfSamplerToTextureParams(texParams, sampler);
+        }
+
+        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], texParams);
         material->SetValue("albedoMap", texture);
       }
     } else {
@@ -390,7 +441,14 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       std::size_t textureIndex = gltfMaterial.pbrData.metallicRoughnessTexture->textureIndex;
       if (asset.textures[textureIndex].imageIndex.has_value()) {
         std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
-        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], Texture::TechnicalMapXYZ);
+
+        TextureParams texParams = Texture::TechnicalMapXYZ;
+        if (asset.textures[textureIndex].samplerIndex.has_value()) {
+          auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
+          GltfSamplerToTextureParams(texParams, sampler);
+        }
+
+        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], texParams);
         material->SetValue("armMap", texture);
       }
     } else {
@@ -410,7 +468,14 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       std::size_t textureIndex = gltfMaterial.normalTexture->textureIndex;
       if (asset.textures[textureIndex].imageIndex.has_value()) {
         std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
-        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], Texture::TechnicalMapXYZ);
+
+        TextureParams texParams = Texture::TechnicalMapXYZ;
+        if (asset.textures[textureIndex].samplerIndex.has_value()) {
+          auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
+          GltfSamplerToTextureParams(texParams, sampler);
+        }
+
+        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], texParams);
         material->SetValue("normalMap", texture);
       }
     } else {
@@ -428,11 +493,18 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       std::size_t textureIndex = gltfMaterial.emissiveTexture->textureIndex;
       if (asset.textures[textureIndex].imageIndex.has_value()) {
         std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
-        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], Texture::TechnicalMapXYZ);
+
+        TextureParams texParams = Texture::TechnicalMapXYZ;
+        if (asset.textures[textureIndex].samplerIndex.has_value()) {
+          auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
+          GltfSamplerToTextureParams(texParams, sampler);
+        }
+
+        Texture2D* texture = LoadImage(scene, asset, asset.images[imageIndex], texParams);
         material->SetValue("emissiveMap", texture);
       }
     } else {
-      Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::ColorTextureRGB);
+      Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::TechnicalMapXYZ);
       material->SetValue("emissiveMap", defaultEmissive);
     }
 
