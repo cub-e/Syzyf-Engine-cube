@@ -19,7 +19,7 @@
 #include <glm/trigonometric.hpp>
 #include <spdlog/spdlog.h>
 
-SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProgram* shaderProgram, std::string name) {
+SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::string name) {
   if (!std::filesystem::exists(path)) {
     spdlog::warn("GltfImporter: File not found: {}", path.string());
     return nullptr;
@@ -31,6 +31,7 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProg
     fastgltf::Options::DontRequireValidAssetMember |
     fastgltf::Options::AllowDouble |
     fastgltf::Options::LoadExternalImages |
+    fastgltf::Options::LoadExternalBuffers |
     fastgltf::Options::GenerateMeshIndices;
 
   auto gltfFile = fastgltf::MappedGltfFile::FromPath(path);
@@ -50,7 +51,7 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, ShaderProg
     return nullptr;
   }
 
-  std::vector<Material*> materials = LoadMaterials(scene, asset.get(), shaderProgram);
+  std::vector<Material*> materials = LoadMaterials(scene, asset.get());
   
   SceneNode* root = scene->CreateNode(name);
   auto& nodeIndices = asset->scenes[asset->defaultScene.value()].nodeIndices;
@@ -329,13 +330,38 @@ result = Texture2D::Load(data, length, loadParams);
   return result;
 }
 
-std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset& asset, ShaderProgram* shaderProgram) {
+std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset& asset) {
   std::vector<Material*> materials;
   materials.reserve(asset.materials.size());
   ResourceDatabase* resources = scene->Resources();
 
+	auto* opaqueProg = ShaderProgram::Build().WithVertexShader(
+		resources->Get<VertexShader>("./res/shaders/lit_gltf.vert")
+	).WithPixelShader(
+		resources->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
+	).Link();
+
+  auto* maskProg = ShaderProgram::Build().WithVertexShader(
+    resources->Get<VertexShader>("./res/shaders/lit_gltf.vert")
+  ).WithPixelShader(
+    resources->Get<PixelShader>("./res/shaders/pbr_gltf_mask.frag")
+  ).Link();
+
   for (auto& gltfMaterial : asset.materials) {
-    Material* material = new Material(shaderProgram);
+    Material* material = nullptr;
+
+    switch (gltfMaterial.alphaMode){
+      case fastgltf::AlphaMode::Blend:
+        // TODO
+      case fastgltf::AlphaMode::Opaque:
+        material = new Material(opaqueProg);
+        break;
+      case fastgltf::AlphaMode::Mask:
+        material = new Material(maskProg);
+        material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+        break;
+    }
+
     material->name = gltfMaterial.name;
 
     // Diffuse
@@ -371,6 +397,13 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       Texture2D* defaultArm = resources->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
       material->SetValue("armMap", defaultArm);
     }
+
+    // Occlusion
+    // Assumes that the occlusion value is packed into the arm texture
+    //  this just checks whether the material uses it and ignores the values if it doesn't
+    if (!gltfMaterial.occlusionTexture.has_value()) {
+      material->SetValue("useOcclusion", false);
+    }
    
     // Normal
     if (gltfMaterial.normalTexture.has_value()) {
@@ -402,9 +435,6 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::ColorTextureRGB);
       material->SetValue("emissiveMap", defaultEmissive);
     }
-
-    // Alpha Cutoff
-    material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
 
     materials.push_back(material);
 

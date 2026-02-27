@@ -173,7 +173,7 @@ void InitScene(Scene* mainScene) {
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
-	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
+	// Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
 
@@ -215,8 +215,8 @@ void InitScene(Scene* mainScene) {
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	auto constructNode = mainScene->CreateNode("gm_construct");
-	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
+	// auto constructNode = mainScene->CreateNode("gm_construct");
+	// constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 
 	auto cannonNode = mainScene->CreateNode("Cannon");
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
@@ -253,7 +253,7 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Mover>();
   camera->GetObject<Camera>()->SetAsMainCamera();
 
-	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
+	auto skyboxNode = mainScene->CreateNode("Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
 
 	auto lightNode = mainScene->CreateNode("Point Light");
@@ -263,7 +263,7 @@ void InitScene(Scene* mainScene) {
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
 	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(true);
 	lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
-	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(50.0f, -20.0f, 0.0f)));
+	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(91.0f, 0.0f, 0.0f)));
 
 	auto envProbe = mainScene->CreateNode(cubeNode, "Reflection Probe");
 	envProbe->AddObject<ReflectionProbe>();
@@ -286,14 +286,9 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
-	ShaderProgram* pbrGltfProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit_gltf.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
-	).Link();
-  auto* tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/tvs/tvs.glb", pbrGltfProg, "tvs");
-  auto* cameraCubeNode = GltfImporter::LoadScene(mainScene, "./res/models/camera_cube.glb", pbrGltfProg, "cameraCube");
-  cameraCubeNode->GlobalTransform().Position().SetZ(-5.0f);
+  // auto* tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/tvs/tvs.glb", pbrGltfProg, "tvs");
+  
+  auto* testGltfSceneNode = GltfImporter::LoadScene(mainScene, "./res/models/sponza/Sponza.gltf");
 
 	mainScene->AddComponent<DebugInspector>();
 }

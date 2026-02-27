@@ -356,7 +356,7 @@ Texture2D* Texture2D::Create(unsigned char* textureData, int width, int height, 
 }
 
 Texture2D* Texture2D::Load(const unsigned char* data, const int length, const TextureParams loadParams) {
-  stbi_set_flip_vertically_on_load(true);
+  stbi_set_flip_vertically_on_load(false);
 
   int width, height, nrChannels;
   unsigned char* textureData = nullptr;

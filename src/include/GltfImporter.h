@@ -10,14 +10,13 @@ class Material;
 class Texture2D;
 class TextureParams;
 class Mesh;
-class ShaderProgram;
 
 class GltfImporter {
 public:
-  static SceneNode* LoadScene(Scene* scene, const std::filesystem::path path, ShaderProgram* shaderProgram, std::string name = "");
+  static SceneNode* LoadScene(Scene* scene, const std::filesystem::path path, std::string name = "");
 private:
   static SceneNode* CreateNode(fastgltf::Node& gltfNode, std::vector<Material*>& materials, fastgltf::Asset& asset, Scene* scene, SceneNode* parent = nullptr);
-  static std::vector<Material*> LoadMaterials(Scene* scene, fastgltf::Asset& asset, ShaderProgram* shaderProgram);
+  static std::vector<Material*> LoadMaterials(Scene* scene, fastgltf::Asset& asset);
 
   static Mesh* LoadMesh(fastgltf::Mesh&, fastgltf::Asset&, std::vector<Material*>& materials);
 

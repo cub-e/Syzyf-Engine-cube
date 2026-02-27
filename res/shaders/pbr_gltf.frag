@@ -22,6 +22,7 @@ uniform sampler2D albedoMap;
 uniform float roughnessFactor;
 uniform float metallicFactor;
 uniform sampler2D armMap;
+uniform bool useOcclusion;
 uniform sampler2D normalMap;
 uniform vec3 emissiveFactor;
 uniform float emissiveStrength;
@@ -55,7 +56,11 @@ void main() {
 
 	mat.metallic = arm.b * metallicFactor;
 	mat.roughness = arm.g * roughnessFactor;
-  float ao = arm.r;
+
+  float ao = 1.0f;
+  if (useOcclusion) {
+    ao = arm.r;
+  }
 
 	vec3 N = getNormalFromMap();
   vec3 V = normalize(Global_CameraWorldPos - ps_in.worldPos);
