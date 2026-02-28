@@ -78,8 +78,6 @@ private:
 	PostProcessingSystem* postProcessing;
 	ReflectionProbeSystem* envMapping;
 
-  bool drawBounds;
-
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
 	

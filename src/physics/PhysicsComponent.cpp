@@ -63,8 +63,8 @@ namespace {
 #if defined(JPH_EXTERNAL_PROFILE) || defined(JPH_PROFILE_ENABLED)
     virtual const char* GetBroadPhaseLayerName(BroadPhaseLayer inLayer) const override{
       switch ((BroadPhaseLayer::Type)inLayer) {
-      case (BroadPhaseLayer::Type)Physics::BroadPhaseLayers::NON_MOVING.GetValue():	return "NON_MOVING";
-      case (BroadPhaseLayer::Type)Physics::BroadPhaseLayers::MOVING.GetValue(): return "MOVING";
+      case (BroadPhaseLayer::Type)PhysicsComponent::BroadPhaseLayers::NON_MOVING:	return "NON_MOVING";
+      case (BroadPhaseLayer::Type)PhysicsComponent::BroadPhaseLayers::MOVING: return "MOVING";
       default: JPH_ASSERT(false); return "INVALID";
       }
     }

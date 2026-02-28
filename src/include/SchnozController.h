@@ -9,9 +9,9 @@ public:
   SchnozController();
   virtual ~SchnozController();
 
+  void PushSchnoz();
   void Awake();
 private:
-  void PushSchnoz();
 
   EventHandler<PushSchnozEvent> onPushSchnoz;
 };

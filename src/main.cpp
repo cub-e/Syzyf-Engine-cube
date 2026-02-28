@@ -1,10 +1,10 @@
 #include <Jolt/Jolt.h>
 #include <Jolt/RegisterTypes.h>
 #include "Jolt/Physics/Body/MotionType.h"
-#include "Jolt/Physics/Collision/Shape/SphereShape.h"
 #include "SchnozController.h"
-#include "events/PushSchnozEvent.h"
+#include "TimeSystem.h"
 #include "imgui.h"
+#include "physics/PhysicsDebugRenderer.h"
 
 #include <Formatters.h>
 #include <Shader.h>
@@ -34,7 +34,7 @@ private:
 	float rotation;
 	bool movementEnabled;
 	int mode;
-	float movementSpeed = 0.3f;
+	float movementSpeed = 10.0f;
 	float mouseSensitivity = 1.0f;
 public:
 	Mover() {
@@ -64,6 +64,12 @@ public:
 			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
+      if (GetScene()->Input()->KeyPressed(Key::E)) {
+        movement += up;
+      }
+      if (GetScene()->Input()->KeyPressed(Key::Q)) {
+        movement -= up;
+      }
 	
 			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
@@ -78,16 +84,7 @@ public:
 			}
 
 			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
-			this->GlobalTransform().Position() += movement * this->movementSpeed;
-
-      if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS) {
-        this->GlobalTransform().Position() += glm::vec3(0.0, this->movementSpeed, 0.0);
-      }
-      if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS) {
-        this->GlobalTransform().Position() -= glm::vec3(0.0, this->movementSpeed, 0.0);
-      }
-
-
+			this->GlobalTransform().Position() += movement * this->movementSpeed * Time::Delta();
 			this->GlobalTransform().Rotation() = glm::angleAxis(
 				glm::radians(this->rotation), glm::vec3(0, 1, 0)
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
@@ -98,6 +95,10 @@ public:
 
 			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
 		}
+
+    if (GetScene()->Input()->KeyDown(Key::Space)) {
+      GetScene()->FindObjectsOfType<SchnozController>().front()->PushSchnoz();
+    }
 	}
 
 	virtual void DrawImGui() {
@@ -109,6 +110,7 @@ public:
 		ImGui::InputFloat("Mouse sensitivity", &this->mouseSensitivity);
 	}
 };
+
 
 class AutoRotator : public GameObject {
 private:
@@ -166,6 +168,9 @@ public:
 };
 
 void InitScene(Scene* mainScene) {
+  mainScene->AddComponent<PhysicsComponent>();
+  mainScene->AddComponent<PhysicsDebugRenderer>();
+
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
@@ -313,10 +318,6 @@ void InitScene(Scene* mainScene) {
 	starsNode->AddObject<Stars>(10);
 	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
 
-  // auto grassNode = mainScene->CreateNode("Grass");
-  // grassNode->AddObject<Grass>(100000);
-  // grassNode->GlobalTransform().Position() = { 0.0f, 0.0f, 0.0f };
-
   auto schnozNode = mainScene->CreateNode("Schnoz");
   schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMesh->GetDefaultMaterials());
   schnozNode->GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
@@ -337,10 +338,6 @@ int main(int, char**) {
 	spdlog::info("Initialized project.");
 
 	Engine::MainLoop();
-
-  JPH::UnregisterTypes();
-  delete JPH::Factory::sInstance;
-  JPH::Factory::sInstance = nullptr;
 
 	return 0;
 }

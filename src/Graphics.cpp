@@ -126,7 +126,6 @@ depthPrepassFramebuffer(nullptr),
 depthPrepassDepthTexture(nullptr),
 colorPassFramebuffer(nullptr),
 colorPassOutputTexture(nullptr),
-drawBounds(false),
 screenResolution(0) {
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
@@ -225,8 +224,6 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 		const Material* mat = node.material;
 
     BoundingBox transformedBounds = node.bounds.Transform(node.transformation);
-    if (params.pass == RenderPassType::Color && drawBounds)
-      debugRenderer->DrawBoundingBox(transformedBounds, JPH::Color::sGreen);
 
 		if (!TestFrustum(viewFrustum, transformedBounds)) 
 			continue;
@@ -596,7 +593,6 @@ void SceneGraphics::DrawImGui() {
 	if (ImGui::TreeNode("Graphics Debug")) {
 		ImGui::Text("Resolution: %i:%i", (int) this->screenResolution.x, (int) this->screenResolution.y);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-    ImGui::Checkbox("Draw bounds", &drawBounds);   
 
 		ImGui::TreePop();
 	}

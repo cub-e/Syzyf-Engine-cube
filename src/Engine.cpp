@@ -1,12 +1,18 @@
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
+#include "physics/PhysicsComponent.h"
+#include "physics/PhysicsDebugRenderer.h"
+#include "physics/PhysicsJolt.h"
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
 #include <Engine.h>
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
+#include <Jolt/Jolt.h>
+#include <Jolt/RegisterTypes.h>
+#include <Jolt/Core/Factory.h>
 
 #include <Scene.h>
 #include <TimeSystem.h>
@@ -105,6 +111,16 @@ bool Engine::InitProgram() {
 		return false;
 	}
 
+  // Jolt
+  JPH::RegisterDefaultAllocator();
+  JPH::Factory::sInstance = new JPH::Factory();
+  JPH::RegisterTypes();
+
+  JPH::Trace = TraceImpl;
+#ifdef JPH_ENABLE_ASSERTS
+  JPH::AssertFailed = AssertFailedImpl;
+#endif
+
 	int contextFlags = 0;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
 
@@ -145,6 +161,10 @@ void Engine::Terminate() {
 		delete rootScene;
 	}
 
+  JPH::UnregisterTypes();
+  delete JPH::Factory::sInstance;
+  JPH::Factory::sInstance = nullptr;
+
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
@@ -167,6 +187,9 @@ void Engine::Render() {
 	rootScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
 
 	rootScene->Render();
+
+  // here temporarily, probalby
+  rootScene->GetComponent<PhysicsDebugRenderer>()->Render();
 }
 
 void Engine::DrawImGui() {

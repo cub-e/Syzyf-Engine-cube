@@ -1,7 +1,5 @@
 #include <Debug.h>
 
-#include <stack>
-
 #include <imgui.h>
 
 #include <Scene.h>
