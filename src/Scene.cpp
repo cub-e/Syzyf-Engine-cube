@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <stack>
+#include <malloc.h>
 
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -9,6 +10,7 @@
 #include <spdlog/spdlog.h>
 #include <GameObject.h>
 #include <Graphics.h>
+#include <InputSystem.h>
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
@@ -25,7 +27,7 @@ name("") {
 
 SceneNode::~SceneNode() {
 	int objectsCount = this->objects.size();
-	GameObject* objectsCopy[objectsCount];
+	GameObject** objectsCopy = (GameObject**) alloca(sizeof(GameObject*) * objectsCount);
 
 	std::copy(this->objects.begin(), this->objects.end(), objectsCopy);
 
@@ -36,7 +38,7 @@ SceneNode::~SceneNode() {
 	this->SetParent(nullptr);
 
 	int childrenCount = this->children.size();
-	SceneNode* childrenCopy[childrenCount];
+	SceneNode** childrenCopy = (SceneNode**) alloca(sizeof(SceneNode*) * childrenCount);
 
 	std::copy(this->children.begin(), this->children.end(), childrenCopy);
 
@@ -164,7 +166,7 @@ nextSceneNodeID(0),
 nextGameObjectID(0) {
 	this->root = CreateNode("root");
 	this->graphics = AddComponent<SceneGraphics>();
-  this->eventManager = EventManager();
+	this->inputSystem = AddComponent<InputSystem>();
 }
 
 Scene::~Scene() {
@@ -238,6 +240,10 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 
 ResourceDatabase* Scene::Resources() {
 	return &this->resources;
+}
+
+InputSystem* Scene::Input() {
+	return this->inputSystem;
 }
 
 SceneGraphics* Scene::GetGraphics() {

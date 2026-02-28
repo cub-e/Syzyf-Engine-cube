@@ -15,6 +15,7 @@
 #include "events/EventManager.h"
 
 class GameObject;
+class InputSystem;
 class SceneGraphics;
 class SceneComponent;
 class Light;
@@ -158,6 +159,7 @@ private:
 	std::vector<SceneComponent*> components;
 	SceneNode* root;
 
+	InputSystem* inputSystem;
 	SceneGraphics* graphics;
 
   EventManager eventManager;
@@ -222,6 +224,7 @@ public:
 
 	ResourceDatabase* Resources();
 
+	InputSystem* Input();
 	SceneGraphics* GetGraphics();
 
 	SceneNode* GetRootNode();

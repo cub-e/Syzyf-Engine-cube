@@ -10,7 +10,13 @@ CTestTestfile.cmake
 
 [Bb]uild/
 .vscode/
+.vs/
+out/
 res/testing/
+
+# Clang
+.clang-format
+.cache/
 
 # Nix
 .direnv

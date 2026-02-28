@@ -47,24 +47,18 @@ BoundingBox BoundingBox::Transform(const glm::mat4& transformation) const {
 	BoundingBox result = *this;
 
 	result.center = transformation * glm::vec4(result.center, 1);
-	
-	glm::vec3 scale(
-		glm::length(glm::column(transformation, 0)),
-		glm::length(glm::column(transformation, 1)),
-		glm::length(glm::column(transformation, 2))
-	);
 
 	result.axisU = glm::vec4(
 		glm::vec3(transformation * glm::vec4(glm::vec3(result.axisU), 0.0)),
-		result.axisU.w * scale.x
+		result.axisU.w
 	);
 	result.axisV = glm::vec4(
 		glm::vec3(transformation * glm::vec4(glm::vec3(result.axisV), 0.0)),
-		result.axisV.w * scale.y
+		result.axisV.w
 	);
 	result.axisW = glm::vec4(
 		glm::vec3(transformation * glm::vec4(glm::vec3(result.axisW), 0.0)),
-		result.axisW.w * scale.z
+		result.axisW.w
 	);
 
 	return result;

@@ -5,23 +5,6 @@
 #include "SchnozController.h"
 #include "events/PushSchnozEvent.h"
 #include "imgui.h"
-#include "imgui_impl/imgui_impl_glfw.h"
-#include "imgui_impl/imgui_impl_opengl3.h"
-#include "physics/PhysicsDebugRenderer.h"
-#include "physics/PhysicsJolt.h"
-#include <stdio.h>
-
-#define IMGUI_IMPL_OPENGL_LOADER_GLAD
-
-#include <glad/glad.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/constants.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/quaternion.hpp>
-
-#include <GLFW/glfw3.h>
-#include <spdlog/spdlog.h>
 
 #include <Formatters.h>
 #include <Shader.h>
@@ -41,79 +24,8 @@
 #include <physics/PhysicsComponent.h>
 #include <physics/PhysicsObject.h>
 #include <Debug.h>
-#include <InputComponent.h>
-
-static void GLFWErrorCallback(int error, const char* description) {
-	fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
-
-static void APIENTRY glDebugOutput(
-	GLenum source,
-	GLenum type,
-	unsigned int id,
-	GLenum severity,
-	GLsizei length,
-	const char *message,
-	const void *userParam
-) {
-	// ignore non-significant error/warning codes
-	if(id == 131169 || id == 131185 || id == 131218 || id == 131204) return;
-
-	std::string sourceString;
-
-	switch (source) {
-		case GL_DEBUG_SOURCE_API:             sourceString = "API"; break;
-		case GL_DEBUG_SOURCE_WINDOW_SYSTEM:   sourceString = "Window System"; break;
-		case GL_DEBUG_SOURCE_SHADER_COMPILER: sourceString = "Shader Compiler"; break;
-		case GL_DEBUG_SOURCE_THIRD_PARTY:     sourceString = "Third Party"; break;
-		case GL_DEBUG_SOURCE_APPLICATION:     sourceString = "Application"; break;
-		case GL_DEBUG_SOURCE_OTHER:           sourceString = "Other"; break;
-	}
-
-	std::string typeString;
-
-	switch (type) {
-		case GL_DEBUG_TYPE_ERROR:               typeString = "Error"; break;
-		case GL_DEBUG_TYPE_DEPRECATED_BEHAVIOR: typeString = "Deprecated Behaviour"; break;
-		case GL_DEBUG_TYPE_UNDEFINED_BEHAVIOR:  typeString = "Undefined Behaviour"; break;
-		case GL_DEBUG_TYPE_PORTABILITY:         typeString = "Portability"; break;
-		case GL_DEBUG_TYPE_PERFORMANCE:         typeString = "Performance"; break;
-		case GL_DEBUG_TYPE_MARKER:              typeString = "Marker"; break;
-		case GL_DEBUG_TYPE_PUSH_GROUP:          typeString = "Push Group"; break;
-		case GL_DEBUG_TYPE_POP_GROUP:           typeString = "Pop Group"; break;
-		case GL_DEBUG_TYPE_OTHER:               typeString = "Other"; break;
-	}
-
-	switch (severity) {
-		case GL_DEBUG_SEVERITY_HIGH:         spdlog::error("GL {} {}: {} ({})", sourceString, typeString, message, id); exit(1); break;
-		case GL_DEBUG_SEVERITY_MEDIUM:
-		case GL_DEBUG_SEVERITY_LOW:          spdlog::warn("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
-		case GL_DEBUG_SEVERITY_NOTIFICATION: spdlog::info("GL {} {}: {} ({})", sourceString, typeString, message, id); break;
-	}
-}
-
-bool InitProgram();
-void InitImgui();
-
-void Update();
-void Render();
-
-void ImGuiBegin();
-void ImGuiUpdate();
-void ImGuiRender();
-
-void EndFrame();
-
-constexpr int32_t WINDOW_WIDTH  = 1920;
-constexpr int32_t WINDOW_HEIGHT = 1080;
-
-GLFWwindow* window = nullptr;
-
-const     char*   glsl_version     = "#version 460";
-constexpr int32_t GL_VERSION_MAJOR = 4;
-constexpr int32_t GL_VERSION_MINOR = 6;
-
-Scene* mainScene;
+#include <InputSystem.h>
+#include <Engine.h>
 
 
 class Mover : public GameObject, public ImGuiDrawable {
@@ -121,37 +33,14 @@ private:
 	float pitch;
 	float rotation;
 	bool movementEnabled;
-	bool spaceKeyTrip;
 	int mode;
 	float movementSpeed = 0.3f;
 	float mouseSensitivity = 1.0f;
 public:
-	void SetCaptureMouse(bool capture) {
-		if (capture) {
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-			glfwSetCursorPos(window, 0, 0);
-		}
-		else {
-			glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
-
-			int display_w, display_h;
-			glfwMakeContextCurrent(window);
-			glfwGetFramebufferSize(window, &display_w, &display_h);
-
-			glfwSetCursorPos(window, display_w / 2.0, display_h / 2.0);
-		}
-
-		this->movementEnabled = capture;
-	}
-
 	Mover() {
 		this->pitch = 0;
 		this->rotation = 0;
-		this->spaceKeyTrip = false;
 		this->mode = 0;
-
-		SetCaptureMouse(true);
 	}
 
 	void Update() {
@@ -163,32 +52,23 @@ public:
 			glm::vec3 up = glm::vec3(0, 1, 0);
 			glm::vec3 forward = mode == 0 ? glm::cross(right, up) : this->GlobalTransform().Forward();
 
-			if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+			if (GetScene()->Input()->KeyPressed(Key::A)) {
 				movement += right;
 			}
-			if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+			if (GetScene()->Input()->KeyPressed(Key::D)) {
 				movement -= right;
 			}
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+			if (GetScene()->Input()->KeyPressed(Key::W)) {
 				movement += forward;
 			}
-			if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
-
-			double xpos, ypos;
-			glfwGetCursorPos(window, &xpos, &ypos);
-
-			glm::vec2 deltaMovement = glm::vec2(xpos, ypos);
-
-			int display_w, display_h;
-			glfwMakeContextCurrent(window);
-			glfwGetFramebufferSize(window, &display_w, &display_h);
+	
+			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
 			this->rotation -= (deltaMovement.x / 20) * this->mouseSensitivity;
-			this->pitch += (deltaMovement.y / 20) * this->mouseSensitivity * (float(display_h) / display_w);
-
-			glfwSetCursorPos(window, 0, 0);
+			this->pitch -= (deltaMovement.y / 20) * this->mouseSensitivity;
 
 			if (this->rotation < -180) {
 				this->rotation += 360;
@@ -213,15 +93,10 @@ public:
 			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
 		}
 
-		if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS) {
-			if (!spaceKeyTrip) {
-				SetCaptureMouse(!this->movementEnabled);
+		if (GetScene()->Input()->KeyDown(Key::Escape)) {
+			this->movementEnabled = !this->movementEnabled;
 
-				spaceKeyTrip = true;
-			}
-		}
-		else {
-			spaceKeyTrip = false;
+			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
 		}
 	}
 
@@ -290,67 +165,7 @@ public:
 	}
 };
 
-// class Grass : public GameObject, public ImGuiDrawable {
-// private:
-// 	Mesh* mesh;
-// 	Material* material;
-// 	int count;
-// public:
-// 	Grass(int count = 1000) {
-// 		this->mesh = Resources::Get<Mesh>("./res/models/grass.obj");
-//     this->GlobalTransform().Scale() = glm::vec3(3.0f);
-//
-// 		ShaderProgram* shaderProgram = ShaderProgram::Build()
-// 		.WithVertexShader(
-// 			Resources::Get<VertexShader>("./res/shaders/grass.vert")
-// 		).WithGeometryShader(
-//       Resources::Get<GeometryShader>("./res/shaders/grass.geom")
-//     ).WithPixelShader(
-// 			Resources::Get<PixelShader>("./res/shaders/grass.frag")
-// 		).Link();
-//
-//   	Texture2D* noiseTexture = Resources::Get<Texture2D>("./res/textures/noise/marble10.png", Texture::ColorTextureRGB);
-// 	  noiseTexture->SetWrapModeU(TextureWrap::Repeat);
-// 	  noiseTexture->SetWrapModeV(TextureWrap::Repeat);
-//
-// 	  Material* grassMat = new Material(shaderProgram);
-//     grassMat->SetValue("noiseTexture", noiseTexture);
-//
-// 		shaderProgram->SetIgnoresDepthPrepass(false);
-// 		shaderProgram->SetCastsShadows(false);
-//
-// 		this->material = grassMat;
-// 		this->count = count;
-// 	}
-//
-// 	void Render() {
-// 		GetScene()->GetGraphics()->DrawMeshInstanced(
-// 			this->mesh,
-// 			0,
-// 			this->material,
-// 			this->GlobalTransform(),
-// 			this->count,
-// 			BoundingBox::CenterAndExtents(glm::vec3(0, 0, 0), glm::vec3(15, 15, 15)),
-//       true
-// 		);
-// 	}
-//
-// 	void DrawImGui() {
-// 		ImGui::InputInt("Grass count", &this->count);
-// 	}
-// };
-
-void InitScene() {
-	mainScene = new Scene();
-	mainScene->AddComponent<DebugInspector>();
-  mainScene->AddComponent<PhysicsComponent>();
-  mainScene->AddComponent<InputComponent>();
-  mainScene->AddComponent<PhysicsDebugRenderer>();
-
-  InputComponent* input = mainScene->GetComponent<InputComponent>();
-  input->BindAction<PushSchnozEvent>(GLFW_KEY_SPACE);
-	input->SetGlfwCallbacks(window);
-
+void InitScene(Scene* mainScene) {
 	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
@@ -514,161 +329,18 @@ void InitScene() {
 }
 
 int main(int, char**) {
-	if (!InitProgram()) {
+	if (!Engine::Setup(InitScene)) {
 		spdlog::error("Failed to initialize project!");
 		return EXIT_FAILURE;
 	}
+
 	spdlog::info("Initialized project.");
 
-	InitScene();
-
-	InitImgui();
-	spdlog::info("Initialized ImGui.");
-
-	while (!glfwWindowShouldClose(window)) {
-		Update();
-
-		Render();
-
-    PhysicsDebugRenderer* debugRenderer = mainScene->GetComponent<PhysicsDebugRenderer>();
-    debugRenderer->Render();
-
-		ImGuiBegin();
-		ImGuiUpdate();
-		ImGuiRender();
-
-		EndFrame();
-	}
-
-	delete mainScene;
-
-	ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
-
-	glfwDestroyWindow(window);
-	glfwTerminate();
+	Engine::MainLoop();
 
   JPH::UnregisterTypes();
   delete JPH::Factory::sInstance;
   JPH::Factory::sInstance = nullptr;
 
 	return 0;
-}
-
-bool InitProgram() {
-	glfwSetErrorCallback(GLFWErrorCallback);
-	if (!glfwInit())  {
-		spdlog::error("Failed to initalize GLFW!");
-		return false;
-	}
-
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, GL_VERSION_MAJOR);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, GL_VERSION_MINOR);
-	glfwWindowHint(GLFW_OPENGL_PROFILE,        GLFW_OPENGL_CORE_PROFILE);
-
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, true);
-	glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT,  true);
-
-	window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Syzyf Engine", NULL, NULL);
-	if (window == NULL) {
-		spdlog::error("Failed to create GLFW Window!");
-		return false;
-	}
-
-	glfwMakeContextCurrent(window);
-	glfwSwapInterval(1);
-
-	bool err = !gladLoadGLLoader((GLADloadproc)glfwGetProcAddress);
-
-	int contextFlags = 0;
-	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
-
-	if (contextFlags & GL_CONTEXT_FLAG_DEBUG_BIT) {
-		glEnable(GL_DEBUG_OUTPUT);
-		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-		glDebugMessageCallback(glDebugOutput, nullptr);
-		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, true);
-	}
-
-	glEnable(GL_DEPTH_TEST);
-	glEnable(GL_CULL_FACE);
-	glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-	if (err) {
-		spdlog::error("Failed to initialize OpenGL loader!");
-		return false;
-	}
-
-  // Jolt
-  JPH::RegisterDefaultAllocator();
-  JPH::Factory::sInstance = new JPH::Factory();
-  JPH::RegisterTypes();
-  
-  JPH::Trace = TraceImpl;
-  #ifdef JPH_ENABLE_ASSERTS
-    JPH::AssertFailed = AssertFailedImpl;
-  #endif
-
-	return true;
-}
-
-void InitImgui() {
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;  // Enable Keyboard Controls
-	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;   // Enable Gamepad Controls
-
-	ImGui_ImplGlfw_InitForOpenGL(window, false);
-	ImGui_ImplOpenGL3_Init(glsl_version);
-
-	ImGui::StyleColorsDark();
-}
-
-void Update() {
-	mainScene->Update();
-}
-
-void Render() {
-	int display_w, display_h;
-	glfwMakeContextCurrent(window);
-	glfwGetFramebufferSize(window, &display_w, &display_h);
-
-	mainScene->GetGraphics()->UpdateScreenResolution(glm::vec2(display_w, display_h));
-
-	mainScene->Render();
-}
-
-void ImGuiBegin() {
-	ImGui_ImplOpenGL3_NewFrame();
-	ImGui_ImplGlfw_NewFrame();
-	ImGui::NewFrame();
-}
-
-void ImGuiUpdate() {
-	static ImVec2 window_pos(0, 0);
-	static float item_width = 230;
-
-	ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always);
-	ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove);
-
-	mainScene->DrawImGui();
-
-  ImGui::End();
-}
-
-void ImGuiRender() {
-	ImGui::Render();
-	int display_w, display_h;
-	glfwMakeContextCurrent(window);
-	glfwGetFramebufferSize(window, &display_w, &display_h);
-
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-void EndFrame() {
-	glfwPollEvents();
-	glfwMakeContextCurrent(window);
-	glfwSwapBuffers(window);
 }

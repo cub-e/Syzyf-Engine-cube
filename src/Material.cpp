@@ -1,5 +1,7 @@
 #include <Material.h>
 
+#include <malloc.h>
+
 void ShaderVariableStorage::Bind() const {
 	int samplerIndex = 0;
 
@@ -166,7 +168,7 @@ uniformSpec(&uniformSpec) {
 	int uniformBuffersCount = uniformSpec.UniformBuffersCount();
 
 	this->uniformBuffers = new BufferPair[uniformBuffersCount];
-	GLuint uniformBufferHandles[uniformBuffersCount];
+	GLuint* uniformBufferHandles = (GLuint*) alloca(sizeof(GLuint) * uniformBuffersCount);
 
 	glGenBuffers(uniformBuffersCount, uniformBufferHandles);
 

@@ -18,10 +18,13 @@ include(global_settings)
 add_subdirectory(thirdparty)
 
 set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
-if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+
+IF (GNU)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --concepts-diagnostics-depth=2")
-endif()
+ELSEIF (MSVC)
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /vmg")
+ENDIF ()
 
 # ---- Main project's files ----
 add_subdirectory(src)

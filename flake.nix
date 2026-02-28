@@ -32,12 +32,10 @@
           ninja
           pkg-config
           gdb
-          # clang
           wayland-scanner
 
           glslls
           clang-tools
-          glslang
         ];
 
         buildInputs = with pkgs; [
