@@ -409,14 +409,12 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	loadedMesh->vertexStride = VertexSpec::Mesh.VertexSize();
 
   loadedMesh->vertexData = vertexData;
-  loadedMesh->vertexBuffer = loadedMesh->UploadToGpu();
+  loadedMesh->vertexBuffer = loadedMesh->UploadToGpu(VertexSpec::Mesh);
 
 	return loadedMesh;
 }
 
-GLuint Mesh::UploadToGpu() {
-  VertexSpec meshSpec = VertexSpec::Mesh;
-
+GLuint Mesh::UploadToGpu(const VertexSpec meshSpec) {
 	GLuint vertexBuffer;
 	glGenBuffers(1, &vertexBuffer);
 	
@@ -442,7 +440,7 @@ GLuint Mesh::UploadToGpu() {
 			int length = meshSpec.GetLengthOf(VertexInputType(input + 1));
 
 			if (length > 0) {
-				glVertexAttribPointer(input, length, GL_FLOAT, false, VertexSpec::Mesh.VertexSize() * sizeof(float), (void*) (attributeOffset * sizeof(float)));
+				glVertexAttribPointer(input, length, GL_FLOAT, false, meshSpec.VertexSize() * sizeof(float), (void*) (attributeOffset * sizeof(float)));
 				glEnableVertexAttribArray(input);
 				
 				attributeOffset += length;

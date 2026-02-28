@@ -196,7 +196,7 @@ const VertexSpec VertexSpec::MeshFull {
 	{ VertexInputType::Position, 3 },
 	{ VertexInputType::Normal, 3},
 	{ VertexInputType::Binormal, 3},
-	{ VertexInputType::Tangent, 3},
+	{ VertexInputType::Tangent, 4},
 	{ VertexInputType::UV1, 2 },
 	{ VertexInputType::UV2, 2 },
 	{ VertexInputType::Color, 4 },

@@ -6,6 +6,7 @@ in VS_OUT {
 	vec3 normal;
 	vec4 tangent;
 	vec2 texcoords;
+  vec2 texcoords2;
 } ps_in;
 
 #include "shared/shared.h"
@@ -19,11 +20,14 @@ in VS_OUT {
 
 uniform vec4 baseColorFactor;
 uniform sampler2D albedoMap;
+
 uniform float roughnessFactor;
 uniform float metallicFactor;
 uniform sampler2D armMap;
 uniform bool useOcclusion;
+
 uniform sampler2D normalMap;
+
 uniform vec3 emissiveFactor;
 uniform float emissiveStrength;
 uniform sampler2D emissiveMap;
@@ -48,7 +52,9 @@ out vec4 fragColor;
 void main() {
 	Material mat;
 
+  // ALBEDO
   vec4 albedo = texture(albedoMap, ps_in.texcoords);
+
   // Ignores alpha for now
 	mat.albedo = albedo.xyz * baseColorFactor.xyz;
 
@@ -95,7 +101,7 @@ void main() {
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
 	vec3 ambient = (kD * diffuse + specular) * ao;
-	
+
   vec3 emissive = texture(emissiveMap, ps_in.texcoords).xyz * emissiveFactor * emissiveStrength;
 
   fragColor.xyz += ambient + emissive;

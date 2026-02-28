@@ -57,6 +57,12 @@ public:
 			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
+      if (GetScene()->Input()->KeyPressed(Key::E)) {
+        movement += up;
+      }
+      if (GetScene()->Input()->KeyPressed(Key::Q)) {
+        movement -= up;
+      }
 	
 			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
 
@@ -258,11 +264,11 @@ void InitScene(Scene* mainScene) {
 	skyboxNode->AddObject<Skybox>(skyMat);
 
 	auto lightNode = mainScene->CreateNode("Point Light");
-	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(true);
+	lightNode->AddObject<Light>(Light::PointLight({1, 1, 1}, 10, 2))->SetShadowCasting(false);
 	lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
 	auto lightNode2 = mainScene->CreateNode("Directional Light");
-	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(true);
+	lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 2))->SetShadowCasting(false);
 	lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
 	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(91.0f, 0.0f, 0.0f)));
 
@@ -287,10 +293,12 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
-  // auto* tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/tvs/tvs.glb", pbrGltfProg, "tvs");
-  auto* sponzaNewNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/main_sponza/NewSponza_Main_glTF_003.gltf", "Sponza New");
-  
-  // auto* testGltfSceneNode = GltfImporter::LoadScene(mainScene, "./res/models/sponza/Sponza.gltf");
+  // auto* sponzaNewNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/main_sponza/NewSponza_Main_glTF_003.gltf", "Sponza New");
+#warning make it so you can set a scenenode as a parent
+  // auto* sponzaCurtainsNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/pkg_a_curtains/NewSponza_Curtains_glTF.gltf", "Sponza Curtains");
+  // auto* sponzaTreesNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/pkg_c_trees/NewSponza_CypressTree_glTF.gltf", "Sponza Tree");
+
+  auto* sponzaNode = GltfImporter::LoadScene(mainScene, "./res/models/sponza/Sponza.gltf", "Sponza");
 
 	mainScene->AddComponent<DebugInspector>();
 }

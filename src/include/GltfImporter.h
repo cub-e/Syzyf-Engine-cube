@@ -24,4 +24,5 @@ private:
 
   static TextureFilter GltfFilterToTextureFilter(fastgltf::Filter filter);
   static TextureWrap GltfWrapToTextureWrap(fastgltf::Wrap);
+  static void GltfSamplerToTextureParams(TextureParams& params, fastgltf::Sampler& sampler);
 };

@@ -159,7 +159,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     primitive.faceCount = indicesAccessor.count / (unsigned int)primitive.type;
   }
 
-	VertexSpec meshSpec = VertexSpec::Mesh;
+	VertexSpec meshSpec = VertexSpec::MeshFull;
   mesh->vertexData = new float[vertexCount * meshSpec.VertexSize() + 3];
   memset(mesh->vertexData, 0, vertexCount * meshSpec.VertexSize() * sizeof(float));
   mesh->vertexCount = vertexCount;
@@ -184,7 +184,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     auto& primitive = mesh->subMeshes[index];
 
     if (it->materialIndex.has_value()) {
-      // Add a defualt material and offset this by one
+#warning GltfImporter: Add a defualt material and offset this by one
       primitive.materialIndex = it->materialIndex.value();
     } else {
       primitive.materialIndex = 0;
@@ -217,7 +217,6 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
         target[0] = position.x();
         target[1] = position.y();
         target[2] = position.z();
-        target[3] = 0.0f;
       });
     }
 
@@ -229,7 +228,6 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
         target[0] = normal.x();
         target[1] = normal.y();
         target[2] = normal.z();
-        target[3] = 0.0f;
       });
     }
 
@@ -252,8 +250,6 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + uv1Offset;
         target[0] = uv.x();
         target[1] = uv.y();
-        target[2] = 0.0f;
-        target[3] = 0.0f;
       });
     }
 
@@ -264,8 +260,6 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
         float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + uv2Offset;
         target[0] = uv.x();
         target[1] = uv.y();
-        target[2] = 0.0f;
-        target[3] = 0.0f;
       });
     }
 
@@ -289,7 +283,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     vertexPointer += positionAccessor.count;
   }
 
-  mesh->vertexBuffer = mesh->UploadToGpu();
+  mesh->vertexBuffer = mesh->UploadToGpu(meshSpec);
 
   return mesh;
 }
@@ -330,7 +324,7 @@ result = Texture2D::Load(data, length, loadParams);
   return result;
 }
 
-TextureFilter GltfFilterToTextureFilter(fastgltf::Filter filter) {
+TextureFilter GltfImporter::GltfFilterToTextureFilter(fastgltf::Filter filter) {
   switch (filter) {
     case fastgltf::Filter::Linear:
       return TextureFilter::Linear;
@@ -349,7 +343,7 @@ TextureFilter GltfFilterToTextureFilter(fastgltf::Filter filter) {
   }
 }
 
-TextureWrap GltfWrapToTextureWrap(fastgltf::Wrap wrap) {
+TextureWrap GltfImporter::GltfWrapToTextureWrap(fastgltf::Wrap wrap) {
   switch (wrap) {
     case fastgltf::Wrap::ClampToEdge:
       return TextureWrap::Clamp;
@@ -362,7 +356,7 @@ TextureWrap GltfWrapToTextureWrap(fastgltf::Wrap wrap) {
   }
 }
 
-void GltfSamplerToTextureParams(TextureParams& params, fastgltf::Sampler& sampler) {
+void GltfImporter::GltfSamplerToTextureParams(TextureParams& params, fastgltf::Sampler& sampler) {
   if (sampler.magFilter.has_value()) {
     params.magFilter = GltfFilterToTextureFilter(sampler.magFilter.value()); 
   }
@@ -396,7 +390,10 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
 
     switch (gltfMaterial.alphaMode){
       case fastgltf::AlphaMode::Blend:
-        // TODO
+#warning GltfImporter: Add blending once engine supports semi-transparent materials 
+        material = new Material(maskProg);
+        material->SetValue("alphaCutoff", gltfMaterial.alphaCutoff);
+        break;
       case fastgltf::AlphaMode::Opaque:
         material = new Material(opaqueProg);
         break;
@@ -461,6 +458,7 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
     //  this just checks whether the material uses it and ignores the values if it doesn't
     if (!gltfMaterial.occlusionTexture.has_value()) {
       material->SetValue("useOcclusion", false);
+      // I'm assuming the uv index for this and arm is the same???
     }
    
     // Normal
@@ -494,7 +492,7 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
       if (asset.textures[textureIndex].imageIndex.has_value()) {
         std::size_t imageIndex = asset.textures[textureIndex].imageIndex.value();
 
-        TextureParams texParams = Texture::TechnicalMapXYZ;
+        TextureParams texParams = Texture::ColorTextureRGB;
         if (asset.textures[textureIndex].samplerIndex.has_value()) {
           auto& sampler = asset.samplers[asset.textures[textureIndex].samplerIndex.value()];
           GltfSamplerToTextureParams(texParams, sampler);
@@ -504,7 +502,7 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
         material->SetValue("emissiveMap", texture);
       }
     } else {
-      Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::TechnicalMapXYZ);
+      Texture2D* defaultEmissive = resources->Get<Texture2D>("./res/textures/default_emissive.png", Texture::ColorTextureRGB);
       material->SetValue("emissiveMap", defaultEmissive);
     }
 
