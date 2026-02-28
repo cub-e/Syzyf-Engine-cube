@@ -17,6 +17,8 @@
 #include <imgui.h>
 
 #include "Jolt/Math/MathTypes.h"
+#include "TimeSystem.h"
+#include "physics/PhysicsCharacter.h"
 #include "physics/PhysicsDebugRenderer.h"
 #include "physics/PhysicsObject.h"
 #include "Scene.h"
@@ -198,7 +200,12 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
   }
 
   void PhysicsComponent::OnPostUpdate() {
-    physicsSystem->Update(cDeltaTime, 1, tempAllocator, jobSystem);
+    // TMEPRORARY
+    this->accumulator += Time::Delta();
+    while (this->accumulator > this->cDeltaTime) { 
+      physicsSystem->Update(cDeltaTime, 1, tempAllocator, jobSystem);
+      this->accumulator -= this->cDeltaTime;
+    }
 
     JPH::BodyIDVector activeBodies;
     physicsSystem->GetActiveBodies(JPH::EBodyType::RigidBody, activeBodies);

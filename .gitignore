@@ -25,3 +25,6 @@ res/testing/
 .clang-format
 compile_commands.json
 .cache/
+
+# Other
+res/models/main_sponza/

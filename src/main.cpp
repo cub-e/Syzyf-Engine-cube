@@ -4,6 +4,7 @@
 #include "SchnozController.h"
 #include "TimeSystem.h"
 #include "imgui.h"
+#include "physics/PhysicsCharacter.h"
 #include "physics/PhysicsDebugRenderer.h"
 
 #include <Formatters.h>
@@ -21,6 +22,7 @@
 #include <ReflectionProbe.h>
 #include <ReflectionProbeSystem.h>
 #include <Tonemapper.h>
+#include <glm/fwd.hpp>
 #include <physics/PhysicsComponent.h>
 #include <physics/PhysicsObject.h>
 #include <Debug.h>
@@ -110,6 +112,127 @@ public:
 		ImGui::InputFloat("Mouse sensitivity", &this->mouseSensitivity);
 	}
 };
+
+class PhysicsMover : public GameObject, public ImGuiDrawable {
+private:
+	float pitch;
+	float rotation;
+	bool movementEnabled;
+	int mode;
+	float movementSpeed = 10.0f;
+	float mouseSensitivity = 1.0f;
+
+  JPH::Character* character = nullptr;
+public:
+	PhysicsMover() {
+		this->pitch = 0;
+		this->rotation = 0;
+		this->mode = 0;
+
+    // will crash if added before character remove tis
+    this->character = this->GetObject<PhysicsCharacter>()->character;
+	}
+
+	void Update() {
+    this->character->PostSimulation(0.1f); // bad spot for this
+    
+    JPH::Vec3 position = this->character->GetPosition();
+    this->GlobalTransform().Position() = {position.GetX(), position.GetY(), position.GetZ()};
+
+		if (movementEnabled) {
+			glm::vec3 movement = glm::zero<glm::vec3>();
+			glm::quat rotation = glm::identity<glm::quat>();
+
+			glm::vec3 right = this->GlobalTransform().Right();
+			glm::vec3 up = glm::vec3(0, 1, 0);
+			glm::vec3 forward = mode == 0 ? glm::cross(right, up) : this->GlobalTransform().Forward();
+      bool jump = false;
+
+			if (GetScene()->Input()->KeyPressed(Key::A)) {
+				movement += right;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::D)) {
+				movement -= right;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::W)) {
+				movement += forward;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::S)) {
+				movement -= forward;
+			}
+      if (GetScene()->Input()->KeyPressed(Key::Space)) {
+        jump = true;
+      }
+	
+			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
+
+			this->rotation -= (deltaMovement.x / 20) * this->mouseSensitivity;
+			this->pitch -= (deltaMovement.y / 20) * this->mouseSensitivity;
+
+			if (this->rotation < -180) {
+				this->rotation += 360;
+			}
+			else if (this->rotation > 180) {
+				this->rotation -= 360;
+			}
+
+			this->pitch = glm::clamp(this->pitch, -89.0f, 89.0f);
+			this->GlobalTransform().Rotation() = glm::angleAxis(
+				glm::radians(this->rotation), glm::vec3(0, 1, 0)
+			) * glm::angleAxis(glm::radians(this->pitch), glm::vec3(1, 0, 0));
+
+      JPH::Vec3 jphMovement = JPH::Vec3(movement.x, 0.0f, movement.z);
+
+      JPH::Character::EGroundState groundState = this->character->GetGroundState();
+      if (groundState == JPH::Character::EGroundState::OnSteepGround
+          || groundState == JPH::Character::EGroundState::NotSupported) {
+        spdlog::info("PhysicsMover: Character on steep ground");
+        JPH::Vec3 normal = this->character->GetGroundNormal();
+        normal.SetY(0.0f);
+        float dot = normal.Dot(jphMovement);
+        if (dot < 0.0f) {
+          jphMovement -= (dot * normal) / normal.LengthSq(); 
+        }
+      }
+
+        if (this->character->IsSupported()) {
+          JPH::Vec3 currentVelocity = this->character->GetLinearVelocity();
+          JPH::Vec3 desiredVelocity = this->movementSpeed * jphMovement;
+
+          if (!desiredVelocity.IsNearZero() || currentVelocity.GetY() < 0.0f || !this->character->IsSupported()) {
+            desiredVelocity.SetY(currentVelocity.GetY());
+          } 
+          JPH::Vec3 newVelocity = 0.75f * currentVelocity + 0.25f * desiredVelocity;
+
+          if (jump && groundState == JPH::Character::EGroundState::OnGround) {
+            newVelocity += JPH::Vec3(0, this->movementSpeed * 0.25, 0);
+          }
+
+          this->character->SetLinearVelocity(newVelocity);
+        }
+      }
+
+		if (GetScene()->Input()->KeyDown(Key::Escape)) {
+			this->movementEnabled = !this->movementEnabled;
+
+			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
+		}
+
+    if (GetScene()->Input()->KeyDown(Key::R)) {
+      GetScene()->FindObjectsOfType<SchnozController>().front()->PushSchnoz();
+    }
+	}
+
+	virtual void DrawImGui() {
+		const char* modes[] { "Walking", "Freecam", };
+
+		ImGui::Combo("Movement type", &this->mode, modes, 2);
+
+		ImGui::InputFloat("Movement speed", &this->movementSpeed);
+		ImGui::InputFloat("Mouse sensitivity", &this->mouseSensitivity);
+	}
+};
+
 
 
 class AutoRotator : public GameObject {
@@ -283,10 +406,16 @@ void InitScene(Scene* mainScene) {
 	shinyCubeNode2->AddObject<MeshRenderer>(cubeMesh, shinyMat);
 	shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
 
-	auto cameraNode = mainScene->CreateNode("Camera");
+  auto playerNode = mainScene->CreateNode("Player");
+  playerNode->GlobalTransform().Position() = glm::vec3(2.0f, 1.5f, -10.0f);
+  playerNode->AddObject<PhysicsCharacter>();
+	playerNode->AddObject<PhysicsMover>();
+
+	auto cameraNode = mainScene->CreateNode(playerNode, "Camera");
+  cameraNode->GlobalTransform().Position() = glm::vec3(2.0f, 1.5f, -10.0f);
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(60.0f, 16.0f/9.0f, 0.5f, 200.0f));
-	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
-	cameraNode->AddObject<Mover>();
+	cameraNode->AddObject<Bloom>();
+	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
 	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
@@ -324,9 +453,6 @@ void InitScene(Scene* mainScene) {
   schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
   schnozNode->AddObject<PhysicsObject>(PhysicsObject::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING));
   schnozNode->AddObject<SchnozController>();
-
-	cameraNode->AddObject<Bloom>();
-	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 }
 
 int main(int, char**) {

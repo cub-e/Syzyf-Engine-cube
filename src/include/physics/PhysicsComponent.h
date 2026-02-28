@@ -40,6 +40,7 @@ public:
 private:
     bool drawDebug = false;
 
+    float accumulator = 0.0f;
     const float cDeltaTime = 1.0f / 60.0f;
 
     JPH::PhysicsSystem* physicsSystem = nullptr;
