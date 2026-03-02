@@ -5,8 +5,13 @@
 
 #ifdef _WIN32
 extern "C" {
-    _declspec(dllexport) DWORD NvOptimusEnablement = 1;
-    _declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+#ifdef __GNUC__
+    __attribute__ ((dllexport)) unsigned long NvOptimusEnablement = 1;
+    __attribute__ ((dllexport)) int AmdPowerXpressRequestHighPerformance = 1;
+#else
+	_declspec(dllexport) DWORD NvOptimusEnablement = 1;
+	_declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+#endif
 }
 #endif
 
