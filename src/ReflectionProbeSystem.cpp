@@ -201,7 +201,11 @@ void ReflectionProbeSystem::DrawImGui() {
 	if (ImGui::TreeNode("Reflection Probes Debug")) {
 		ImGui::Text("Active reflection probes: %i", (int) this->GetAllObjects()->size());
 
-		ReflectionProbe* closest = GetClosestProbe(Camera::GetMainCamera()->GlobalTransform().Position());
+		ReflectionProbe* closest = nullptr;
+
+		if (GetScene()->GetGraphics()->GetMainCamera()) {
+			ReflectionProbe* closest = GetClosestProbe(GetScene()->GetGraphics()->GetMainCamera()->GlobalTransform().Position());
+		}
 
 		ImGui::Text("Closest probe: %s", closest != nullptr ? closest->GetNode()->GetName().c_str() : "N/A");
 

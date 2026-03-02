@@ -93,7 +93,7 @@ void LightSystem::DoDirectionalLightShadowmap(Light* light, ShadowMapRegion* sha
 	globalUniforms.Global_CameraNearPlane = 0;
 	globalUniforms.Global_CameraFov = 0;
 	
-	Camera* mainCamera = Camera::GetMainCamera();
+	Camera* mainCamera = GetScene()->GetGraphics()->GetMainCamera();
 	
 	float nearPlane = mainCamera->GetNearPlane();
 	float farPlane = mainCamera->GetFarPlane();

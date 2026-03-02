@@ -2,7 +2,7 @@
 
 #include <glm/gtc/matrix_transform.hpp>
 
-Camera* Camera::mainCamera = nullptr;
+#include <Graphics.h>
 
 Camera::Perspective::Perspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane):
 fovyDegrees(fovyDegrees),
@@ -26,34 +26,35 @@ Camera::Camera(Perspective perspectiveData):
 type(CameraType::Perspective),
 perspectiveData(perspectiveData),
 orthoData() {
-	SetAsMainCamera();
+	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
+		SetAsMainCamera();
+	}
 }
 
 Camera::Camera(Orthographic orthoData):
 type(CameraType::Orthographic),
 perspectiveData(),
 orthoData(orthoData) {
-	SetAsMainCamera();
+	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
+		SetAsMainCamera();
+	}
 }
 
 Camera::~Camera() {
-	if (this == mainCamera) {
+	if (this == this->GetScene()->GetGraphics()->GetMainCamera()) {
 		std::vector<Camera*> cameras = this->GetScene()->FindObjectsOfType<Camera>();
 		
 		if (cameras.size() > 0) {
 			for (int i = 0; i < cameras.size(); i++) {
 				if (cameras[i] != this) {
-					mainCamera = cameras[i];
+					this->GetScene()->GetGraphics()->SetMainCamera(cameras[i]);
 
 					return;
 				}
 			}
+		}
 
-			mainCamera = nullptr;
-		}
-		else {
-			mainCamera = nullptr;
-		}
+		this->GetScene()->GetGraphics()->SetMainCamera(nullptr);
 	}
 }
 
@@ -202,12 +203,10 @@ glm::mat4 Camera::ViewProjectionMatrix() const {
 	return ProjectionMatrix() * ViewMatrix();
 }
 
-Camera* Camera::GetMainCamera() {
-	return mainCamera;
-}
-
 void Camera::SetAsMainCamera() {
-	mainCamera = this;
+	if (GetScene()->GetGraphics()) {
+		GetScene()->GetGraphics()->SetMainCamera(this);
+	}
 }
 
 CameraData Camera::GetCameraData() const {

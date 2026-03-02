@@ -15,10 +15,10 @@ class MeshRenderer;
 class Scene;
 class ComputeShaderDispatch;
 class Texture2D;
-class Light;
 class LightSystem;
 class PostProcessingSystem;
 class ReflectionProbeSystem;
+class Camera;
 
 // struct RenderBatch {
 // 	Mesh* mesh;
@@ -77,6 +77,8 @@ private:
 	PostProcessingSystem* postProcessing;
 	ReflectionProbeSystem* envMapping;
 
+	Camera* mainCamera;
+
 	void RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params);
 	void RenderFullscreenFrameQuad();
 	
@@ -92,6 +94,9 @@ public:
 	LightSystem* GetLightSystem();
 	PostProcessingSystem* GetPostProcessing();
 	ReflectionProbeSystem* GetEnvMapping();
+
+	Camera* GetMainCamera() const;
+	void SetMainCamera(Camera* camera);
 
 	void DrawMesh(MeshRenderer* renderer);
 	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation);

@@ -36,8 +36,6 @@ private:
 
 	Perspective perspectiveData;
 	Orthographic orthoData;
-
-	static Camera* mainCamera;
 public:
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);
@@ -78,7 +76,6 @@ public:
 	glm::mat4 ProjectionMatrix() const;
 	glm::mat4 ViewProjectionMatrix() const;
 
-	static Camera* GetMainCamera();
 	void SetAsMainCamera();
 
 	CameraData GetCameraData() const;

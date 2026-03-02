@@ -120,7 +120,8 @@ depthPrepassFramebuffer(nullptr),
 depthPrepassDepthTexture(nullptr),
 colorPassFramebuffer(nullptr),
 colorPassOutputTexture(nullptr),
-screenResolution(0) {
+screenResolution(0),
+mainCamera(nullptr) {
 	glGenBuffers(1, &this->globalUniformsBuffer);
 	glBindBuffer(GL_UNIFORM_BUFFER, this->globalUniformsBuffer);
 	glBufferData(GL_UNIFORM_BUFFER, sizeof(ShaderGlobalUniforms), nullptr, GL_DYNAMIC_DRAW);
@@ -196,6 +197,15 @@ PostProcessingSystem* SceneGraphics::GetPostProcessing() {
 ReflectionProbeSystem* SceneGraphics::GetEnvMapping() {
 	return this->envMapping;
 }
+
+Camera* SceneGraphics::GetMainCamera() const {
+	return this->mainCamera;
+}
+
+void SceneGraphics::SetMainCamera(Camera* camera) {
+	this->mainCamera = camera;
+}
+
 
 void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params) {
 	ShaderObjectUniforms objectUniforms;
@@ -401,21 +411,19 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 }
 
 void SceneGraphics::Render() {
-	Camera* mainCamera = Camera::GetMainCamera();
-
-	if (mainCamera == nullptr) {
+	if (this->mainCamera == nullptr) {
 		return;
 	}
 
 	ShaderGlobalUniforms globalUniforms;
-	globalUniforms.Global_ViewMatrix = mainCamera->ViewMatrix();
-	globalUniforms.Global_ProjectionMatrix = mainCamera->ProjectionMatrix();
+	globalUniforms.Global_ViewMatrix = this->mainCamera->ViewMatrix();
+	globalUniforms.Global_ProjectionMatrix = this->mainCamera->ProjectionMatrix();
 	globalUniforms.Global_VPMatrix = globalUniforms.Global_ProjectionMatrix * globalUniforms.Global_ViewMatrix;
-	globalUniforms.Global_CameraWorldPos = glm::vec4(mainCamera->GlobalTransform().Position().Value(), 0.0);
+	globalUniforms.Global_CameraWorldPos = glm::vec4(this->mainCamera->GlobalTransform().Position().Value(), 0.0);
 	globalUniforms.Global_Time = (float) glfwGetTime();
-	globalUniforms.Global_CameraFarPlane = mainCamera->GetFarPlane();
-	globalUniforms.Global_CameraNearPlane = mainCamera->GetNearPlane();
-	globalUniforms.Global_CameraFov = mainCamera->GetFovRad();
+	globalUniforms.Global_CameraFarPlane = this->mainCamera->GetFarPlane();
+	globalUniforms.Global_CameraNearPlane = this->mainCamera->GetNearPlane();
+	globalUniforms.Global_CameraFov = this->mainCamera->GetFovRad();
 
 	RenderParams params(RenderPassType::DepthPrepass, glm::vec4(0, 0, this->screenResolution.x, this->screenResolution.y));
 
