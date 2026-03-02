@@ -448,5 +448,7 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	loadedMesh->vertexStride = VertexSpec::Mesh.VertexSize();
 	loadedMesh->vertexBuffer = vertexBuffer;
 
+	delete[] vertexData;
+
 	return loadedMesh;
 }

@@ -73,8 +73,8 @@ class Texture : public Resource {
 protected:
 	template<typename T>
 	struct TextureInfoBit {
-		T value;
-		bool dirty;
+		T value = (T) 0;
+		bool dirty = false;
 
 		TextureInfoBit() = default;
 	};

@@ -18,9 +18,6 @@ transform(),
 children(),
 parent(nullptr),
 enabled(true),
-updateable(),
-renderable(),
-drawGizmos(),
 name("") {
 	this->transform.parent = this;
 }
@@ -105,7 +102,13 @@ bool SceneNode::IsEnabled() const {
 	return this->enabled;
 }
 void SceneNode::SetEnabled(bool value) {
-	this->enabled = value;
+	if (this->enabled != value) {
+		this->enabled = true;
+
+		GetScene()->SetNodeEnabledInternal(this, value);
+
+		this->enabled = value;
+	}
 }
 
 const std::vector<SceneNode*> SceneNode::GetChildren() {
@@ -117,6 +120,8 @@ SceneNode* SceneNode::GetParent() {
 }
 
 void SceneNode::SetParent(SceneNode* newParent) {
+	GetScene()->ChangeNodeParentInternal(this, newParent);
+
 	if (this->parent) {
 		auto posInParentChildren = std::find(this->parent->children.begin(), this->parent->children.end(), this);
 		if (posInParentChildren != this->parent->children.end()) {
@@ -160,17 +165,50 @@ void SceneNode::DeleteObject(GameObject* obj) {
 	this->scene->DeleteObjectInternal(obj);
 }
 
+void SceneNode::AttachScene(Scene* scene) {
+	this->attachedScenes.push_back(scene);
+
+	GetScene()->AttachSceneToNodeInternal(this, scene);
+}
+
+void SceneNode::DetachScene(Scene* scene) {
+	std::erase(this->attachedScenes, scene);
+
+	GetScene()->DetachSceneFromNodeInternal(this, scene);
+}
+
+std::vector<Scene*> SceneNode::GetAttachedScenes() const {
+	return this->attachedScenes;
+}
+
+void SceneNode::operator delete(SceneNode* ptr, std::destroying_delete_t) {
+	ptr->GetScene()->QueueDelete(ptr);
+}
+
+Scene* Scene::CreateStandaloneScene() {
+	Scene* created = new Scene();
+
+	created->graphics = created->AddComponent<SceneGraphics>();
+	created->inputSystem = created->AddComponent<InputSystem>();
+
+	return created;
+}
+
 Scene::Scene() :
 root(nullptr),
 nextSceneNodeID(0),
-nextGameObjectID(0) {
+nextGameObjectID(0),
+graphics(nullptr),
+inputSystem(nullptr) {
 	this->root = CreateNode("root");
-	this->graphics = AddComponent<SceneGraphics>();
-	this->inputSystem = AddComponent<InputSystem>();
 }
 
 Scene::~Scene() {
 	this->resources.Purge();
+
+	if (this->root->parent) {
+		this->root->parent->DetachScene(this);
+	}
 
 	delete this->root;
 
@@ -179,20 +217,10 @@ Scene::~Scene() {
 	}
 }
 
-void SceneNode::MessageReceiver::Message() {
-	(*this->objPtr.*this->methodPtr)();
-}
-
 void Scene::DeleteObjectInternal(GameObject* obj) {
 	SceneNode* node = obj->node;
 
-	std::erase_if(node->updateable, [obj](const auto& msgRcvr) {
-		return msgRcvr.objPtr == obj;
-	} );
-
-	std::erase_if(node->renderable, [obj](const auto& msgRcvr) {
-		return msgRcvr.objPtr == obj;
-	} );
+	this->messageTree.RemoveMessageReceiver(obj, node);
 
 	for (auto* component : this->components) {
 		GameObjectSystemBase* componentAsSystem = dynamic_cast<GameObjectSystemBase*>(component);
@@ -204,9 +232,59 @@ void Scene::DeleteObjectInternal(GameObject* obj) {
 }
 
 void Scene::DeleteNodeInternal(SceneNode* node) {
+	this->messageTree.RemoveNode(node);
+
 	if (node == this->root) {
 		this->root = CreateNode("root");
 	}
+}
+
+void Scene::SetNodeEnabledInternal(SceneNode* node, bool enabled) {
+	if (enabled) {
+		this->messageTree.PropagateMessage<Message::OnEnable>(node);
+	}
+	else {
+		this->messageTree.PropagateMessage<Message::OnDisable>(node);
+	}
+}
+
+void Scene::SetGameObjectEnabledInternal(GameObject* obj, bool enabled) {
+	if (enabled) {
+		this->messageTree.MessageObject<Message::OnEnable>(obj, obj->GetNode());
+	}
+	else {
+		this->messageTree.MessageObject<Message::OnDisable>(obj, obj->GetNode());
+	}
+}
+
+void Scene::ChangeNodeParentInternal(SceneNode* node, SceneNode* newParent) {
+	if (newParent != nullptr) {
+		this->messageTree.MoveNode(node, newParent);
+	}
+}
+
+void Scene::AttachSceneToNodeInternal(SceneNode* node, Scene* scene) {
+	node->children.push_back(scene->root);
+	scene->root->parent = node;
+
+	if (scene->graphics && scene->graphics != this->graphics) {
+		scene->RemoveComponent<SceneGraphics>();
+	}
+
+	if (scene->inputSystem && scene->inputSystem != this->inputSystem) {
+		scene->RemoveComponent<InputSystem>();
+	}
+
+	scene->graphics = this->graphics;
+	scene->inputSystem = this->inputSystem;
+
+	this->messageTree.AddMessageReceiver(scene, node);
+}
+
+void Scene::DetachSceneFromNodeInternal(SceneNode* node, Scene* scene) {
+	std::erase(node->children, scene->root);
+
+	this->messageTree.RemoveMessageReceiver(scene, node);
 }
 
 SceneNode* Scene::CreateNode() {
@@ -222,6 +300,12 @@ SceneNode* Scene::CreateNode(const std::string& name) {
 SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 	SceneNode* result = new SceneNode(this);
 
+	result->id = this->nextSceneNodeID;
+	result->name = name;
+	result->parent = nullptr;
+
+	this->messageTree.AddNode(result);
+
 	if (parent) {
 		result->SetParent(parent);
 	}
@@ -232,8 +316,7 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 		this->root = result;
 	}
 
-	result->id = this->nextSceneNodeID++;
-	result->name = name;
+	this->nextSceneNodeID += 1;
 
 	return result;
 }
@@ -262,94 +345,79 @@ void Scene::DeleteNode(SceneNode* node) {
 	delete node;
 }
 
+void Scene::QueueDelete(SceneNode* node) {
+	this->deletedNodesQueue.push(node);
+	node->SetEnabled(false);
+}
+void Scene::QueueDelete(GameObject* object) {
+	this->deletedReceiversQueue.push(object);
+	object->SetEnabled(false);
+}
+void Scene::QueueDelete(Scene* scene) {
+	this->deletedReceiversQueue.push(scene);
+}
+
 void Scene::Update() {
 	for (auto& component: this->components) {
 		component->OnPreUpdate();
 	}
 
-	std::stack<SceneNode*> nodeStack;
-	std::stack<SceneNode::MessageReceiver*> updateables;
-
-	nodeStack.push(this->root);
-
-	while (!nodeStack.empty()) {
-		SceneNode* top = nodeStack.top();
-		nodeStack.pop();
-
-		if (!top->enabled) {
-			continue;
-		}
-
-		for (SceneNode* child : top->GetChildren()) {
-			nodeStack.push(child);
-		}
-
-		for (SceneNode::MessageReceiver& msg : top->updateable) {
-			updateables.push(&msg);
-		}
-	}
-
-	while (!updateables.empty()) {
-		
-		updateables.top()->Message();
-		updateables.pop();
-	}
+	this->messageTree.PropagateMessage<Message::Update>(this->root);
 
 	for (auto& component: this->components) {
 		component->OnPostUpdate();
 	}
+
+	while(!this->deletedReceiversQueue.empty()) {
+		auto deleted = this->deletedReceiversQueue.front();
+		deleted->~MessageReceiver();
+		std::free(deleted);
+		this->deletedReceiversQueue.pop();
+	}
+	
+	while(!this->deletedNodesQueue.empty()) {
+		auto deleted = this->deletedNodesQueue.front();
+		deleted->~SceneNode();
+		std::free(deleted);
+		this->deletedNodesQueue.pop();
+	}
 }
 
 void Scene::Render() {
+	if (this->GetGraphics() == nullptr) {
+		return;
+	}
+
 	for (auto& component: this->components) {
 		component->OnPreRender();
 	}
-
-	std::stack<SceneNode*> nodeStack;
-	std::stack<SceneNode::MessageReceiver*> renderables;
-	std::stack<SceneNode::MessageReceiver*> gizmos;
-
-	nodeStack.push(this->root);
-
-	while (!nodeStack.empty()) {
-		SceneNode* top = nodeStack.top();
-		nodeStack.pop();
-
-		if (!top->enabled) {
-			continue;
-		}
-
-		for (SceneNode* child : top->GetChildren()) {
-			nodeStack.push(child);
-		}
-
-		for (SceneNode::MessageReceiver& msg : top->renderable) {
-			renderables.push(&msg);
-		}
-
-		for (SceneNode::MessageReceiver& msg : top->drawGizmos) {
-			gizmos.push(&msg);
-		}
-	}
-
-	while (!renderables.empty()) {
-		renderables.top()->Message();
-		renderables.pop();
-	}
-
-	while (!gizmos.empty()) {
-		gizmos.top()->Message();
-		gizmos.pop();
-	}
+	
+	this->messageTree.PropagateMessage<Message::Render>(this->root);
+	this->messageTree.PropagateMessage<Message::DrawGizmos>(this->root);
 
 	for (auto& component: this->components) {
 		component->OnPostRender();
 	}
 }
 
+void Scene::DrawGizmos() {
+	this->messageTree.PropagateMessage<Message::DrawGizmos>(this->root);
+}
+void Scene::OnEnable() {
+	this->messageTree.PropagateMessage<Message::OnEnable>(this->root);
+}
+void Scene::OnDisable() {
+	this->messageTree.PropagateMessage<Message::OnDisable>(this->root);
+}
 
 void Scene::DrawImGui() {
 	for (auto& component: this->components) {
 		component->DrawImGui();
+	}
+}
+
+void Scene::operator delete(Scene* ptr, std::destroying_delete_t) {
+	if (ptr->root->parent) {
+		ptr->root->parent->GetScene()->QueueDelete(ptr);
 	}
 }

@@ -199,7 +199,7 @@ bool Engine::Setup() {
 		return false;
 	}
 
-	rootScene = new Scene();
+	rootScene = Scene::CreateStandaloneScene();
 
 	return true;
 }
