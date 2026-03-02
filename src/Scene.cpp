@@ -143,6 +143,32 @@ bool SceneNode::IsChildOf(const SceneNode* node) {
 	return this->parent->IsChildOf(node);
 }
 
+SceneNode* SceneNode::FindNode(const fs::path& nodePath) const {
+	const SceneNode* currentNode = this;
+
+	for (const auto& nodeName : nodePath) {
+		auto nodeIter = std::find_if(currentNode->children.begin(), currentNode->children.end(), [&nodeName](SceneNode* child) -> bool {
+			return child->name == nodeName;
+		});
+
+		if (nodeIter == currentNode->children.end()) {
+			return nullptr;
+		}
+
+		currentNode = *nodeIter;
+	};
+
+	return const_cast<SceneNode*>(currentNode);
+}
+
+bool SceneNode::TryFindNode(const fs::path& nodePath, SceneNode** node) const {
+	SceneNode* result = FindNode(nodePath);
+
+	*node = result;
+
+	return result != nullptr;
+}
+
 void SceneNode::MarkDirty() {
 	this->transform.LocalTransform().MarkDirty();
 
@@ -335,6 +361,14 @@ SceneGraphics* Scene::GetGraphics() {
 
 SceneNode* Scene::GetRootNode() {
 	return this->root;
+}
+
+SceneNode* Scene::FindNode(const fs::path& nodePath) const {
+	return this->root->FindNode(nodePath);
+}
+
+bool Scene::TryFindNode(const fs::path& nodePath, SceneNode** node) const {
+	return this->root->TryFindNode(nodePath, node);
 }
 
 void Scene::DeleteObject(GameObject* obj) {

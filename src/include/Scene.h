@@ -62,6 +62,9 @@ public:
 	void SetParent(SceneNode* newParent);
 	bool IsChildOf(const SceneNode* node);
 
+	SceneNode* FindNode(const fs::path& nodePath) const;
+	bool TryFindNode(const fs::path& nodePath, SceneNode** node) const;
+
 	void MarkDirty();
 	void MarkChildrenDirty();
 	
@@ -149,6 +152,9 @@ public:
 	SceneGraphics* GetGraphics();
 
 	SceneNode* GetRootNode();
+
+	SceneNode* FindNode(const fs::path& nodePath) const;
+	bool TryFindNode(const fs::path& nodePath, SceneNode** node) const;
 
 	template<class T_GO, typename... T_Param>
 		requires std::derived_from<T_GO, GameObject>
