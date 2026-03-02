@@ -3,6 +3,13 @@
 #include "imgui_impl/imgui_impl_opengl3.h"
 #define IMGUI_IMPL_OPENGL_LOADER_GLAD
 
+#ifdef _WIN32
+extern "C" {
+    _declspec(dllexport) DWORD NvOptimusEnablement = 1;
+    _declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
+}
+#endif
+
 #include <Engine.h>
 
 #include <glad/glad.h>
