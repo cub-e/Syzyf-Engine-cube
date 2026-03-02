@@ -197,7 +197,9 @@ Scene* Scene::CreateStandaloneScene() {
 Scene::Scene() :
 root(nullptr),
 nextSceneNodeID(0),
-nextGameObjectID(0) {
+nextGameObjectID(0),
+graphics(nullptr),
+inputSystem(nullptr) {
 	this->root = CreateNode("root");
 }
 
