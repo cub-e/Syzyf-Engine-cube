@@ -1,6 +1,7 @@
 #include "GltfImporter.h"
 
 #include "TimeSystem.h"
+#include "animation/AnimationSystem.h"
 #include "imgui.h"
 #include <Formatters.h>
 #include <Shader.h>
@@ -20,6 +21,9 @@
 #include <Debug.h>
 #include <InputSystem.h>
 #include <Engine.h>
+#include <spdlog/spdlog.h>
+
+class AnimatedThingTag : public GameObject {};
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -57,11 +61,13 @@ public:
 			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
 			}
-      if (GetScene()->Input()->KeyPressed(Key::E)) {
-        movement += up;
-      }
-      if (GetScene()->Input()->KeyPressed(Key::Q)) {
-        movement -= up;
+
+      if (GetScene()->Input()->KeyPressed(Key::Enter)) {
+        auto* thing = this->GetScene()->FindObjectsOfType<AnimatedThingTag>().front();
+        if (thing) {
+          auto* animationObject = thing->GetObject<AnimationComponent>();
+          animationObject->Play("pivotAction");
+        }
       }
 	
 			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
@@ -294,13 +300,21 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
   // auto* sponzaNewNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/main_sponza/NewSponza_Main_glTF_003.gltf", "Sponza New");
-#warning make it so you can set a scenenode as a parent
+#warning make it so you can set a scenenode as a parent, move the loadscene function into the scene
   // auto* sponzaCurtainsNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/pkg_a_curtains/NewSponza_Curtains_glTF.gltf", "Sponza Curtains");
   // auto* sponzaTreesNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/pkg_c_trees/NewSponza_CypressTree_glTF.gltf", "Sponza Tree");
 
   auto* sponzaNode = GltfImporter::LoadScene(mainScene, "./res/models/sponza/Sponza.gltf", "Sponza");
+	ShaderProgram* pbrGltfProg = ShaderProgram::Build().WithVertexShader(
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit_gltf.vert")
+	).WithPixelShader(
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
+	).Link();
+  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", "Animated Thing");
+  tvsGltfImporterNode->AddObject<AnimatedThingTag>();
 
 	mainScene->AddComponent<DebugInspector>();
+  mainScene->AddComponent<AnimationSystem>();
 }
 
 int main(int, char**) {
