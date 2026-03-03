@@ -37,7 +37,8 @@ GLenum ToGL(TextureChannels channels) {
 		GL_RG,
 		GL_RGB,
 		GL_RGBA,
-		GL_DEPTH_COMPONENT
+		GL_DEPTH_COMPONENT,
+		GL_DEPTH_STENCIL
 	};
 
 	return values[(int) channels];
@@ -47,7 +48,8 @@ GLenum ToGL(TextureFormat format) {
 	static constexpr GLenum values[] {
 		GL_UNSIGNED_BYTE,
 		GL_UNSIGNED_INT,
-		GL_FLOAT
+		GL_FLOAT,
+		GL_UNSIGNED_INT_24_8
 	};
 
 	return values[(int) format];
@@ -81,9 +83,12 @@ Texture::~Texture() {
 }
 
 GLenum Texture::CalcInternalFormat(const TextureParams& params) {
-	int srgb = (int) (params.colorSpace == TextureColor::SRGB && params.format != TextureFormat::Float); // 2
-	int numChannels = (int) params.channels; // 4
-	int format = (int) params.format; // 3
+	return CalcInternalFormat(params.colorSpace, params.format, params.channels);
+}
+
+GLenum Texture::CalcInternalFormat(TextureColor colorSpace, TextureFormat format, TextureChannels channels) {
+	int srgb = (int) (colorSpace == TextureColor::SRGB && format != TextureFormat::Float); // 2
+	int numChannels = (int) channels; // 4
 
 	constexpr GLenum values[] {
 		GL_R8,
@@ -112,7 +117,7 @@ GLenum Texture::CalcInternalFormat(const TextureParams& params) {
 		GL_RGBA16F,
 	};
 	
-	int index = 4 * 2 * format + 2 * numChannels + srgb;
+	int index = 4 * 2 * (int) format + 2 * numChannels + srgb;
 
 	GLenum result;
 
@@ -120,7 +125,12 @@ GLenum Texture::CalcInternalFormat(const TextureParams& params) {
 		result = values[index];
 	}
 	else {
-		result = GL_DEPTH_COMPONENT;
+		if (channels == TextureChannels::Depth) {
+			result = GL_DEPTH_COMPONENT;
+		}
+		else {
+			result = GL_DEPTH24_STENCIL8;
+		}
 	}
 
 	return result;
@@ -131,6 +141,16 @@ unsigned int Texture::GetWidth() const {
 }
 unsigned int Texture::GetHeight() const {
 	return this->height;
+}
+glm::uvec2 Texture::GetSize() const {
+	return glm::uvec2(this->width, this->height);
+}
+
+void Texture::Resize(const glm::uvec2& newSize) {
+	this->width = newSize.x;
+	this->height = newSize.y;
+
+	Create();
 }
 
 GLuint Texture::GetHandle() {
@@ -276,11 +296,32 @@ template<> Cubemap* Texture::Load<Cubemap>(const fs::path& texturePath, const Te
 	return Cubemap::Load(texturePath, loadParams);
 }
 
+void Texture2D::Create() {
+	if (this->width > 0 && this->height > 0) {
+		GLenum internalFormat = CalcInternalFormat(this->colorSpace, this->format, this->channels);
+		GLenum texFormat = ToGL(this->channels);
+		GLenum textureType = ToGL(this->format);
+		
+		if (!this->handle) {
+			glCreateTextures(GL_TEXTURE_2D, 1, &this->handle);
+		}
+		
+		glBindTexture(GL_TEXTURE_2D, this->handle);
+		
+		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, this->width, this->height, 0, texFormat, textureType, nullptr);
+
+		glBindTexture(GL_TEXTURE_2D, 0);
+		
+		this->Update();
+	}
+}
+
 Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams) {
 	this->format = creationParams.format;
 	this->channels = creationParams.channels;
 	this->colorSpace = creationParams.colorSpace;
 	this->owning = true;
+	this->handle = 0;
 	this->width = width;
 	this->height = height;
 	this->dirty = true;
@@ -296,21 +337,7 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->SetMinFilter(creationParams.minFilter);
 	this->SetMagFilter(creationParams.magFilter);
 
-	if (width > 0 && height > 0) {
-		GLenum internalFormat = CalcInternalFormat(creationParams);
-		GLenum format = ToGL(creationParams.channels);
-		GLenum textureType = ToGL(creationParams.format);
-		
-		glCreateTextures(GL_TEXTURE_2D, 1, &this->handle);
-		
-		glBindTexture(GL_TEXTURE_2D, this->handle);
-		
-		glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, textureType, nullptr);
-
-		this->Update();
-	
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
+	Create();
 }
 
 Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle) {
@@ -375,11 +402,36 @@ Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loa
 	return result;
 }
 
+void Cubemap::Create() {
+	if (this->width > 0 && this->height > 0) {
+		GLenum internalFormat = CalcInternalFormat(this->colorSpace, this->format, this->channels);
+		GLenum texFormat = ToGL(this->channels);
+		GLenum textureType = ToGL(this->format);
+		
+		if (!this->handle) {
+			glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &this->handle);
+		}
+		
+		glBindTexture(GL_TEXTURE_CUBE_MAP, this->handle);
+		for (int i = 0; i < 6; i++) {
+			glTexImage2D(
+				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
+				internalFormat, this->width, this->height, 0, texFormat, textureType, nullptr
+			);
+		}
+
+		this->Update();
+	
+		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+	}
+}
+
 Cubemap::Cubemap(unsigned int width, unsigned int height, const TextureParams& creationParams) {
 	this->format = creationParams.format;
 	this->channels = creationParams.channels;
 	this->colorSpace = creationParams.colorSpace;
 	this->owning = true;
+	this->handle = 0;
 	this->width = width;
 	this->height = height;
 	this->dirty = true;
@@ -397,25 +449,7 @@ Cubemap::Cubemap(unsigned int width, unsigned int height, const TextureParams& c
 	this->SetMinFilter(creationParams.minFilter);
 	this->SetMagFilter(creationParams.magFilter);
 
-	if (width > 0 && height > 0) {
-		GLenum internalFormat = CalcInternalFormat(creationParams);
-		GLenum format = ToGL(creationParams.channels);
-		GLenum textureType = ToGL(creationParams.format);
-		
-		glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &this->handle);
-		
-		glBindTexture(GL_TEXTURE_CUBE_MAP, this->handle);
-		for (int i = 0; i < 6; i++) {
-			glTexImage2D(
-				GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0,
-				internalFormat, width, height, 0, format, textureType, nullptr
-			);
-		}
-
-		this->Update();
-	
-		glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
-	}
+	Create();
 }
 
 Cubemap::Cubemap(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle) {

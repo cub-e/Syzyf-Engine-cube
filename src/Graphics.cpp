@@ -117,9 +117,7 @@ gizmoRenders(),
 globalUniformsBuffer(0),
 objectUniformsBuffer(0),
 depthPrepassFramebuffer(nullptr),
-depthPrepassDepthTexture(nullptr),
 colorPassFramebuffer(nullptr),
-colorPassOutputTexture(nullptr),
 screenResolution(0),
 mainCamera(nullptr) {
 	glGenBuffers(1, &this->globalUniformsBuffer);
@@ -135,6 +133,10 @@ mainCamera(nullptr) {
 	this->lightSystem = GetScene()->AddComponent<LightSystem>();
 	this->postProcessing = GetScene()->AddComponent<PostProcessingSystem>();
 	this->envMapping = GetScene()->AddComponent<ReflectionProbeSystem>();
+
+	this->depthPrepassFramebuffer = new Framebuffer(Framebuffer::Attachment::Depth, 0, 0);
+	this->colorPassFramebuffer = new Framebuffer(Framebuffer::Attachment::HDRColor, 0, 0);
+	this->colorPassFramebuffer->SetDepthTexture(this->depthPrepassFramebuffer->GetDepthTexture());
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
@@ -145,40 +147,8 @@ void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
 	if (this->screenResolution != newResolution) {
 		this->screenResolution = newResolution;
 
-		if (this->depthPrepassDepthTexture) {
-			delete this->depthPrepassDepthTexture;
-		}
-
-		if (this->colorPassOutputTexture) {
-			delete this->colorPassOutputTexture;
-		}
-
-		this->depthPrepassDepthTexture = new Texture2D(newResolution.x, newResolution.y, Texture::DepthBuffer);
-
-		this->colorPassOutputTexture = new Texture2D(newResolution.x, newResolution.y, Texture::HDRColorBuffer);
-
-		if (!this->depthPrepassFramebuffer) {
-			this->depthPrepassFramebuffer = new Framebuffer((Texture2D*) nullptr, 0, this->depthPrepassDepthTexture, 0);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, this->depthPrepassFramebuffer->GetHandle());
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
-		else {
-			this->depthPrepassFramebuffer->SetDepthTexture(this->depthPrepassDepthTexture, 0);
-		}
-
-		if (!this->colorPassFramebuffer) {
-			this->colorPassFramebuffer = new Framebuffer(this->colorPassOutputTexture, 0, this->depthPrepassDepthTexture, 0);
-
-			glBindFramebuffer(GL_FRAMEBUFFER, this->colorPassFramebuffer->GetHandle());
-
-			glBindFramebuffer(GL_FRAMEBUFFER, 0);
-		}
-		else {
-			this->colorPassFramebuffer->SetColorTexture(this->colorPassOutputTexture, 0);
-			this->colorPassFramebuffer->SetDepthTexture(this->depthPrepassDepthTexture, 0);
-		}
+		this->colorPassFramebuffer->SetSize(newResolution);
+		this->depthPrepassFramebuffer->SetSize(newResolution);
 
 		if (GetPostProcessing()) {
 			GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -252,7 +222,7 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 
 			if (shadowmaskUniformLocation >= 0) {
 				glActiveTexture(GL_TEXTURE31);
-				glBindTexture(GL_TEXTURE_2D, GetLightSystem()->shadowAtlasDepthTexture->GetHandle());
+				glBindTexture(GL_TEXTURE_2D, GetLightSystem()->shadowAtlasFramebuffer->GetDepthTexture()->GetHandle());
 				glUniform1i(shadowmaskUniformLocation, 31);
 			}
 
@@ -348,7 +318,7 @@ void SceneGraphics::RenderFullscreenFrameQuad() {
 	glUseProgram(quadProg->GetHandle());
 
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, this->colorPassOutputTexture->GetHandle());
+	glBindTexture(GL_TEXTURE_2D, this->colorPassFramebuffer->GetColorTexture()->GetHandle());
 	
 	glDrawElements(GL_TRIANGLES, quadMesh->SubMeshAt(0).GetVertexCount(), GL_UNSIGNED_INT, nullptr);
 	
@@ -531,7 +501,7 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 				}
 				
 				glCopyImageSubData(
-					this->colorPassOutputTexture->GetHandle(),
+					this->colorPassFramebuffer->GetColorTexture()->GetHandle(),
 					GL_TEXTURE_2D,
 					0,
 					0,

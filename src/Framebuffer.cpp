@@ -1,51 +1,55 @@
 #include <Framebuffer.h>
 
-Framebuffer::Framebuffer(Texture2D* colorTexture, int colorTextureLevel, Texture2D* depthTexture, int depthTextureLevel):
-colorTexture(colorTexture),
-colorTextureLevel(colorTextureLevel),
-depthTexture(depthTexture),
-depthTextureLevel(depthTextureLevel),
+Framebuffer::Framebuffer(Framebuffer::Attachment attachments, unsigned int width, unsigned int height):
 dirty(true),
-handle(0) {
-	Apply();
+handle(0),
+size(width, height) {
+	bool hasColor = (attachments & Attachment::Color) == Attachment::Color;
+	bool hasColorHDR = (attachments & Attachment::HDRColor) == Attachment::HDRColor;
+	bool hasColorCubemap = (attachments & Attachment::CubemappedColor) == Attachment::CubemappedColor;
+
+	bool hasDepth = (attachments & Attachment::Depth) == Attachment::Depth;
+	bool hasDepthStencil = (attachments & Attachment::DepthStencil) == Attachment::DepthStencil;
+	bool hasDepthCubemap = (attachments & Attachment::CubemappedDepth) == Attachment::DepthStencil;
+
+	if (hasColor) {
+		CreateColorAttachment(hasColorHDR, hasColorCubemap);
+	}
+
+	if (hasDepth) {
+		CreateDepthAttachment(hasDepthStencil, hasDepthCubemap);
+	}
 }
 
-Framebuffer::Framebuffer(Texture2D* colorTexture, int colorTextureLevel, Texture2D* depthTexture):
-Framebuffer(colorTexture, colorTextureLevel, depthTexture, 0) { }
-
-Framebuffer::Framebuffer(Texture2D* colorTexture, int colorTextureLevel):
-Framebuffer(colorTexture, colorTextureLevel, nullptr, 0) { }
-
-Framebuffer::Framebuffer(Texture2D* colorTexture, Texture2D* depthTexture):
-Framebuffer(colorTexture, 0, depthTexture, 0) { }
-
-Framebuffer::Framebuffer(Cubemap* colorTexture, int face, Texture2D* depthTexture, int depthTextureLevel):
-colorTexture(colorTexture),
-colorTextureLevel(face),
-depthTexture(depthTexture),
-depthTextureLevel(depthTextureLevel),
-dirty(true),
-handle(0) {
-	Apply();
-}
-
-Framebuffer::Framebuffer(Cubemap* colorTexture, int face, Texture2D* depthTexture):
-Framebuffer(colorTexture, face, depthTexture, 0) { }
-
-Framebuffer::Framebuffer(Cubemap* colorTexture, int face):
-Framebuffer(colorTexture, face, nullptr, 0) { }
+Framebuffer::Framebuffer(Attachment attachments, const glm::uvec2& size):
+Framebuffer(attachments, size.x, size.y) { }
 
 Texture* Framebuffer::GetColorTexture() const {
-	return this->colorTexture;
+	return this->colorAttachment.texture;
 }
 int Framebuffer::GetColorTextureLevel() const {
-	return this->colorTextureLevel;
+	return this->colorAttachment.level;
 }
 Texture* Framebuffer::GetDepthTexture() const {
-	return this->depthTexture;
+	return this->depthAttachment.texture;
 }
 int Framebuffer::GetDepthTextureLevel() const {
-	return this->depthTextureLevel;
+	return this->depthAttachment.level;
+}
+
+Texture* Framebuffer::GetCustomAttachmentTexture(int index) const {
+	if (index < 0 || index >= MAX_CUSTOM_ATTACHMENTS) {
+		return nullptr;
+	}
+
+	return this->customAttachments[index].texture;
+}
+int Framebuffer::GetCustomAttachmentTextureLevel(int index) const {
+	if (index < 0 || index >= MAX_CUSTOM_ATTACHMENTS) {
+		return -1;
+	}
+
+	return this->customAttachments[index].level;
 }
 
 GLuint Framebuffer::GetHandle() {
@@ -56,23 +60,145 @@ GLuint Framebuffer::GetHandle() {
 	return this->handle;
 }
 
-void Framebuffer::SetColorTexture(Texture2D* texture, int level) {
-	this->colorTexture = texture;
-	this->colorTextureLevel = level;
+Texture* Framebuffer::CreateColorAttachment(bool hdr, bool cubemapped) {
+	const TextureParams& params = hdr ? Texture::HDRColorBuffer : Texture::LDRColorBuffer;
+
+	if (this->colorAttachment.texture && this->colorAttachment.owning) {
+		delete this->colorAttachment.texture;
+	}
+
+	if (cubemapped) {
+		this->colorAttachment.texture = new Cubemap(this->size.x, this->size.y, params);
+	}
+	else {
+		this->colorAttachment.texture = new Texture2D(this->size.x, this->size.y, params);
+	}
+
+	this->colorAttachment.owning = true;
+	this->dirty = true;
+
+	return this->colorAttachment.texture;
+}
+
+Texture* Framebuffer::CreateDepthAttachment(bool withStencil, bool cubemapped) {
+	const TextureParams& params = withStencil ? Texture::DepthStencilBuffer : Texture::DepthBuffer;
+
+	if (this->depthAttachment.texture && this->depthAttachment.owning) {
+		delete this->depthAttachment.texture;
+	}
+
+	if (cubemapped) {
+		this->depthAttachment.texture = new Cubemap(this->size.x, this->size.y, params);
+	}
+	else {
+		this->depthAttachment.texture = new Texture2D(this->size.x, this->size.y, params);
+	}
+
+	this->depthAttachment.owning = true;
+	this->dirty = true;
+
+	return this->depthAttachment.texture;
+}
+
+Texture* Framebuffer::CreateCustomAttachment(int index, const TextureParams& creationParams, bool cubemapped) {
+	if (index < 0 || index >= MAX_CUSTOM_ATTACHMENTS) {
+		return nullptr;
+	}
+
+	if (this->customAttachments[index].texture && this->customAttachments[index].owning) {
+		delete this->customAttachments[index].texture;
+	}
+
+	if (cubemapped) {
+		this->customAttachments[index].texture = new Cubemap(this->size.x, this->size.y, creationParams);
+	}
+	else {
+		this->customAttachments[index].texture = new Texture2D(this->size.x, this->size.y, creationParams);
+	}
+
+	this->customAttachments[index].owning = true;
+	this->dirty = true;
+
+	return this->customAttachments[index].texture;
+}
+
+void Framebuffer::SetColorTexture(Texture* texture, int level) {
+	if (texture != this->colorAttachment.texture) {
+		if (this->colorAttachment.texture && this->colorAttachment.owning) {
+			delete this->colorAttachment.texture;
+		}
+	
+		this->colorAttachment.texture = texture;
+
+		this->colorAttachment.owning = false;
+	}
+
+	this->colorAttachment.level = level;
 
 	this->dirty = true;
 }
+
 void Framebuffer::SetColorTexture(Cubemap* texture, int face) {
-	this->colorTexture = texture;
-	this->colorTextureLevel = face;
+	SetColorTexture((Texture*) texture, glm::clamp(face, 0, 6));
+}
+
+void Framebuffer::SetDepthTexture(Texture* texture, int level) {
+	if (texture != this->depthAttachment.texture) {
+		if (this->depthAttachment.texture && this->depthAttachment.owning) {
+			delete this->depthAttachment.texture;
+		}
+		
+		this->depthAttachment.texture = texture;
+		this->depthAttachment.owning = false;
+	}
+
+	this->depthAttachment.level = level;
 
 	this->dirty = true;
 }
-void Framebuffer::SetDepthTexture(Texture* texture, int level) {
-	this->depthTexture = texture;
-	this->depthTextureLevel = level;
+
+void Framebuffer::SetDepthTexture(Cubemap* texture, int face) {
+	SetDepthTexture((Texture*) texture, glm::clamp(face, 0, 6));
+}
+
+void Framebuffer::SetCustomTexture(int index, Texture* texture, int level) {
+	if (index < 0 || index >= MAX_CUSTOM_ATTACHMENTS) {
+		return;
+	}
+
+	if (texture != this->customAttachments[index].texture) {
+		if (this->customAttachments[index].texture && this->customAttachments[index].owning) {
+			delete this->customAttachments[index].texture;
+		}
+		
+		this->customAttachments[index].texture = texture;
+	}
+	
+	this->customAttachments[index].level = level;
 
 	this->dirty = true;
+}
+
+void Framebuffer::SetCustomTexture(int index, Cubemap* texture, int face) {
+	SetCustomTexture(index, (Texture*) texture, glm::clamp(face, 0, 6));
+}
+
+void Framebuffer::SetSize(const glm::ivec2& size) {
+	this->size = size;
+
+	if (this->colorAttachment.texture != nullptr) {
+		this->colorAttachment.texture->Resize(this->size);
+	}
+
+	if (this->depthAttachment.texture != nullptr) {
+		this->depthAttachment.texture->Resize(this->size);
+	}
+
+	for (int i = 0; i < MAX_CUSTOM_ATTACHMENTS; i++) {
+		if (this->customAttachments[i].texture != nullptr) {
+			this->customAttachments[i].texture->Resize(this->size);
+		}
+	}
 }
 
 void Framebuffer::Apply() {
@@ -86,21 +212,41 @@ void Framebuffer::Apply() {
 
 	glBindFramebuffer(GL_FRAMEBUFFER, this->handle);
 
-	if (this->colorTexture) {
-		if (this->colorTexture->GetType() == TextureType::Texture2D) {
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, this->colorTexture->GetHandle(), this->colorTextureLevel);
+	if (this->colorAttachment.texture) {
+		if (this->colorAttachment.texture->GetType() == TextureType::Texture2D) {
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, colorAttachment.texture->GetHandle(), this->colorAttachment.level);
 		}
-		else if (this->colorTexture->GetType() == TextureType::Cubemap) {
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + this->colorTextureLevel, this->colorTexture->GetHandle(), 0);
+		else if (this->colorAttachment.texture->GetType() == TextureType::Cubemap) {
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + this->colorAttachment.level, this->colorAttachment.texture->GetHandle(), 0);
 		}
 	}
+	else {
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, 0, 0);
+	}
 
-	if (this->depthTexture) {
-		if (this->depthTexture->GetType() == TextureType::Texture2D) {
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthTexture->GetHandle(), this->depthTextureLevel);
+	if (this->depthAttachment.texture) {
+		if (this->depthAttachment.texture->GetType() == TextureType::Texture2D) {
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, this->depthAttachment.texture->GetHandle(), this->depthAttachment.level);
 		}
-		else if (this->depthTexture->GetType() == TextureType::Cubemap) {
-			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + this->depthTextureLevel, this->depthTexture->GetHandle(), 0);
+		else if (this->depthAttachment.texture->GetType() == TextureType::Cubemap) {
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + this->depthAttachment.level, this->depthAttachment.texture->GetHandle(), 0);
+		}
+	}
+	else {
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, 0, 0);
+	}
+
+	for (int i = 0; i < MAX_CUSTOM_ATTACHMENTS; i++) {
+		if (this->customAttachments[i].texture) {
+			if (this->customAttachments[i].texture->GetType() == TextureType::Texture2D) {
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 + i, GL_TEXTURE_2D, this->customAttachments[i].texture->GetHandle(), this->customAttachments[i].level);
+			}
+			else if (this->customAttachments[i].texture->GetType() == TextureType::Cubemap) {
+				glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 + i, GL_TEXTURE_CUBE_MAP_POSITIVE_X + this->customAttachments[i].level, this->customAttachments[i].texture->GetHandle(), 0);
+			}
+		}
+		else {
+			glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT1 + i, GL_TEXTURE_2D, 0, 0);
 		}
 	}
 

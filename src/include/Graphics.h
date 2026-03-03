@@ -68,10 +68,8 @@ private:
 	glm::vec2 screenResolution;
 	
 	Framebuffer* depthPrepassFramebuffer;
-	Texture2D* depthPrepassDepthTexture;
 
 	Framebuffer* colorPassFramebuffer;
-	Texture2D* colorPassOutputTexture;
 	
 	LightSystem* lightSystem;
 	PostProcessingSystem* postProcessing;

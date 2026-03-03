@@ -3,6 +3,7 @@
 #include <filesystem>
 #include <concepts>
 
+#include <glm/glm.hpp>
 #include <glad/glad.h>
 #include <spdlog/spdlog.h>
 
@@ -20,7 +21,8 @@ enum class TextureChannels {
 	RG = 1,
 	RGB = 2,
 	RGBA = 3,
-	Depth = 4
+	Depth = 4,
+	DepthStencil = 5
 };
 
 enum class TextureColor {
@@ -31,7 +33,8 @@ enum class TextureColor {
 enum class TextureFormat {
 	Ubyte = 0,
 	Uint,
-	Float
+	Float,
+	PackedDepthStencil
 };
 
 enum class TextureWrap {
@@ -95,12 +98,15 @@ protected:
 	TextureInfoBit<TextureFilter> minFilter;
 	TextureInfoBit<TextureFilter> magFilter;
 	TextureInfoBit<bool> mipmapped;
+
+	virtual void Create() = 0;
 public:
 	static constexpr TextureParams ColorTextureRGB {.channels = TextureChannels::RGB, .colorSpace = TextureColor::SRGB, .format = TextureFormat::Ubyte, .minFilter = TextureFilter::LinearMipmapLinear};
 	static constexpr TextureParams ColorTextureRGBA {TextureChannels::RGBA, TextureColor::SRGB, TextureFormat::Ubyte};
 	static constexpr TextureParams TechnicalMapXYZ {TextureChannels::RGB, TextureColor::Linear, TextureFormat::Ubyte};
 	static constexpr TextureParams TechnicalMapXYZW {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte};
 	static constexpr TextureParams DepthBuffer {TextureChannels::Depth, TextureColor::Linear, TextureFormat::Float};
+	static constexpr TextureParams DepthStencilBuffer {TextureChannels::DepthStencil, TextureColor::Linear, TextureFormat::PackedDepthStencil};
 	static constexpr TextureParams HDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Float};
 	static constexpr TextureParams LDRColorBuffer {TextureChannels::RGBA, TextureColor::Linear, TextureFormat::Ubyte};
 
@@ -117,9 +123,13 @@ public:
 	virtual constexpr TextureType GetType() const = 0;
 
 	static GLenum CalcInternalFormat(const TextureParams& params);
+	static GLenum CalcInternalFormat(TextureColor colorSpace, TextureFormat format, TextureChannels channels);
 
 	unsigned int GetWidth() const;
 	unsigned int GetHeight() const;
+	glm::uvec2 GetSize() const;
+
+	void Resize(const glm::uvec2& newSize);
 
 	GLuint GetHandle();
 	TextureChannels GetChannels() const;
@@ -145,6 +155,8 @@ public:
 };
 
 class Texture2D : public Texture {
+protected:
+	virtual void Create();
 public:
 	Texture2D() = default;
 	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams);
@@ -160,6 +172,8 @@ public:
 class Cubemap : public Texture {
 private:
 	TextureInfoBit<TextureWrap> wrapW;
+protected:
+	virtual void Create();
 public:
 	Cubemap() = default;
 	Cubemap(unsigned int width, unsigned int height, const TextureParams& creationParams);
