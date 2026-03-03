@@ -10,6 +10,7 @@ class PhysicsCharacter : public GameObject {
 public:
   // make private
   JPH::Character* character = nullptr;
+  float maxSeparationDistance = 0.1f;
 private:
   JPH::Ref<JPH::CharacterSettings> characterSettings;
 public:
@@ -20,3 +21,4 @@ public:
   void Enable();
   void Disable();
 };
+

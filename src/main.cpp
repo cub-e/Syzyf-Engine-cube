@@ -133,9 +133,7 @@ public:
     this->character = this->GetObject<PhysicsCharacter>()->character;
 	}
 
-	void Update() {
-    this->character->PostSimulation(0.1f); // bad spot for this
-    
+	void Update() { 
     JPH::Vec3 position = this->character->GetPosition();
     this->GlobalTransform().Position() = {position.GetX(), position.GetY(), position.GetZ()};
 
@@ -451,7 +449,9 @@ void InitScene(Scene* mainScene) {
   schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMesh->GetDefaultMaterials());
   schnozNode->GlobalTransform().Position() = { 2.0f, 10.0f, 0.0f };
   schnozNode->GlobalTransform().Scale() = glm::vec3(0.25f);
-  schnozNode->AddObject<PhysicsObject>(PhysicsObject::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING));
+  JPH::BodyCreationSettings schnozShapeSettings = PhysicsObject::ConvexHullMesh(schnozMesh, JPH::EMotionType::Dynamic, PhysicsComponent::Layers::MOVING);
+  schnozNode->AddObject<PhysicsObject>(schnozShapeSettings);
+
   schnozNode->AddObject<SchnozController>();
 }
 

@@ -228,6 +228,10 @@ PhysicsComponent::PhysicsComponent(Scene* scene): SceneComponent(scene) {
       }
     }
   }
+
+  for (auto& characterObject : this->GetScene()->FindObjectsOfType<PhysicsCharacter>()) {
+    characterObject->character->PostSimulation(characterObject->maxSeparationDistance);
+  }
 }
 
 void PhysicsComponent::DrawImGui() {
