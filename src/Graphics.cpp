@@ -182,7 +182,6 @@ void SceneGraphics::SetMainCamera(Camera* camera) {
 	this->mainCamera = camera;
 }
 
-
 void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, RenderParams params) {
 	ShaderObjectUniforms objectUniforms;
 
@@ -398,6 +397,10 @@ void SceneGraphics::Render() {
 		RenderCamera(camera);
 	}
 
+	this->mainViewport->GetFramebuffer()->Apply();
+
+	glViewport(0, 0, this->mainViewport->GetSize().x, this->mainViewport->GetSize().y);
+
 	RenderFullscreenFrameQuad();
 
 	this->currentRenders.clear();
@@ -453,7 +456,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	globalUniforms.Global_CameraNearPlane = camera->GetNearPlane();
 	globalUniforms.Global_CameraFov = camera->GetFovRad();
 
-	RenderParams activeParams((RenderPassType) 0, glm::vec4(0, 0, this->screenResolution.x, this->screenResolution.y));
+	RenderParams activeParams((RenderPassType) 0, params.viewport);
 
 	if ((params.pass & RenderPassType::DepthPrepass) == RenderPassType::DepthPrepass) {
 		activeParams.pass = RenderPassType::DepthPrepass;
@@ -461,7 +464,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		activeParams.clearDepth = true;
 
 		this->GetMainFramebuffer()->SetColorAttachmentEnabled(false);
-		RenderScene(globalUniforms, this->GetMainFramebuffer(), activeParams);
+		RenderScene(globalUniforms, renderTarget, activeParams);
 	}
 
 	if ((params.pass & RenderPassType::Color) == RenderPassType::Color) {
@@ -469,19 +472,19 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 		activeParams.pass = RenderPassType(RenderPassType::Color);
 	
 		this->GetMainFramebuffer()->SetColorAttachmentEnabled(true);
-		RenderScene(globalUniforms, this->GetMainFramebuffer(), activeParams);
+		RenderScene(globalUniforms, renderTarget, activeParams);
 	}
 
 	if ((params.pass & RenderPassType::Gizmos) == RenderPassType::Gizmos) {
 		activeParams.pass = RenderPassType(RenderPassType::Gizmos);
 	
-		RenderScene(globalUniforms, this->GetMainFramebuffer(), activeParams);
+		RenderScene(globalUniforms, renderTarget, activeParams);
 	}
 
 	if ((params.pass & RenderPassType::PostProcessing) == RenderPassType::PostProcessing) {
 		activeParams.pass = RenderPassType(RenderPassType::PostProcessing);
 	
-		RenderScene(globalUniforms, this->GetMainFramebuffer(), activeParams);
+		RenderScene(globalUniforms, renderTarget, activeParams);
 	}
 }
 
