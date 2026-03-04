@@ -57,7 +57,8 @@ public:
 	void SetCustomTexture(int index, Texture* texture, int level);
 	void SetCustomTexture(int index, Cubemap* texture, int face);
 
-	void SetSize(const glm::ivec2& size);
+	glm::uvec2 GetSize() const;
+	void SetSize(const glm::uvec2& size);
 
 	void Apply();
 };

@@ -183,7 +183,11 @@ void Framebuffer::SetCustomTexture(int index, Cubemap* texture, int face) {
 	SetCustomTexture(index, (Texture*) texture, glm::clamp(face, 0, 6));
 }
 
-void Framebuffer::SetSize(const glm::ivec2& size) {
+glm::uvec2 Framebuffer::GetSize() const {
+	return this->size;
+}
+
+void Framebuffer::SetSize(const glm::uvec2& size) {
 	this->size = size;
 
 	if (this->colorAttachment.texture != nullptr) {
