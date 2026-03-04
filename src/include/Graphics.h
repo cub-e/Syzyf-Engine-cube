@@ -8,7 +8,7 @@
 #include <Material.h>
 #include <Camera.h>
 #include <Framebuffer.h>
-#include <SceneComponent.h>
+#include <GameObjectSystem.h>
 
 struct ShaderGlobalUniforms;
 class MeshRenderer;
@@ -19,6 +19,7 @@ class LightSystem;
 class PostProcessingSystem;
 class ReflectionProbeSystem;
 class Camera;
+class Viewport;
 
 // struct RenderBatch {
 // 	Mesh* mesh;
@@ -42,7 +43,7 @@ struct RenderParams {
 	RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth = false);
 };
 
-class SceneGraphics : public SceneComponent {
+class SceneGraphics : public GameObjectSystem<Camera> {
 private:
 	struct RenderNode {
 		const Mesh::SubMesh* mesh;
@@ -67,10 +68,8 @@ private:
 	
 	glm::vec2 screenResolution;
 	
-	Framebuffer* depthPrepassFramebuffer;
+	Viewport* mainViewport;
 
-	Framebuffer* colorPassFramebuffer;
-	
 	LightSystem* lightSystem;
 	PostProcessingSystem* postProcessing;
 	ReflectionProbeSystem* envMapping;
@@ -93,6 +92,9 @@ public:
 	PostProcessingSystem* GetPostProcessing();
 	ReflectionProbeSystem* GetEnvMapping();
 
+	Viewport* GetMainViewport() const;
+	Framebuffer* GetMainFramebuffer() const;
+
 	Camera* GetMainCamera() const;
 	void SetMainCamera(Camera* camera);
 
@@ -106,9 +108,17 @@ public:
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 
+	void RenderCamera(Camera* camera, Viewport* renderTarget = nullptr);
+	void RenderCamera(Camera* camera, const RenderParams& params);
+	void RenderCamera(Camera* camera, Viewport* renderTarget, const RenderParams& params);
+
 	void RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffer* framebuffer, const RenderParams& params);
 	void RenderScene(const CameraData& camera, Framebuffer* framebuffer, const RenderParams& params);
 	void RenderScene(Camera* camera, Framebuffer* framebuffer, const RenderParams& params);
+
+	void RenderScene(const ShaderGlobalUniforms& uniforms, Viewport* viewport, const RenderParams& params);
+	void RenderScene(const CameraData& camera, Viewport* viewport, const RenderParams& params);
+	void RenderScene(Camera* camera, Viewport* viewport, const RenderParams& params);
 
 	virtual void OnPostRender();
 
@@ -116,3 +126,11 @@ public:
 
 	virtual int Order();
 };
+
+inline constexpr RenderPassType operator&(RenderPassType a, RenderPassType b) {
+	return static_cast<RenderPassType>(static_cast<int>(a) & static_cast<int>(b));
+}
+
+inline constexpr RenderPassType operator|(RenderPassType a, RenderPassType b) {
+	return static_cast<RenderPassType>(static_cast<int>(a) | static_cast<int>(b));
+}

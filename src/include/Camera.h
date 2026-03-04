@@ -5,6 +5,8 @@
 
 struct CameraData;
 
+class Viewport;
+
 class Camera : public GameObject {
 public:
 	struct Perspective {
@@ -36,6 +38,7 @@ private:
 
 	Perspective perspectiveData;
 	Orthographic orthoData;
+	Viewport* renderTarget;
 public:
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);
@@ -75,6 +78,9 @@ public:
 	glm::mat4 ViewMatrix() const;
 	glm::mat4 ProjectionMatrix() const;
 	glm::mat4 ViewProjectionMatrix() const;
+
+	Viewport* GetRenderTarget() const;
+	void SetRenderTarget(Viewport* viewport);
 
 	void SetAsMainCamera();
 

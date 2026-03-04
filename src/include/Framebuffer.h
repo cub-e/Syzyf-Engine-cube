@@ -5,14 +5,15 @@
 
 class Framebuffer {
 public:
+	static constexpr int MAX_CUSTOM_ATTACHMENTS = 3;
+private:
 	struct FramebufferBinding {
 		Texture* texture = nullptr;
 		int level = 0;
 		bool owning = false;
+		bool enabled = false;
 	};
 
-	static constexpr int MAX_CUSTOM_ATTACHMENTS = 3;
-private:
 	FramebufferBinding colorAttachment;
 	FramebufferBinding depthAttachment;
 	FramebufferBinding customAttachments[MAX_CUSTOM_ATTACHMENTS];
@@ -21,6 +22,8 @@ private:
 
 	bool dirty;
 	GLuint handle;
+
+	void SetTextureInternal(FramebufferBinding& binding, Texture* texture, int level);
 public:
 	enum class Attachment {
 		None = 0,
@@ -56,6 +59,16 @@ public:
 
 	void SetCustomTexture(int index, Texture* texture, int level);
 	void SetCustomTexture(int index, Cubemap* texture, int face);
+
+	bool ColorAttachmentEnabled() const;
+	bool DepthAttachmentEnabled() const;
+	bool CustomAttachmentEnabled(int index) const;
+
+	void SetColorAttachmentEnabled(bool enabled);
+	void SetDepthAttachmentEnabled(bool enabled);
+	void SetCustomAttachmentEnabled(int index, bool enabled);
+
+	void EnableAttachments(Attachment attachments);
 
 	glm::uvec2 GetSize() const;
 	void SetSize(const glm::uvec2& size);

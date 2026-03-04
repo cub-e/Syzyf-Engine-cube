@@ -203,6 +203,14 @@ glm::mat4 Camera::ViewProjectionMatrix() const {
 	return ProjectionMatrix() * ViewMatrix();
 }
 
+Viewport* Camera::GetRenderTarget() const {
+	return this->renderTarget;
+}
+
+void Camera::SetRenderTarget(Viewport* viewport) {
+	this->renderTarget = viewport;
+}
+
 void Camera::SetAsMainCamera() {
 	if (GetScene()->GetGraphics()) {
 		GetScene()->GetGraphics()->SetMainCamera(this);
