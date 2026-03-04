@@ -18,6 +18,7 @@
 #include <Debug.h>
 #include <InputSystem.h>
 #include <Engine.h>
+#include <Viewport.h>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -160,6 +161,12 @@ void InitScene(Scene* mainScene) {
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert color.frag")
 	).Link();
 
+	ShaderProgram* diffuseTexProg = ShaderProgram::Build().WithVertexShader(
+		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+	).WithPixelShader(
+		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert.frag")
+	).Link();
+
 	ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
@@ -175,6 +182,8 @@ void InitScene(Scene* mainScene) {
 	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
 	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
 	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
+	Mesh* tvMesh = mainScene->Resources()->Get<Mesh>("./res/models/tv_stand.fbx");
+	Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
 	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
@@ -190,6 +199,13 @@ void InitScene(Scene* mainScene) {
 	Texture2D* reflectiveARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* roughARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
 	Texture2D* shinyNonMetalARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
+
+	Texture2D* schnozTexture = mainScene->Resources()->Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
+
+	Viewport* schnozPreview = new Viewport();
+	schnozPreview->GetFramebuffer()->CreateColorAttachment(true, false);
+	schnozPreview->GetFramebuffer()->CreateDepthAttachment(false, false);
+	schnozPreview->SetSize(glm::uvec2(1024, 512));
 
 	Material* cannonMat = new Material(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
@@ -213,6 +229,17 @@ void InitScene(Scene* mainScene) {
 
 	Material* skyMat = new Material(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
+
+	Material* tvMatStand = new Material(coloredProg);
+	tvMatStand->SetValue("uColor", glm::vec3(0.8, 0.8, 0.8));
+
+	Material* screenMat = new Material(diffuseTexProg);
+	screenMat->SetValue("uColor", glm::vec3(1, 1, 1));
+	screenMat->SetValue("colorTex", (Texture2D*) schnozPreview->GetFramebuffer()->GetColorTexture());
+
+	Material* schnozMat = new Material(diffuseTexProg);
+	schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
+	schnozMat->SetValue("colorTex", schnozTexture);
 
 	auto constructNode = mainScene->CreateNode("gm_construct");
 	constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
@@ -286,6 +313,35 @@ void InitScene(Scene* mainScene) {
 	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
 
 	starsAttachmentNode->AttachScene(starsScene);
+
+	SceneNode* tvNode = mainScene->CreateNode("TV");
+	tvNode->LocalTransform().Scale() = glm::vec3(1.5, 1.5, 1.5);
+	tvNode->LocalTransform().Position() = glm::vec3(3, 0, -2);
+	tvNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(-90.0f, 20.0f, 0.0f)));
+
+	auto tvRenderer = tvNode->AddObject<MeshRenderer>(tvMesh, nullptr);
+	tvRenderer->SetMaterial(tvMatStand, 0);
+	tvRenderer->SetMaterial(screenMat, 1);
+	tvRenderer->SetMaterial(tvMatStand, 2);
+	tvRenderer->SetMaterial(tvMatStand, 3);
+
+	SceneNode* schnozCameraNode = mainScene->CreateNode("Schnoz Camera");
+	schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
+	schnozCameraNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
+	
+	auto schnozCamera = schnozCameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
+	schnozCamera->SetAspectRatio(2);
+	schnozCamera->SetRenderTarget(schnozPreview);
+
+	SceneNode* schnozNode = mainScene->CreateNode("Schnoz");
+	schnozNode->LocalTransform().Position() = glm::vec3(-53.5, 1.75, -2.4);
+	schnozNode->LocalTransform().Scale() = glm::vec3(0.15, 0.15, 0.15);
+	schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+	schnozNode->AddObject<AutoRotator>(1);
+
+	SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
+	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
+	schnozLightNode->AddObject<Light>(Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
 
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
