@@ -389,6 +389,7 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 void SceneGraphics::Render() {
 	for (Camera* camera : *this->GetAllObjects()) {
 		if (camera == this->mainCamera) {
+			camera->SetAspectRatio((float) this->mainViewport->GetSize().x / this->mainViewport->GetSize().y);
 			RenderCamera(camera, this->mainViewport);
 		}
 

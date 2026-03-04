@@ -3,6 +3,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 
 #include <Graphics.h>
+#include <Viewport.h>
 
 Camera::Perspective::Perspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane):
 fovyDegrees(fovyDegrees),
@@ -105,6 +106,10 @@ float Camera::GetFovRad() const {
 	return 0;
 }
 float Camera::GetAspectRatio() const {
+	if (this->renderTarget) {
+		return (float) this->renderTarget->GetSize().x / this->renderTarget->GetSize().y;
+	}
+
 	if (this->type == Camera::CameraType::Perspective) {
 		return this->perspectiveData.aspectRatio;
 	}
@@ -185,7 +190,7 @@ glm::mat4 Camera::ProjectionMatrix() const {
 	if (this->type == CameraType::Perspective) {
 		return glm::perspective(
 			glm::radians(this->perspectiveData.fovyDegrees),
-			this->perspectiveData.aspectRatio,
+			GetAspectRatio(),
 			this->perspectiveData.nearPlane,
 			this->perspectiveData.farPlane
 		);
