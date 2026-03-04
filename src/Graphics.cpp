@@ -117,7 +117,6 @@ currentRenders(),
 gizmoRenders(),
 globalUniformsBuffer(0),
 objectUniformsBuffer(0),
-screenResolution(0),
 mainCamera(nullptr),
 mainViewport(new Viewport()) {
 	glGenBuffers(1, &this->globalUniformsBuffer);
@@ -139,14 +138,13 @@ mainViewport(new Viewport()) {
 }
 
 glm::vec2 SceneGraphics::GetScreenResolution() const {
-	return this->screenResolution;
+	return this->mainViewport->GetSize();
 }
 
 void SceneGraphics::UpdateScreenResolution(glm::vec2 newResolution) {
-	if (this->screenResolution != newResolution) {
-		this->screenResolution = newResolution;
+	if (this->mainViewport->GetSize() != glm::uvec2(newResolution)) {
 
-		this->GetMainFramebuffer()->SetSize(newResolution);
+		this->mainViewport->SetSize(newResolution);
 
 		if (GetPostProcessing()) {
 			GetPostProcessing()->UpdateBufferResolution(newResolution);
@@ -577,8 +575,8 @@ void SceneGraphics::RenderScene(const ShaderGlobalUniforms& uniforms, Framebuffe
 					0,
 					0,
 					0,
-					this->screenResolution.x,
-					this->screenResolution.y,
+					this->mainViewport->GetSize().x,
+					this->mainViewport->GetSize().y,
 					1
 				);
 	
@@ -628,7 +626,7 @@ void SceneGraphics::OnPostRender() {
 void SceneGraphics::DrawImGui() {
 	ImGui::SetNextItemOpen(true, ImGuiCond_FirstUseEver);
 	if (ImGui::TreeNode("Graphics Debug")) {
-		ImGui::Text("Resolution: %i:%i", (int) this->screenResolution.x, (int) this->screenResolution.y);
+		ImGui::Text("Resolution: %i:%i", (int) this->mainViewport->GetSize().x, (int) this->mainViewport->GetSize().y);
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 
 		ImGui::TreePop();

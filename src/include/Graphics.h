@@ -66,8 +66,6 @@ private:
 	GLuint globalUniformsBuffer;
 	GLuint objectUniformsBuffer;
 	
-	glm::vec2 screenResolution;
-	
 	Viewport* mainViewport;
 
 	LightSystem* lightSystem;
