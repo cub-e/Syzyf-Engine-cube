@@ -11,6 +11,7 @@
 #include <GameObject.h>
 #include <Graphics.h>
 #include <InputSystem.h>
+#include <Layer.h>
 
 SceneNode::SceneNode(Scene* scene) :
 scene(scene),
@@ -18,6 +19,7 @@ transform(),
 children(),
 parent(nullptr),
 enabled(true),
+layer(Layer::Default),
 name("") {
 	this->transform.parent = this;
 }
@@ -178,6 +180,18 @@ void SceneNode::MarkDirty() {
 void SceneNode::MarkChildrenDirty() {
 	for (auto child : this->children) {
 		child->MarkDirty();
+	}
+}
+
+uint8_t SceneNode::GetLayer() const {
+	return this->layer;
+}
+bool SceneNode::CheckLayerMask(uint32_t layerMask) {
+	return ((1 << this->layer) & layerMask) > 0;
+}
+void SceneNode::SetLayer(uint8_t layer) {
+	if (layer >= 0 && layer <= 31) {
+		this->layer = layer;
 	}
 }
 

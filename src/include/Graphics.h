@@ -9,6 +9,7 @@
 #include <Camera.h>
 #include <Framebuffer.h>
 #include <GameObjectSystem.h>
+#include <Layer.h>
 
 struct ShaderGlobalUniforms;
 class MeshRenderer;
@@ -39,8 +40,9 @@ struct RenderParams {
 	RenderPassType pass;
 	glm::vec4 viewport;
 	bool clearDepth;
+	LayerMask layers;
 
-	RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth = false);
+	RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth = false, LayerMask layers = LayerMask::All);
 };
 
 class SceneGraphics : public GameObjectSystem<Camera> {
@@ -54,11 +56,12 @@ private:
 		};
 		const glm::mat4 transformation;
 		const BoundingBox bounds;
+		uint8_t layer;
 
-		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation);
-		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds);
-		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation);
-		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds);
+		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer);
+		RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
+		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer);
+		RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
 	};
 
 	std::vector<RenderNode> currentRenders;
@@ -97,12 +100,12 @@ public:
 	void SetMainCamera(Camera* camera);
 
 	void DrawMesh(MeshRenderer* renderer);
-	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation);
-	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds);
+	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, uint8_t layer = Layer::Default);
+	void DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 	
 	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
-	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount);
-	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds);
+	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer = Layer::Default);
+	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
 

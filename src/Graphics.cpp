@@ -78,38 +78,43 @@ bool TestFrustum(const Frustum& frustum, const BoundingBox& bounds) {
 	);
 }
 
-RenderParams::RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth):
+RenderParams::RenderParams(RenderPassType pass, glm::vec4 viewport, bool clearDepth, LayerMask layers):
 pass(pass),
 viewport(viewport),
-clearDepth(clearDepth) { }
+clearDepth(clearDepth),
+layers(layers) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer):
 mesh(mesh),
 material(material),
 instanceCount(instanceCount),
 transformation(transformation),
-bounds(mesh->GetBounds()) { }
+bounds(mesh->GetBounds()),
+layer(layer) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer):
 mesh(mesh),
 material(material),
 instanceCount(instanceCount),
 transformation(transformation),
-bounds(bounds) { }
+bounds(bounds),
+layer(layer) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer):
 mesh(mesh),
 material(material),
 ignoreDepth(ignoreDepth),
 transformation(transformation),
-bounds(mesh->GetBounds()) { }
+bounds(mesh->GetBounds()),
+layer(layer) { }
 
-SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds):
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer):
 mesh(mesh),
 material(material),
 ignoreDepth(ignoreDepth),
 transformation(transformation),
-bounds(bounds) { }
+bounds(bounds),
+layer(layer) { }
 
 SceneGraphics::SceneGraphics(Scene* scene):
 GameObjectSystem(scene),
@@ -190,6 +195,10 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms& globalUniforms, Re
 	std::vector<RenderNode>& renders = drawsGizmos ? this->gizmoRenders : this->currentRenders;
 
 	for (const RenderNode& node : renders) {
+		if (!params.layers.Test(node.layer)) {
+			continue;
+		}
+
 		const Mesh::SubMesh* mesh = node.mesh;
 		const Material* mat = node.material;
 
@@ -337,12 +346,12 @@ void SceneGraphics::DrawMesh(MeshRenderer* renderer) {
 	DrawMeshInstanced(renderer, 0);
 }
 
-void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation) {
-	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0);
+void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, uint8_t layer) {
+	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0, layer);
 }
 
-void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds) {
-	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0, bounds);
+void SceneGraphics::DrawMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer) {
+	DrawMeshInstanced(mesh, subMeshIndex, material, transformation, 0, bounds, layer);
 }
 
 void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth) {
@@ -350,7 +359,8 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
 		ignoresDepth,
-		transformation
+		transformation,
+		Layer::Gizmos
 	));
 }
 
@@ -362,27 +372,30 @@ void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int insta
 			mesh,
 			renderer->GetMaterial(mesh->GetMaterialIndex()),
 			instanceCount,
-			renderer->GlobalTransform()
+			renderer->GlobalTransform(),
+			renderer->GetNode()->GetLayer()
 		));
 	}
 }
 
-void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount) {
-	this->currentRenders.push_back(RenderNode(
-		&mesh->SubMeshAt(subMeshIndex),
-		material,
-		instanceCount,
-		transformation
-	));
-}
-
-void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds) {
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer) {
 	this->currentRenders.push_back(RenderNode(
 		&mesh->SubMeshAt(subMeshIndex),
 		material,
 		instanceCount,
 		transformation,
-		bounds
+		layer
+	));
+}
+
+void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer) {
+	this->currentRenders.push_back(RenderNode(
+		&mesh->SubMeshAt(subMeshIndex),
+		material,
+		instanceCount,
+		transformation,
+		bounds,
+		layer
 	));
 }
 
@@ -422,7 +435,8 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget) {
 			0,
 			0,
 			target != nullptr ? target->GetSize() : this->mainViewport->GetSize()
-		)
+		),
+		false
 	);
 
 	RenderCamera(camera, target, defaultParams);
@@ -455,7 +469,7 @@ void SceneGraphics::RenderCamera(Camera* camera, Viewport* renderTarget, const R
 	globalUniforms.Global_CameraNearPlane = camera->GetNearPlane();
 	globalUniforms.Global_CameraFov = camera->GetFovRad();
 
-	RenderParams activeParams((RenderPassType) 0, params.viewport);
+	RenderParams activeParams((RenderPassType) 0, params.viewport, false, camera->GetLayerMask());
 
 	if ((params.pass & RenderPassType::DepthPrepass) == RenderPassType::DepthPrepass) {
 		activeParams.pass = RenderPassType::DepthPrepass;

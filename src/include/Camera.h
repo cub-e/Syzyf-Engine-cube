@@ -1,13 +1,16 @@
 #pragma once
 
-#include <GameObject.h>
 #include <glm/glm.hpp>
+
+#include <GameObject.h>
+#include <Layer.h>
+#include <Debug.h>
 
 struct CameraData;
 
 class Viewport;
 
-class Camera : public GameObject {
+class Camera : public GameObject, public ImGuiDrawable {
 public:
 	struct Perspective {
 		Perspective() = default;
@@ -39,6 +42,7 @@ private:
 	Perspective perspectiveData;
 	Orthographic orthoData;
 	Viewport* renderTarget;
+	LayerMask layerMask;
 public:
 	Camera(Perspective perspectiveData);
 	Camera(Orthographic orthoData);
@@ -82,9 +86,18 @@ public:
 	Viewport* GetRenderTarget() const;
 	void SetRenderTarget(Viewport* viewport);
 
+	uint32_t GetLayerMask() const;
+	bool TestLayer(uint8_t layer);
+
+	void SetLayerMask(LayerMask newMask);
+	void AddLayerToMask(uint8_t layer);
+	void RemoveLayerFromMask(uint8_t layer);
+
 	void SetAsMainCamera();
 
 	CameraData GetCameraData() const;
+
+	virtual void DrawImGui();
 };
 
 struct CameraData {

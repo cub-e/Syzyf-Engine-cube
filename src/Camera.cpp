@@ -1,9 +1,11 @@
 #include <Camera.h>
 
 #include <glm/gtc/matrix_transform.hpp>
+#include <imgui.h>
 
 #include <Graphics.h>
 #include <Viewport.h>
+#include <Layer.h>
 
 Camera::Perspective::Perspective(float fovyDegrees, float aspectRatio, float nearPlane, float farPlane):
 fovyDegrees(fovyDegrees),
@@ -26,7 +28,8 @@ bottom(-viewportSize.y / 2.0f) { }
 Camera::Camera(Perspective perspectiveData):
 type(CameraType::Perspective),
 perspectiveData(perspectiveData),
-orthoData() {
+orthoData(),
+layerMask(LayerMask::All) {
 	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
 		SetAsMainCamera();
 	}
@@ -35,7 +38,8 @@ orthoData() {
 Camera::Camera(Orthographic orthoData):
 type(CameraType::Orthographic),
 perspectiveData(),
-orthoData(orthoData) {
+orthoData(orthoData),
+layerMask(LayerMask::All) {
 	if (GetScene()->GetGraphics() && GetScene()->GetGraphics()->GetMainCamera() == nullptr) {
 		SetAsMainCamera();
 	}
@@ -216,6 +220,25 @@ void Camera::SetRenderTarget(Viewport* viewport) {
 	this->renderTarget = viewport;
 }
 
+uint32_t Camera::GetLayerMask() const {
+	return this->layerMask;
+}
+bool Camera::TestLayer(uint8_t layer) {
+	return this->layerMask.Test(layer);
+}
+	
+void Camera::SetLayerMask(LayerMask newMask) {
+	this->layerMask = newMask;
+}
+
+void Camera::AddLayerToMask(uint8_t layer) {
+	this->layerMask |= (1 << layer);
+}
+
+void Camera::RemoveLayerFromMask(uint8_t layer) {
+	this-> layerMask &= ~(1 << layer);
+}
+
 void Camera::SetAsMainCamera() {
 	if (GetScene()->GetGraphics()) {
 		GetScene()->GetGraphics()->SetMainCamera(this);
@@ -228,6 +251,37 @@ CameraData Camera::GetCameraData() const {
 	}
 	else {
 		return CameraData(this->perspectiveData, this->ViewMatrix());
+	}
+}
+
+void Camera::DrawImGui() {
+	if (ImGui::TreeNode("LayerMask")) {
+		const float size = ImGui::CalcTextSize("00").x;
+
+		for (int y = 0; y < 4; y++) {
+			for (int x = 0; x < 8; x++) {
+				if (x > 0) {
+					ImGui::SameLine();
+				}
+
+				uint8_t layer = y * 8 + x;
+
+				ImGui::PushID(layer);
+
+				if (ImGui::Selectable(
+					std::to_string(layer).c_str(),
+					this->layerMask.Test(layer),
+					0,
+					ImVec2(size, size)
+				)) {
+					this->layerMask = this->layerMask.value ^ (1 << layer);
+				}
+
+				ImGui::PopID();
+			}
+		}
+
+		ImGui::TreePop();
 	}
 }
 

@@ -332,12 +332,14 @@ void InitScene(Scene* mainScene) {
 	auto schnozCamera = schnozCameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	schnozCamera->SetAspectRatio(2);
 	schnozCamera->SetRenderTarget(schnozPreview);
+	schnozCamera->SetLayerMask(uint8_t(5));
 
 	SceneNode* schnozNode = mainScene->CreateNode("Schnoz");
 	schnozNode->LocalTransform().Position() = glm::vec3(-53.5, 1.75, -2.4);
 	schnozNode->LocalTransform().Scale() = glm::vec3(0.15, 0.15, 0.15);
 	schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 	schnozNode->AddObject<AutoRotator>(1);
+	schnozNode->SetLayer(5);
 
 	SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);

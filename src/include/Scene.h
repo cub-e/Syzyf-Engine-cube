@@ -28,6 +28,7 @@ private:
 	std::string name;
 
 	bool enabled;
+	uint8_t layer;
 
 	Scene* const scene;
 	std::vector<GameObject*> objects;
@@ -68,6 +69,10 @@ public:
 	void MarkDirty();
 	void MarkChildrenDirty();
 	
+	uint8_t GetLayer() const;
+	bool CheckLayerMask(uint32_t layerMask);
+	void SetLayer(uint8_t layer);
+
 	const std::vector<GameObject*> AttachedObjects();
 	
 	template<class T_GO, typename... T_Param>
