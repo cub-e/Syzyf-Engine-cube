@@ -1,5 +1,7 @@
 #include "imgui.h"
 
+#include "Mirror.h"
+
 #include <Formatters.h>
 #include <Shader.h>
 #include <Mesh.h>
@@ -19,6 +21,7 @@
 #include <InputSystem.h>
 #include <Engine.h>
 #include <Viewport.h>
+#include <glm/trigonometric.hpp>
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -55,6 +58,12 @@ public:
 			}
 			if (GetScene()->Input()->KeyPressed(Key::S)) {
 				movement -= forward;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::E)) {
+				movement += up;
+			}
+			if (GetScene()->Input()->KeyPressed(Key::Q)) {
+				movement -= up;
 			}
 	
 			glm::vec2 deltaMovement = GetScene()->Input()->GetMouseMovement();
@@ -273,10 +282,21 @@ void InitScene(Scene* mainScene) {
 	shinyCubeNode2->AddObject<MeshRenderer>(cubeMesh, shinyMat);
 	shinyCubeNode2->LocalTransform().Position() = {0, 0, -3};
 
+  Mesh* mirrorMesh = mainScene->Resources()->Get<Mesh>("./res/models/plane.obj");
+  SceneNode* mirrorNode = mainScene->CreateNode("Mirror");
+  mirrorNode->AddObject<Mirror>(mirrorMesh);
+  mirrorNode->GlobalTransform().Scale() = glm::vec3(10.0f, 10.0f, 1.0f);
+  mirrorNode->GlobalTransform().Position() = glm::vec3(0.0f, 0.0f, 0.0f);
+  mirrorNode->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
+
 	auto cameraNode = mainScene->CreateNode("Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
 	cameraNode->AddObject<Mover>();
+  camera->SetAsMainCamera();
+  SceneNode* playerModelNode = mainScene->CreateNode(cameraNode, "Player Model");
+  playerModelNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
+  playerModelNode->LocalTransform().Position() = glm::vec3(0.0f, 1.0f, 0.0f);
 
 	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
@@ -330,7 +350,6 @@ void InitScene(Scene* mainScene) {
 	schnozCameraNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
 	
 	auto schnozCamera = schnozCameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
-	schnozCamera->SetAspectRatio(2);
 	schnozCamera->SetRenderTarget(schnozPreview);
 
 	SceneNode* schnozNode = mainScene->CreateNode("Schnoz");
