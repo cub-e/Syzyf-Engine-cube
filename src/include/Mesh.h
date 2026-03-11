@@ -67,6 +67,8 @@ private:
 	std::vector<SubMesh> subMeshes;
 	std::vector<Material*> materials;
 	// std::map<std::string, MeshPart> parts;
+  
+  std::vector<glm::mat4> inverseBindMatrices;
 	
 	unsigned int materialCount;
 	unsigned int vertexCount;
@@ -79,6 +81,8 @@ public:
 
 	unsigned int GetMaterialsCount() const;
 	std::vector<Material*> GetDefaultMaterials() const;
+
+  const std::vector<glm::mat4>& GetInverseBindMatrices() const;
 
 	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;

@@ -152,6 +152,10 @@ std::vector<Material*> Mesh::GetDefaultMaterials() const {
 	return this->materials;
 }
 
+const std::vector<glm::mat4>& Mesh::GetInverseBindMatrices() const {
+  return inverseBindMatrices;
+}
+
 unsigned int Mesh::GetSubMeshCount() const {
 	return this->subMeshes.size();
 }
@@ -436,7 +440,7 @@ GLuint Mesh::UploadToGpu(const VertexSpec meshSpec) {
 		glBindVertexArray(subMeshVertexArray);
 
 		unsigned int attributeOffset = 0;
-		for (int input = int(VertexInputType::Position) - 1; input < int(VertexInputType::Color); input++) {
+		for (int input = int(VertexInputType::Position) - 1; input < int(VertexInputType::Weights); input++) {
 			int length = meshSpec.GetLengthOf(VertexInputType(input + 1));
 
 			if (length > 0) {

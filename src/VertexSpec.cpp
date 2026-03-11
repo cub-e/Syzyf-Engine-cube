@@ -12,6 +12,8 @@ VertexInputType VertexSpec::TypeFromSemantic(const std::string& s) {
 			{ "UV1", VertexInputType::UV1 },
 			{ "UV2", VertexInputType::UV2 },
 			{ "COLOR", VertexInputType::Color },
+      { "JOINTS", VertexInputType::Joints },
+      { "WEIGHTS", VertexInputType::Weights },
 		});
 
 	if (nameToTypeMap.contains(s)) {
@@ -30,6 +32,8 @@ VertexInputType VertexSpec::TypeFromName(const std::string& s) {
 			{ "UV1", VertexInputType::UV1 },
 			{ "UV2", VertexInputType::UV2 },
 			{ "Color", VertexInputType::Color },
+      { "Joints", VertexInputType::Joints },
+      { "Weights", VertexInputType::Weights },
 		});
 
 	if (nameToTypeMap.contains(s)) {
@@ -49,6 +53,8 @@ const std::string& VertexSpec::TypeToName(VertexInputType t) {
 		{ VertexInputType::UV1, "UV1" },
 		{ VertexInputType::UV2, "UV2" },
 		{ VertexInputType::Color, "Color" },
+    { VertexInputType::Joints, "Joints" },
+    { VertexInputType::Weights, "Weights" },
 		});
 
 	if (nameToTypeMap.contains(t)) {
@@ -200,4 +206,15 @@ const VertexSpec VertexSpec::MeshFull {
 	{ VertexInputType::UV1, 2 },
 	{ VertexInputType::UV2, 2 },
 	{ VertexInputType::Color, 4 },
+};
+
+const VertexSpec VertexSpec::MeshSkinned {
+  { VertexInputType::Position, 3 },
+  { VertexInputType::Normal, 3 },
+  { VertexInputType::Binormal, 3 },
+  { VertexInputType::Tangent, 4 },
+  { VertexInputType::UV1, 2 },
+  { VertexInputType::UV2, 2 },
+  { VertexInputType::Color, 4 },
+  { VertexInputType::Joints, 4 },
 };
