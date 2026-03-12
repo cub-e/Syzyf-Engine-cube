@@ -60,7 +60,7 @@ SceneNode* GltfImporter::LoadScene(Scene* scene, const fs::path path, std::strin
 
   // Saving scene nodes to be able to add them as targets when adding animations
   std::vector<SceneNode*> sceneNodes;
-  sceneNodes.resize(nodeIndices.size());
+  sceneNodes.resize(asset->nodes.size());
 
   for (auto& index : nodeIndices) {
     auto& node = asset->nodes[index];
@@ -278,7 +278,7 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
     primitive.faceCount = indicesAccessor.count / (unsigned int)primitive.type;
   }
 
-	VertexSpec meshSpec = VertexSpec::MeshFull;
+	VertexSpec meshSpec = VertexSpec::MeshSkinned;
   mesh->vertexData = new float[vertexCount * meshSpec.VertexSize() + 3];
   memset(mesh->vertexData, 0, vertexCount * meshSpec.VertexSize() * sizeof(float));
   mesh->vertexCount = vertexCount;
@@ -291,6 +291,8 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
   int uv1Offset = tangentOffset + meshSpec.GetLengthOf(VertexInputType::Tangent);
   int uv2Offset = uv1Offset + meshSpec.GetLengthOf(VertexInputType::UV1);
   int colorOffset = uv2Offset + meshSpec.GetLengthOf(VertexInputType::UV2);
+  int jointsOffset = colorOffset + meshSpec.GetLengthOf(VertexInputType::Color);
+  int weightsOffset = jointsOffset + meshSpec.GetLengthOf(VertexInputType::Joints);
   
   for (auto it = gltfMesh.primitives.begin(); it != gltfMesh.primitives.end(); ++it) {
     auto* positionIt = it->findAttribute("POSITION");
@@ -395,6 +397,30 @@ Mesh* GltfImporter::LoadMesh(fastgltf::Mesh& gltfMesh, fastgltf::Asset& asset, s
       });
     }
 
+    auto* jointsIt = it->findAttribute("JOINTS_0");
+    if (jointsIt != it->attributes.end()) {
+      auto& jointsAccessor = asset.accessors[jointsIt->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, jointsAccessor, [&](fastgltf::math::fvec4 joints, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + jointsOffset;
+        target[0] = joints.x();
+        target[1] = joints.y();
+        target[2] = joints.z();
+        target[3] = joints.w();
+      });
+    }
+
+    auto* weightsIt = it->findAttribute("WEIGHTS_0");
+    if (weightsIt != it->attributes.end()) {
+      auto& weightsAccessor = asset.accessors[weightsIt->accessorIndex];
+      fastgltf::iterateAccessorWithIndex<fastgltf::math::fvec4>(asset, weightsAccessor, [&](fastgltf::math::fvec4 weights, std::size_t index) {
+        float* target = mesh->vertexData + ((vertexPointer + index) * mesh->vertexStride) + weightsOffset;
+        target[0] = weights.x();
+        target[1] = weights.y();
+        target[2] = weights.z();
+        target[3] = weights.w();
+      });
+    }
+
     auto& indicesAccessor = asset.accessors[it->indicesAccessor.value()];
     fastgltf::iterateAccessorWithIndex<std::uint32_t>(asset, indicesAccessor, [&](std::uint32_t ind, std::size_t index) {
       primitive.indexData[index] = ind + vertexPointer;
@@ -493,14 +519,16 @@ std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset
   materials.reserve(asset.materials.size());
   ResourceDatabase* resources = scene->Resources();
 
+
+#warning GltfImporter: Add a separate shader for skinned meshes, vary the vertexspec as well
 	auto* opaqueProg = ShaderProgram::Build().WithVertexShader(
-		resources->Get<VertexShader>("./res/shaders/lit_gltf.vert")
+		resources->Get<VertexShader>("./res/shaders/lit_gltf_animation.vert")
 	).WithPixelShader(
 		resources->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
 	).Link();
 
   auto* maskProg = ShaderProgram::Build().WithVertexShader(
-    resources->Get<VertexShader>("./res/shaders/lit_gltf.vert")
+    resources->Get<VertexShader>("./res/shaders/lit_gltf_animation.vert")
   ).WithPixelShader(
     resources->Get<PixelShader>("./res/shaders/pbr_gltf_mask.frag")
   ).Link();

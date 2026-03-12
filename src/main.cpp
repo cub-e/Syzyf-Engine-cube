@@ -304,14 +304,15 @@ void InitScene(Scene* mainScene) {
   // auto* sponzaCurtainsNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/pkg_a_curtains/NewSponza_Curtains_glTF.gltf", "Sponza Curtains");
   // auto* sponzaTreesNode = GltfImporter::LoadScene(mainScene, "./res/models/main_sponza/pkg_c_trees/NewSponza_CypressTree_glTF.gltf", "Sponza Tree");
 
-  auto* sponzaNode = GltfImporter::LoadScene(mainScene, "./res/models/sponza/Sponza.gltf", "Sponza");
 	ShaderProgram* pbrGltfProg = ShaderProgram::Build().WithVertexShader(
 		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit_gltf.vert")
 	).WithPixelShader(
 		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
 	).Link();
-  auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", "Animated Thing");
-  tvsGltfImporterNode->AddObject<AnimatedThingTag>();
+  // auto tvsGltfImporterNode = GltfImporter::LoadScene(mainScene, "./res/models/animated_cube.glb", "Animated Thing");
+  // tvsGltfImporterNode->AddObject<AnimatedThingTag>();
+
+  auto* jake = GltfImporter::LoadScene(mainScene, "./res/models/jake_tangents.glb", "jake");
 
 	mainScene->AddComponent<DebugInspector>();
   mainScene->AddComponent<AnimationSystem>();
