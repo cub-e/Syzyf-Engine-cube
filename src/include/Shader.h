@@ -31,12 +31,12 @@ enum class ShaderProgramFlags {
 
 class ComputeShaderProgram {
 private:
-	ComputeShader* computeShader;
+	ResourceRef<ComputeShader> computeShader;
 	UniformSpec uniforms;
 
 	GLuint handle;
 public:	
-	ComputeShaderProgram(ComputeShader* computeShader);
+	ComputeShaderProgram(ResourceRef<ComputeShader> computeShader);
 	~ComputeShaderProgram();
 
 	GLuint GetHandle() const;
@@ -67,8 +67,6 @@ protected:
 	ShaderBase(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
 	virtual ~ShaderBase();
-	static ShaderBase* Load(fs::path filePath);
-	static ShaderBase* Load(fs::path filePath, const ShaderVariantInfo& variantInfo);
 	
 	const fs::path& GetFilePath() const;
 	std::string GetName() const;
@@ -84,7 +82,7 @@ private:
 	
 	VertexShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle, VertexSpec spec);
 public:
-	static VertexShader* Load(fs::path filePath);
+	static VertexShader Load(fs::path filePath);
 
 	const VertexSpec& GetVertexSpec() const;
 
@@ -96,7 +94,7 @@ class GeometryShader : public ShaderBase {
 private:
 	GeometryShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
-	static GeometryShader* Load(fs::path filePath);
+	static GeometryShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
 };
@@ -106,7 +104,7 @@ class TesselationControlShader : public ShaderBase {
 private:
 	TesselationControlShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
-	static TesselationControlShader* Load(fs::path filePath);
+	static TesselationControlShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
 };
@@ -116,7 +114,7 @@ class TesselationEvaluationShader : public ShaderBase {
 private:
 	TesselationEvaluationShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
-	static TesselationEvaluationShader* Load(fs::path filePath);
+	static TesselationEvaluationShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
 };
@@ -126,7 +124,7 @@ class PixelShader : public ShaderBase {
 private:
 	PixelShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
-	static PixelShader* Load(fs::path filePath);
+	static PixelShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
 };
@@ -136,24 +134,24 @@ class ComputeShader : public ShaderBase {
 private:
 	ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
-	static ComputeShader* Load(fs::path filePath);
+	static ComputeShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
 };
 
 class ShaderBuilder {
 public:
-	VertexShader* vertexShader;
-	GeometryShader* geometryShader;
-	TesselationEvaluationShader* tessEvalShader;
-	TesselationControlShader* tessCtrlShader;
-	PixelShader* pixelShader;
+	ResourceRef<VertexShader> vertexShader;
+	ResourceRef<GeometryShader> geometryShader;
+	ResourceRef<TesselationEvaluationShader> tessEvalShader;
+	ResourceRef<TesselationControlShader> tessCtrlShader;
+	ResourceRef<PixelShader> pixelShader;
 	
-	ShaderBuilder& WithVertexShader(VertexShader* vertexShader);
-	ShaderBuilder& WithGeometryShader(GeometryShader* geometryShader);
-	ShaderBuilder& WithTessEvaluationShader(TesselationEvaluationShader* tessEvalShader);
-	ShaderBuilder& WithTessControlShader(TesselationControlShader* tessCtrlShader);
-	ShaderBuilder& WithPixelShader(PixelShader* pixelShader);
+	ShaderBuilder& WithVertexShader(ResourceRef<VertexShader> vertexShader);
+	ShaderBuilder& WithGeometryShader(ResourceRef<GeometryShader> geometryShader);
+	ShaderBuilder& WithTessEvaluationShader(ResourceRef<TesselationEvaluationShader> tessEvalShader);
+	ShaderBuilder& WithTessControlShader(ResourceRef<TesselationControlShader> tessCtrlShader);
+	ShaderBuilder& WithPixelShader(ResourceRef<PixelShader> pixelShader);
 
 	ShaderProgram* Link();
 };
@@ -162,15 +160,15 @@ class ShaderProgram {
 	friend class SceneGraphics;
 	friend class ShaderBuilder;
 private:
-	VertexShader* vertexShader;
-	GeometryShader* geometryShader;
-	PixelShader* pixelShader;
+	ResourceRef<VertexShader> vertexShader;
+	ResourceRef<GeometryShader> geometryShader;
+	ResourceRef<PixelShader> pixelShader;
 	UniformSpec uniforms;
 	ShaderProgramFlags flags;
 
 	GLuint handle;
 
-	ShaderProgram(VertexShader* vertexShader, GeometryShader* geometryShader, PixelShader* pixelShader, GLuint handle);
+	ShaderProgram(ResourceRef<VertexShader> vertexShader, ResourceRef<GeometryShader> geometryShader, ResourceRef<PixelShader> pixelShader, GLuint handle);
 public:
 	~ShaderProgram();
 	static ShaderBuilder Build();
@@ -192,7 +190,7 @@ private:
 	ComputeDispatchData* dispatchData;
 	ComputeShaderProgram* program;
 public:
-	ComputeShaderDispatch(ComputeShader* compShader);
+	ComputeShaderDispatch(ResourceRef<ComputeShader> compShader);
 	ComputeShaderDispatch(ComputeShaderProgram* program);
 
 	void Dispatch(int groupsX, int groupsY, int groupsZ) const;
