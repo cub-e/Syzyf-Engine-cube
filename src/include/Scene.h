@@ -8,7 +8,6 @@
 #include <spdlog/spdlog.h>
 
 #include <Transform.h>
-#include <Resources.h>
 #include <Messaging.h>
 
 class GameObject;
@@ -120,8 +119,6 @@ private:
 	int nextSceneNodeID;
 	int nextGameObjectID;
 
-	ResourceDatabase resources;
-
 	std::vector<SceneComponent*> components;
 	MessageTree messageTree;
 	SceneNode* root;
@@ -150,8 +147,6 @@ public:
 	SceneNode* CreateNode(SceneNode* parent);
 	SceneNode* CreateNode(const std::string& name);
 	SceneNode* CreateNode(SceneNode* parent, const std::string& name);
-
-	ResourceDatabase* Resources();
 
 	InputSystem* Input();
 	SceneGraphics* GetGraphics();

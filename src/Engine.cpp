@@ -1,3 +1,4 @@
+#include "Resources.h"
 #include "imgui.h"
 #include "imgui_impl/imgui_impl_glfw.h"
 #include "imgui_impl/imgui_impl_opengl3.h"
@@ -30,7 +31,6 @@ constexpr int32_t GL_VERSION_MINOR = 6;
 
 GLFWwindow* Engine::window = nullptr;
 Scene* Engine::rootScene = nullptr;
-
 
 static void GLFWErrorCallback(int error, const char* description) {
 	fprintf(stderr, "Glfw Error %d: %s\n", error, description);

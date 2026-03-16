@@ -244,8 +244,6 @@ inputSystem(nullptr) {
 }
 
 Scene::~Scene() {
-	this->resources.Purge();
-
 	if (this->root->parent) {
 		this->root->parent->DetachScene(this);
 	}
@@ -359,10 +357,6 @@ SceneNode* Scene::CreateNode(SceneNode* parent, const std::string& name) {
 	this->nextSceneNodeID += 1;
 
 	return result;
-}
-
-ResourceDatabase* Scene::Resources() {
-	return &this->resources;
 }
 
 InputSystem* Scene::Input() {
