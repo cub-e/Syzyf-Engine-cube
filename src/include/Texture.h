@@ -82,6 +82,14 @@ protected:
 		TextureInfoBit() = default;
 	};
 
+  Texture() = default;
+
+  Texture(const Texture&) = delete;
+  Texture& operator=(const Texture&) = delete;
+
+  Texture(Texture&& other) noexcept;
+  Texture& operator=(Texture&& other) noexcept;
+
 	unsigned int width;
 	unsigned int height;
 
@@ -112,7 +120,7 @@ public:
 
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)
-	static T_Tex* Load(const fs::path& texturePath, const TextureParams& loadParams) = delete;
+	static T_Tex Load(const fs::path& texturePath, const TextureParams& loadParams) = delete;
 
 	template <class T_Tex>
 		requires (std::derived_from<T_Tex, Texture>)
@@ -162,7 +170,10 @@ public:
 	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams);
 	Texture2D(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle);
 
-	static Texture2D* Load(const fs::path& texturePath, const TextureParams& loadParams);
+  Texture2D(Texture2D&& other) noexcept;
+  Texture2D& operator=(Texture2D&& other) noexcept;
+
+	static Texture2D Load(const fs::path& texturePath, const TextureParams& loadParams);
 
 	virtual constexpr TextureType GetType() const {
 		return TextureType::Texture2D;
@@ -179,12 +190,15 @@ public:
 	Cubemap(unsigned int width, unsigned int height, const TextureParams& creationParams);
 	Cubemap(unsigned int width, unsigned int height, const TextureParams& creationParams, GLuint handle);
 
-	static Cubemap* Load(const fs::path& texturePath, const TextureParams& loadParams);
-	static Cubemap* LoadParts(const fs::path& texturePath, const TextureParams& loadParams);
-	static Cubemap* LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams);
+  Cubemap(Cubemap&& other) noexcept;
+  Cubemap& operator=(Cubemap&& other) noexcept;
 
-	Cubemap* GenerateIrradianceMap();
-	Cubemap* GeneratePrefilterIBLMap();
+	static Cubemap Load(const fs::path& texturePath, const TextureParams& loadParams);
+	static Cubemap LoadParts(const fs::path& texturePath, const TextureParams& loadParams);
+	static Cubemap LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams);
+
+	Cubemap GenerateIrradianceMap();
+	Cubemap GeneratePrefilterIBLMap();
 	
 	TextureWrap GetWrapModeW() const;
 	void SetWrapModeW(TextureWrap wrapMode);
@@ -194,8 +208,8 @@ public:
 	}
 };
 
-template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams);
-template<> Cubemap* Texture::Load<Cubemap>(const fs::path& texturePath, const TextureParams& loadParams);
+template<> Texture2D Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams);
+template<> Cubemap Texture::Load<Cubemap>(const fs::path& texturePath, const TextureParams& loadParams);
 
 template <class T_Tex>
 	requires (std::derived_from<T_Tex, Texture>)

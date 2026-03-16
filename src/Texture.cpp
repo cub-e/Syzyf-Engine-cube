@@ -82,8 +82,47 @@ Texture::~Texture() {
 	}
 }
 
+Texture::Texture(Texture&& other) noexcept :
+  width(other.width), height(other.height), handle(other.handle),
+  dirty(other.dirty), owning(other.owning), channels(other.channels),
+  colorSpace(other.colorSpace), format(other.format), wrapU(other.wrapU),
+  wrapV(other.wrapV), minFilter(other.minFilter), magFilter(other.magFilter), mipmapped(other.mipmapped) {
+    other.handle = 0;
+    other.owning = false;
+  }
+
 GLenum Texture::CalcInternalFormat(const TextureParams& params) {
 	return CalcInternalFormat(params.colorSpace, params.format, params.channels);
+}
+
+Texture& Texture::operator=(Texture&& other) noexcept {
+  if (this != &other) {
+    if (this->owning && this->handle != 0) {
+      glDeleteTextures(1, &this->handle);
+    }
+
+    width = other.width; height = other.height;
+    handle = other.handle;
+    dirty = other.dirty;
+    owning = other.owning;
+    channels = other.channels;
+    colorSpace = other.colorSpace;
+    format = other.format;
+    wrapU = other.wrapU; wrapV = other.wrapV;
+    minFilter = other.minFilter; magFilter = other.magFilter;
+    mipmapped = other.mipmapped;
+
+    other.handle = 0;
+    other.owning = false;
+  }
+  return *this;
+}
+
+Texture2D::Texture2D(Texture2D&& other) noexcept : Texture(std::move(other)) {}
+
+Texture2D& Texture2D::operator=(Texture2D&& other) noexcept {
+  Texture::operator=(std::move(other));
+  return *this;
 }
 
 GLenum Texture::CalcInternalFormat(TextureColor colorSpace, TextureFormat format, TextureChannels channels) {
@@ -288,11 +327,11 @@ void Texture::Update() {
 	glBindTexture(type, 0);
 }
 
-template<> Texture2D* Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams) {
+template<> Texture2D Texture::Load<Texture2D>(const fs::path& texturePath, const TextureParams& loadParams) {
 	return Texture2D::Load(texturePath, loadParams);
 }
 
-template<> Cubemap* Texture::Load<Cubemap>(const fs::path& texturePath, const TextureParams& loadParams) {
+template<> Cubemap Texture::Load<Cubemap>(const fs::path& texturePath, const TextureParams& loadParams) {
 	return Cubemap::Load(texturePath, loadParams);
 }
 
@@ -364,14 +403,14 @@ Texture2D::Texture2D(unsigned int width, unsigned int height, const TextureParam
 	this->Update();
 }
 
-Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams) {
+Texture2D Texture2D::Load(const fs::path& texturePath, const TextureParams& loadParams) {
 	stbi_set_flip_vertically_on_load(true);
 	
 	fs::directory_entry textureFile(texturePath);
 
 	if (!textureFile.exists() || !textureFile.is_regular_file()) {
 		spdlog::error("File {} doesn't exist", texturePath.string());
-		return nullptr;
+		return Texture2D();
 	}
 
 	int width, height, nrChannels;
@@ -379,7 +418,7 @@ Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loa
 
 	if (!textureData) {
 		spdlog::error("stbi_load failed on file {}", texturePath.string());
-		return nullptr;
+		return Texture2D();
 	}
 
 	GLuint textureHandle;
@@ -397,9 +436,7 @@ Texture2D* Texture2D::Load(const fs::path& texturePath, const TextureParams& loa
 	
 	glBindTexture(GL_TEXTURE_2D, 0);
 	
-	Texture2D* result = new Texture2D(width, height, loadParams, textureHandle);
-
-	return result;
+	return Texture2D(width, height, loadParams, textureHandle);
 }
 
 void Cubemap::Create() {
@@ -476,7 +513,15 @@ Cubemap::Cubemap(unsigned int width, unsigned int height, const TextureParams& c
 	this->Update();
 }
 
-Cubemap* Cubemap::Load(const fs::path& texturePath, const TextureParams& loadParams) {
+Cubemap::Cubemap(Cubemap&& other) noexcept : Texture(std::move(other)), wrapW(other.wrapW) {}
+
+Cubemap& Cubemap::operator=(Cubemap&& other) noexcept {
+  Texture::operator=(std::move(other));
+  wrapW = other.wrapW;
+  return *this;
+}
+
+Cubemap Cubemap::Load(const fs::path& texturePath, const TextureParams& loadParams) {
 	if (texturePath.extension().string() == ".hdr") {
 		return Cubemap::LoadEquirectangular(texturePath, loadParams);
 	}
@@ -485,16 +530,16 @@ Cubemap* Cubemap::Load(const fs::path& texturePath, const TextureParams& loadPar
 	}
 }
 
-Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams) {
+Cubemap Cubemap::LoadEquirectangular(const fs::path& texturePath, const TextureParams& loadParams) {
 	static ComputeShaderDispatch* cubemapBlitProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapFromEqu.comp"));
 
-	Texture2D* equTex = Texture2D::Load(texturePath, loadParams);
+	Texture2D equTex = Texture2D::Load(texturePath, loadParams);
 	
-	if (equTex == nullptr) {
-		return nullptr;
+	if (equTex.GetHandle() == 0) {
+		return Cubemap();
 	}
 
-	int texSize = equTex->GetHeight() / 3;
+	int texSize = equTex.GetHeight() / 3;
 
 	TextureParams creationParams {
 		.channels = TextureChannels::RGBA,
@@ -525,19 +570,17 @@ Cubemap* Cubemap::LoadEquirectangular(const fs::path& texturePath, const Texture
 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-	Cubemap* result = new Cubemap(texSize, texSize, loadParams, handle);
+	Cubemap result = Cubemap(texSize, texSize, loadParams, handle);
 	
-	cubemapBlitProg->GetData()->SetValue("equirectangularMap", equTex);
-	cubemapBlitProg->GetData()->SetValue("outputImg", result);
+	cubemapBlitProg->GetData()->SetValue("equirectangularMap", &equTex);
+	cubemapBlitProg->GetData()->SetValue("outputImg", &result);
 
 	cubemapBlitProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
-
-	delete equTex;
 
 	return result;
 }
 
-Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& loadParams) {
+Cubemap Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& loadParams) {
 	stbi_set_flip_vertically_on_load(false);
 
 	static std::string cubeSides[] {
@@ -560,7 +603,7 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 		if (!textureFile.exists() || !textureFile.is_regular_file()) {
 			spdlog::error("File {} doesn't exist", subTexturePath.string());
 
-			return nullptr;
+			return Cubemap();
 		}
 	}
 	
@@ -577,7 +620,7 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 			
 			glDeleteTextures(1, &textureHandle);
 
-			return nullptr;
+			return Cubemap();
 		}
 
 		GLenum internalFormat = CalcInternalFormat(loadParams);
@@ -594,26 +637,26 @@ Cubemap* Cubemap::LoadParts(const fs::path& texturePath, const TextureParams& lo
 
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-	Cubemap* result = new Cubemap();
+	Cubemap result = Cubemap();
 	
-	result->handle = textureHandle;
-	result->format = loadParams.format;
-	result->width = width;
-	result->height = height;
-	result->owning = true;
+	result.handle = textureHandle;
+	result.format = loadParams.format;
+	result.width = width;
+	result.height = height;
+	result.owning = true;
 
-	result->SetWrapModeU(loadParams.wrapU);
-	result->SetWrapModeV(loadParams.wrapV);
-	result->SetWrapModeW(loadParams.wrapW);
-	result->SetMinFilter(loadParams.minFilter);
-	result->SetMagFilter(loadParams.magFilter);
+	result.SetWrapModeU(loadParams.wrapU);
+	result.SetWrapModeV(loadParams.wrapV);
+	result.SetWrapModeW(loadParams.wrapW);
+	result.SetMinFilter(loadParams.minFilter);
+	result.SetMagFilter(loadParams.magFilter);
 	
-	result->Update();
+	result.Update();
 
 	return result;
 }
 
-Cubemap* Cubemap::GenerateIrradianceMap() {
+Cubemap Cubemap::GenerateIrradianceMap() {
 	static ComputeShaderDispatch* irradianceProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapIrradiance.comp"));
 
 	TextureParams creationParams {
@@ -646,20 +689,20 @@ Cubemap* Cubemap::GenerateIrradianceMap() {
 	}
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 
-	Cubemap* result = new Cubemap(width, height, creationParams, handle);
+	Cubemap result = Cubemap(width, height, creationParams, handle);
 	
 	irradianceProg->GetData()->SetValue("environmentMap", this);
-	irradianceProg->GetData()->SetValue("outputImg", result);
+	irradianceProg->GetData()->SetValue("outputImg", &result);
 
 	irradianceProg->Dispatch(std::ceil(texSize / 8.0f), std::ceil(texSize / 8.0f), 1);
 
-	result->SetMinFilter(TextureFilter::LinearMipmapLinear);
-	result->Update();
+	result.SetMinFilter(TextureFilter::LinearMipmapLinear);
+	result.Update();
 
 	return result;
 }
 
-Cubemap* Cubemap::GeneratePrefilterIBLMap() {
+Cubemap Cubemap::GeneratePrefilterIBLMap() {
 	static ComputeShaderDispatch* cubemapPrefilterProg = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/cubemapPrefilter.comp"));
 
 	TextureParams creationParams {
@@ -698,7 +741,7 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 	
 	glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
 	
-	Cubemap* result = new Cubemap(width, height, creationParams, handle);
+	Cubemap result = Cubemap(width, height, creationParams, handle);
 	
 	cubemapPrefilterProg->GetData()->SetValue("environmentMap", this);
 	
@@ -707,7 +750,7 @@ Cubemap* Cubemap::GeneratePrefilterIBLMap() {
 		
 		float roughness = (float) mip / (float) (maxMipLevels - 1);
 
-		cubemapPrefilterProg->GetData()->SetValue("outputImg", result, mip);
+		cubemapPrefilterProg->GetData()->SetValue("outputImg", &result, mip);
 		cubemapPrefilterProg->GetData()->SetValue("roughness", roughness);
 
 		cubemapPrefilterProg->Dispatch(std::ceil(mipSize / 8.0f), std::ceil(mipSize / 8.0f), 1);
