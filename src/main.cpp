@@ -28,11 +28,13 @@ private:
 	int mode;
 	float movementSpeed = 0.1f;
 	float mouseSensitivity = 1.0f;
+  Scene* starsScene;
 public:
-	Mover() {
+	Mover(Scene* starsScene) {
 		this->pitch = 0;
 		this->rotation = 0;
 		this->mode = 0;
+    this->starsScene = starsScene;
 	}
 
 	void Update() {
@@ -81,6 +83,18 @@ public:
 
 			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
 		}
+
+    if (GetScene()->Input()->KeyDown(Key::Delete)) {
+      if (this->starsScene) {
+        spdlog::info("Deleting starsScene");
+        starsScene->GetRootNode()->GetParent()->DetachScene(starsScene);
+        delete starsScene;
+        ResourceDatabase::Global->FreeUnreferenced();
+        this->starsScene = nullptr;
+      } else {
+        spdlog::info("starsScene already deleted");
+      }
+    }
 	}
 
 	virtual void DrawImGui() {
@@ -110,25 +124,25 @@ public:
 
 class Stars : public GameObject, public ImGuiDrawable {
 private:
-	Mesh* starMesh;
-	Material* starMaterial;
+	ResourceRef<Mesh> starMesh;
+  std::shared_ptr<Material> starMaterial;
 	int starCount;
 public:
 	Stars(int starCount = 1000) {
-		this->starMesh = GetScene()->Resources()->Get<Mesh>("./res/models/star.obj");
+		this->starMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/star.obj");
 		
-		ShaderProgram* starProgram = ShaderProgram::Build()
+    std::shared_ptr<ShaderProgram> starProgram = ShaderProgram::Build()
 		.WithVertexShader(
-			GetScene()->Resources()->Get<VertexShader>("./res/shaders/star.vert")
+			ResourceDatabase::Global->Get<VertexShader>("./res/shaders/star.vert")
 		).WithGeometryShader(
-			GetScene()->Resources()->Get<GeometryShader>("./res/shaders/star.geom")
+			ResourceDatabase::Global->Get<GeometryShader>("./res/shaders/star.geom")
 		).WithPixelShader(
-			GetScene()->Resources()->Get<PixelShader>("./res/shaders/star.frag")
+			ResourceDatabase::Global->Get<PixelShader>("./res/shaders/star.frag")
 		).Link();
 		starProgram->SetIgnoresDepthPrepass(true);
 		starProgram->SetCastsShadows(false);
 
-		this->starMaterial = new Material(starProgram);
+		this->starMaterial = std::make_shared<Material>(starProgram);
 		this->starCount = starCount;
 	}
 
@@ -149,95 +163,95 @@ public:
 };
 
 void InitScene(Scene* mainScene) {
-	ShaderProgram* skyProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/skybox.vert")
+  std::shared_ptr<ShaderProgram> skyProg = ShaderProgram::Build().WithVertexShader(
+		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/skybox.frag")
+		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/skybox.frag")
 	).Link();
 
-	ShaderProgram* coloredProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+  std::shared_ptr<ShaderProgram> coloredProg = ShaderProgram::Build().WithVertexShader(
+		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert color.frag")
+		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/lambert color.frag")
 	).Link();
 
-	ShaderProgram* diffuseTexProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+  std::shared_ptr<ShaderProgram> diffuseTexProg = ShaderProgram::Build().WithVertexShader(
+		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/lambert.frag")
+		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/lambert.frag")
 	).Link();
 
-	ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+  std::shared_ptr<ShaderProgram> pbrProg = ShaderProgram::Build().WithVertexShader(
+		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr.frag")
+		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr.frag")
 	).Link();
 
-	ShaderProgram* pbrRefractProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit.vert")
+  std::shared_ptr<ShaderProgram> pbrRefractProg = ShaderProgram::Build().WithVertexShader(
+		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr refract.frag")
+		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
-	Mesh* gmConstructMesh = mainScene->Resources()->Get<Mesh>("./res/models/construct/construct.obj", true);
-	Mesh* cannonMesh = mainScene->Resources()->Get<Mesh>("./res/models/cannon/cannon.obj");
-	Mesh* cubeMesh = mainScene->Resources()->Get<Mesh>("./res/models/not_cube.obj");
-	Mesh* tvMesh = mainScene->Resources()->Get<Mesh>("./res/models/tv_stand.fbx");
-	Mesh* schnozMesh = mainScene->Resources()->Get<Mesh>("./res/models/schnoz/schnoz.obj");
+	ResourceRef<Mesh> gmConstructMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/construct/construct.obj", true);
+	ResourceRef<Mesh> cannonMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/cannon/cannon.obj");
+	ResourceRef<Mesh> cubeMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/not_cube.obj");
+	ResourceRef<Mesh> tvMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/tv_stand.fbx");
+	ResourceRef<Mesh> schnozMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
-	Cubemap* skyCubemap = mainScene->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
+	ResourceRef<Cubemap> skyCubemap = ResourceDatabase::Global->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
 
-	Texture2D* cannonDiffuse = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
-	Texture2D* cannonNormal = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
-	Texture2D* cannonARM = mainScene->Resources()->Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> cannonDiffuse = ResourceDatabase::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
+	ResourceRef<Texture2D> cannonNormal = ResourceDatabase::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> cannonARM = ResourceDatabase::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
 	
-	Texture2D* reflectiveDiffuse = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
-	Texture2D* reflectiveNormal = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
-	Texture2D* reflectiveARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
-	Texture2D* roughARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
-	Texture2D* shinyNonMetalARM = mainScene->Resources()->Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> reflectiveDiffuse = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
+	ResourceRef<Texture2D> reflectiveNormal = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> reflectiveARM = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> roughARM = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> shinyNonMetalARM = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
 
-	Texture2D* schnozTexture = mainScene->Resources()->Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
+	ResourceRef<Texture2D> schnozTexture = ResourceDatabase::Global->Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
 
 	Viewport* schnozPreview = new Viewport();
 	schnozPreview->GetFramebuffer()->CreateColorAttachment(true, false);
 	schnozPreview->GetFramebuffer()->CreateDepthAttachment(false, false);
 	schnozPreview->SetSize(glm::uvec2(1024, 512));
 
-	Material* cannonMat = new Material(pbrProg);
+  std::shared_ptr<Material> cannonMat = std::make_shared<Material>(pbrProg);
 	cannonMat->SetValue("albedoMap", cannonDiffuse);
 	cannonMat->SetValue("normalMap", cannonNormal);
 	cannonMat->SetValue("armMap", cannonARM);
 
-	Material* reflectiveMat = new Material(pbrProg);
+  std::shared_ptr<Material> reflectiveMat = std::make_shared<Material>(pbrProg);
 	reflectiveMat->SetValue("albedoMap", reflectiveDiffuse);
 	reflectiveMat->SetValue("normalMap", reflectiveNormal);
 	reflectiveMat->SetValue("armMap", reflectiveARM);
 
-	Material* roughMat = new Material(pbrProg);
+  std::shared_ptr<Material> roughMat = std::make_shared<Material>(pbrProg);
 	roughMat->SetValue("albedoMap", reflectiveDiffuse);
 	roughMat->SetValue("normalMap", reflectiveNormal);
 	roughMat->SetValue("armMap", roughARM);
 
-	Material* shinyMat = new Material(pbrRefractProg);
+  std::shared_ptr<Material> shinyMat = std::make_shared<Material>(pbrRefractProg);
 	shinyMat->SetValue("albedoMap", reflectiveDiffuse);
 	shinyMat->SetValue("normalMap", reflectiveNormal);
 	shinyMat->SetValue("armMap", reflectiveARM);
 
-	Material* skyMat = new Material(skyProg);
+  std::shared_ptr<Material> skyMat = std::make_shared<Material>(skyProg);
 	skyMat->SetValue("skyboxTexture", skyCubemap);
 
-	Material* tvMatStand = new Material(coloredProg);
+  std::shared_ptr<Material> tvMatStand = std::make_shared<Material>(coloredProg);
 	tvMatStand->SetValue("uColor", glm::vec3(0.8, 0.8, 0.8));
 
-	Material* screenMat = new Material(diffuseTexProg);
+  std::shared_ptr<Material> screenMat = std::make_shared<Material>(diffuseTexProg);
 	screenMat->SetValue("uColor", glm::vec3(1, 1, 1));
 	screenMat->SetValue("colorTex", (Texture2D*) schnozPreview->GetFramebuffer()->GetColorTexture());
 
-	Material* schnozMat = new Material(diffuseTexProg);
+  std::shared_ptr<Material> schnozMat = std::make_shared<Material>(diffuseTexProg);
 	schnozMat->SetValue("uColor", glm::vec3(1, 1, 1));
 	schnozMat->SetValue("colorTex", schnozTexture);
 
@@ -276,7 +290,6 @@ void InitScene(Scene* mainScene) {
 	auto cameraNode = mainScene->CreateNode("Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
-	cameraNode->AddObject<Mover>();
 
 	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
@@ -313,6 +326,8 @@ void InitScene(Scene* mainScene) {
 	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
 
 	starsAttachmentNode->AttachScene(starsScene);
+
+	cameraNode->AddObject<Mover>(starsScene);
 
 	SceneNode* tvNode = mainScene->CreateNode("TV");
 	tvNode->LocalTransform().Scale() = glm::vec3(1.5, 1.5, 1.5);

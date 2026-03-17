@@ -2,23 +2,22 @@
 
 #include <Resources.h>
 
-Mesh* Skybox::skyMesh = nullptr;
 Skybox* Skybox::currentSkybox = nullptr;
 
-Skybox::Skybox(Material* skyMaterial):
+Skybox::Skybox(std::shared_ptr<Material> skyMaterial):
 skyMaterial(skyMaterial) {
-	if (!skyMesh) {
-		skyMesh = GetScene()->Resources()->Get<Mesh>("./res/models/sky.obj");
+	if (!skyMesh.IsValid()) {
+		skyMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/sky.obj");
 	}
 
 	SetAsCurrentSkybox();
 }
 
 Material* Skybox::GetSkyMaterial() {
-	return this->skyMaterial;
+	return this->skyMaterial.get();
 }
 Mesh* Skybox::GetSkyMesh() {
-	return skyMesh;
+	return skyMesh.Get();
 }
 
 Skybox* Skybox::GetCurrentSkybox() {

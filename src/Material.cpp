@@ -232,7 +232,7 @@ void ShaderVariableStorage::BindStorageBuffer(int storageBufferIndex, GLuint buf
 	this->storageBuffers[storageBufferIndex].bufferHandle = bufferHandle;
 }
 
-Material::Material(const ShaderProgram* shader):
+Material::Material(std::shared_ptr<ShaderProgram> shader):
 shader(shader),
 shaderVariables(shader->GetUniforms()) { }
 
@@ -257,13 +257,13 @@ void Material::BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle) {
 }
 
 const ShaderProgram* Material::GetShader() const {
-	return this->shader;
+	return this->shader.get();
 }
 const UniformSpec* Material::GetUniforms() const {
 	return this->shaderVariables.GetUniforms();
 }
 
-ComputeDispatchData::ComputeDispatchData(const ComputeShaderProgram* shader):
+ComputeDispatchData::ComputeDispatchData(std::shared_ptr<ComputeShaderProgram> shader):
 shader(shader),
 shaderVariables(shader->GetUniforms()) { }
 
@@ -288,7 +288,7 @@ void ComputeDispatchData::BindStorageBuffer(int storageBufferIndex, GLuint buffe
 }
 
 const ComputeShaderProgram* ComputeDispatchData::GetShader() const {
-	return this->shader;
+	return this->shader.get();
 }
 const UniformSpec* ComputeDispatchData::GetUniforms() const {
 	return this->shaderVariables.GetUniforms();

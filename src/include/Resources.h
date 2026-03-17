@@ -1,5 +1,6 @@
 #pragma once
 
+#include <deque>
 #include <filesystem>
 #include <unordered_map>
 #include <vector>
@@ -64,7 +65,11 @@ template <typename T>
 class ResourcePool : public IResourcePool {
 friend class ResourceDatabase;
 private:
-  std::vector<std::optional<T>> resources;
+  // Deque because of ShaderVariableStorage
+  //  it stores a pointer which stops being valid when
+  //  a vector resizes
+  // no cache, doesn't matter
+  std::deque<std::optional<T>> resources;
   std::vector<std::size_t> generations;
   std::vector<uint32_t> referenceCounts;
   std::vector<std::size_t> freeList;
@@ -146,11 +151,15 @@ public:
   }
 
   void FreeUnreferenced() override {
+    std::size_t count = 0;
     for (std::size_t i = 0; i < this->resources.size(); ++i) {
       if (this->resources[i].has_value() && this->referenceCounts[i] == 0) {
         FreeSlot(i);
+        count += 1;
       }
     }
+    if (count > 0)
+      spdlog::info("Resources: Freed: {} resources", count); 
   }
 
   void FreeAll() override {

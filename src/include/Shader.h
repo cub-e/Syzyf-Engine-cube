@@ -60,12 +60,17 @@ struct ShaderVariantInfo {
 
 class ShaderBase : public Resource {
 protected:
-	const fs::path filePath;
-	const ShaderVariantInfo variantInfo;
-	const GLuint handle;
+	fs::path filePath;
+	ShaderVariantInfo variantInfo;
+	GLuint handle;
 
 	ShaderBase(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+  ShaderBase(const ShaderBase&) = delete;
+  ShaderBase& operator=(const ShaderBase&) = delete;
+  ShaderBase(ShaderBase&& other) noexcept;
+  ShaderBase& operator=(ShaderBase&& other) noexcept;
+
 	virtual ~ShaderBase();
 	
 	const fs::path& GetFilePath() const;
@@ -78,10 +83,13 @@ public:
 class VertexShader : public ShaderBase {
 	friend class ShaderBase;
 private:
-	const VertexSpec vertexSpec;
+	VertexSpec vertexSpec;
 	
 	VertexShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle, VertexSpec spec);
 public:
+  VertexShader(VertexShader&& other) noexcept;
+  VertexShader& operator=(VertexShader&& other) noexcept;
+
 	static VertexShader Load(fs::path filePath);
 
 	const VertexSpec& GetVertexSpec() const;
@@ -94,6 +102,9 @@ class GeometryShader : public ShaderBase {
 private:
 	GeometryShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+  GeometryShader(GeometryShader&& other) noexcept;
+  GeometryShader& operator=(GeometryShader&& other) noexcept;
+
 	static GeometryShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
@@ -104,6 +115,9 @@ class TesselationControlShader : public ShaderBase {
 private:
 	TesselationControlShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+  TesselationControlShader(TesselationControlShader&& other) noexcept;
+  TesselationControlShader& operator=(TesselationControlShader&& other) noexcept;
+
 	static TesselationControlShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
@@ -114,6 +128,9 @@ class TesselationEvaluationShader : public ShaderBase {
 private:
 	TesselationEvaluationShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+  TesselationEvaluationShader(TesselationEvaluationShader&& other) noexcept;
+  TesselationEvaluationShader& operator=(TesselationEvaluationShader&& other) noexcept;
+
 	static TesselationEvaluationShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
@@ -124,6 +141,9 @@ class PixelShader : public ShaderBase {
 private:
 	PixelShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+  PixelShader(PixelShader&& other) noexcept;
+  PixelShader& operator=(PixelShader&& other) noexcept;
+
 	static PixelShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
@@ -134,6 +154,9 @@ class ComputeShader : public ShaderBase {
 private:
 	ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle);
 public:
+  ComputeShader(ComputeShader&& other) noexcept;
+  ComputeShader& operator=(ComputeShader&& other) noexcept;
+
 	static ComputeShader Load(fs::path filePath);
 
 	virtual GLenum GetType() const;
@@ -153,7 +176,7 @@ public:
 	ShaderBuilder& WithTessControlShader(ResourceRef<TesselationControlShader> tessCtrlShader);
 	ShaderBuilder& WithPixelShader(ResourceRef<PixelShader> pixelShader);
 
-	ShaderProgram* Link();
+  std::shared_ptr<ShaderProgram> Link();
 };
 
 class ShaderProgram {
@@ -171,6 +194,12 @@ private:
 	ShaderProgram(ResourceRef<VertexShader> vertexShader, ResourceRef<GeometryShader> geometryShader, ResourceRef<PixelShader> pixelShader, GLuint handle);
 public:
 	~ShaderProgram();
+
+  ShaderProgram(const ShaderProgram& other) = delete;
+  ShaderProgram& operator=(const ShaderProgram& other) = delete;
+  ShaderProgram(ShaderProgram&& other) noexcept;
+  ShaderProgram& operator=(ShaderProgram&& other) noexcept;
+
 	static ShaderBuilder Build();
 	
 	GLuint GetHandle() const;
@@ -188,10 +217,10 @@ public:
 class ComputeShaderDispatch {
 private:
 	ComputeDispatchData* dispatchData;
-	ComputeShaderProgram* program;
+  std::shared_ptr<ComputeShaderProgram> program;
 public:
 	ComputeShaderDispatch(ResourceRef<ComputeShader> compShader);
-	ComputeShaderDispatch(ComputeShaderProgram* program);
+	ComputeShaderDispatch(std::shared_ptr<ComputeShaderProgram> program);
 
 	void Dispatch(int groupsX, int groupsY, int groupsZ) const;
 

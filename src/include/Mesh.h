@@ -62,7 +62,7 @@ public:
 	// };
 private:
 	std::vector<SubMesh> subMeshes;
-	std::vector<Material*> materials;
+	std::vector<std::shared_ptr<Material>> materials;
 	// std::map<std::string, MeshPart> parts;
 	
 	unsigned int materialCount;
@@ -74,8 +74,14 @@ public:
 	Mesh() = default;
 	virtual ~Mesh();
 
+  Mesh(const Mesh&) = delete;
+  Mesh& operator=(const Mesh&) = delete;
+
+  Mesh(Mesh&& other) noexcept;
+  Mesh& operator=(Mesh&& other) noexcept;
+
 	unsigned int GetMaterialsCount() const;
-	std::vector<Material*> GetDefaultMaterials() const;
+	std::vector<std::shared_ptr<Material>> GetDefaultMaterials() const;
 
 	unsigned int GetSubMeshCount() const;
 	std::vector<SubMesh> GetSubMeshes() const;
@@ -85,6 +91,6 @@ public:
 
 	// Mesh* Separate(std::string partName);
 
-	static Mesh* Load(fs::path modelPath, bool loadMaterials = false);
+	static Mesh Load(fs::path modelPath, bool loadMaterials = false);
 	// static Mesh* Create(unsigned int vertexCount, float* vertexData, unsigned int triangleCount, unsigned int* indexData, const VertexSpec& meshSpec);
 };

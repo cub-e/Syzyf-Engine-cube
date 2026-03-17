@@ -2,6 +2,7 @@
 
 #include <glad/glad.h>
 #include <glm/glm.hpp>
+#include <memory>
 #include <spdlog/spdlog.h>
 
 #include <UniformSpec.h>
@@ -67,12 +68,20 @@ public:
 
 class Material {
 private:
-	const ShaderProgram* shader;
+  std::shared_ptr<ShaderProgram> shader;
 	ShaderVariableStorage shaderVariables;
+
+  std::unordered_map<std::string, ResourceRef<Texture2D>> textures2D;
+  std::unordered_map<std::string, ResourceRef<Cubemap>> cubemaps;
 public:
-	Material(const ShaderProgram* shader);
+	Material(std::shared_ptr<ShaderProgram> shader);
 
 	void Bind() const;
+
+  template<TextureClass T>
+  void SetValue(const std::string& uniformName, ResourceRef<T> value, unsigned int level = 0);
+  template<TextureClass T>
+  void SetValue(unsigned int uniformIndex, ResourceRef<T> value, unsigned int level = 0);
 
 	template<Blittable T>
 	T GetValue(const std::string& uniformName) const;
@@ -116,10 +125,10 @@ public:
 
 class ComputeDispatchData {
 private:
-	const ComputeShaderProgram* shader;
+  std::shared_ptr<ComputeShaderProgram> shader;
 	ShaderVariableStorage shaderVariables;
 public:
-	ComputeDispatchData(const ComputeShaderProgram* shader);
+	ComputeDispatchData(std::shared_ptr<ComputeShaderProgram> shader);
 
 	void Bind() const;
 
@@ -373,6 +382,17 @@ void Material::SetValue(const std::string& uniformName, const T& value) {
 template<Blittable T>
 void Material::SetValue(unsigned int uniformIndex, const T& value) {
 	this->shaderVariables.SetValue(uniformIndex, value);
+}
+
+template<TextureClass T>
+void Material::SetValue(const std::string& uniformName, ResourceRef<T> value, unsigned int level) {
+  if constexpr (std::is_same_v<T, Texture2D>) {
+    this->textures2D[uniformName] = value;
+  } else if constexpr (std::is_same_v<T, Cubemap>) {
+    this->cubemaps[uniformName] = value;
+  }
+
+  this->shaderVariables.SetValue(uniformName, value.Get(), level);
 }
 
 template<TextureClass T>

@@ -1,4 +1,4 @@
-#pragma once
+
 
 #include <vector>
 #include <glad/glad.h>
@@ -71,6 +71,9 @@ private:
 	
 	Viewport* mainViewport;
 
+  std::shared_ptr<ShaderProgram> quadProg;
+  ResourceRef<Mesh> quadMesh;
+
 	LightSystem* lightSystem;
 	PostProcessingSystem* postProcessing;
 	ReflectionProbeSystem* envMapping;
@@ -106,8 +109,10 @@ public:
 	void DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount);
 	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, uint8_t layer = Layer::Default);
 	void DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer = Layer::Default);
+void DrawMeshInstanced(ResourceRef<Mesh> mesh, int subMeshIndex, std::shared_ptr<Material> material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer = Layer::Default);
 
 	void DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Material* material, const glm::mat4& transformation, bool ignoresDepth = false);
+	void DrawGizmoMesh(ResourceRef<Mesh> mesh, int subMeshIndex, std::shared_ptr<Material> material, const glm::mat4& transformation, bool ignoresDepth = false);
 
 	void RenderCamera(Camera* camera, Viewport* renderTarget = nullptr);
 	void RenderCamera(Camera* camera, const RenderParams& params);

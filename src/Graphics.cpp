@@ -311,15 +311,18 @@ void SceneGraphics::BindGlobalUniformBuffer(const ShaderGlobalUniforms& globalUn
 }
 
 void SceneGraphics::RenderFullscreenFrameQuad() {
-	static ShaderProgram* quadProg = ShaderProgram::Build()
-	.WithVertexShader(
-		GetScene()->Resources()->Get<VertexShader>("./res/shaders/fullscreen.vert")
-	)
-	.WithPixelShader(
-		GetScene()->Resources()->Get<PixelShader>("./res/shaders/blit.frag")
-	).Link();
+  if (!this->quadProg) {
+	  this->quadProg = ShaderProgram::Build()
+	    .WithVertexShader(
+		    ResourceDatabase::Global->Get<VertexShader>("./res/shaders/fullscreen.vert")
+	    ).WithPixelShader(
+		    ResourceDatabase::Global->Get<PixelShader>("./res/shaders/blit.frag")
+	    ).Link();
+  }
 
-	static Mesh* quadMesh = GetScene()->Resources()->Get<Mesh>("./res/models/fullscreenquad.obj");
+	if (!this->quadMesh.IsValid()) {
+    this->quadMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/fullscreenquad.obj");
+  }
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
@@ -364,6 +367,21 @@ void SceneGraphics::DrawGizmoMesh(const Mesh* mesh, int subMeshIndex, const Mate
 	));
 }
 
+void SceneGraphics::DrawGizmoMesh(ResourceRef<Mesh> mesh, int subMeshIndex, std::shared_ptr<Material> material, const glm::mat4& transformation, bool ignoresDepth) {
+  if (!mesh.IsValid() || !material) {
+    spdlog::error("Graphics: DrawGizmoMesh: mesh `ResourceRef` or material is invalid");
+    return;
+  }
+
+	this->gizmoRenders.push_back(RenderNode(
+		&mesh->SubMeshAt(subMeshIndex),
+		material.get(),
+		ignoresDepth,
+		transformation,
+		Layer::Gizmos
+	));
+}
+
 void SceneGraphics::DrawMeshInstanced(MeshRenderer* renderer, unsigned int instanceCount) {
 	for (int i = 0; i < renderer->GetMesh()->GetSubMeshCount(); i++) {
 		const Mesh::SubMesh* mesh = &renderer->GetMesh()->SubMeshAt(i);
@@ -397,6 +415,22 @@ void SceneGraphics::DrawMeshInstanced(const Mesh* mesh, int subMeshIndex, const 
 		bounds,
 		layer
 	));
+}
+
+void SceneGraphics::DrawMeshInstanced(ResourceRef<Mesh> mesh, int subMeshIndex, std::shared_ptr<Material> material, const glm::mat4& transformation, unsigned int instanceCount, const BoundingBox& bounds, uint8_t layer) {
+  if (!mesh.IsValid() || !material) {
+    spdlog::error("Graphics: DrawMeshInstanced: mesh `ResourceRef` or material is invalid");
+    return;
+  }
+
+  this->currentRenders.push_back(RenderNode(
+    &mesh->SubMeshAt(subMeshIndex),
+    material.get(),
+    instanceCount,
+    transformation,
+    bounds,
+    layer
+  ));
 }
 
 void SceneGraphics::Render() {

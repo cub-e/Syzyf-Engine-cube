@@ -1,5 +1,6 @@
 #include <Mesh.h>
 
+#include <memory>
 #include <vector>
 #include <map>
 #include <malloc.h>
@@ -128,26 +129,66 @@ unsigned int Mesh::SubMesh::GetFaceCount() const {
 }
 
 Mesh::~Mesh() {
-	delete this->vertexData;
+	delete[] this->vertexData;
 	glDeleteBuffers(1, &this->vertexBuffer);
 
 	for (auto& submesh : this->subMeshes) {
-		delete submesh.indexData;
+		delete[] submesh.indexData;
 
 		glDeleteBuffers(1, &submesh.handle.indexBuffer);
 		glDeleteVertexArrays(1, &submesh.handle.vertexArray);
 	}
+}
 
-	for (auto* mat : this->materials) {
-		delete mat;
-	}
+Mesh::Mesh(Mesh&& other) noexcept :
+  subMeshes(std::move(other.subMeshes)),
+  materials(std::move(other.materials)),
+  materialCount(other.materialCount),
+  vertexCount(other.vertexCount),
+  vertexData(other.vertexData),
+  vertexStride(other.vertexStride),
+  vertexBuffer(other.vertexBuffer) {
+  other.vertexData = nullptr;
+  other.vertexBuffer = 0;
+  other.vertexCount = 0;
+  other.materialCount = 0;
+}
+
+Mesh& Mesh::operator=(Mesh&& other) noexcept {
+  if (this != &other) {
+    if (this->vertexBuffer != 0) {
+      glDeleteBuffers(1, &this->vertexBuffer);
+    }
+    if (this->vertexData != nullptr) {
+      free(this->vertexData); // check
+    }
+    for (auto& sm : this->subMeshes) {
+      if (sm.handle.vertexArray != 0) glDeleteVertexArrays(1, &sm.handle.vertexArray);
+      if (sm.handle.indexBuffer != 0) glDeleteBuffers(1, &sm.handle.indexBuffer);
+      if (sm.indexData != nullptr) free(sm.indexData); // check
+    }
+
+    this->subMeshes = std::move(other.subMeshes);
+    this->materials = std::move(other.materials);
+    this->materialCount = other.materialCount;
+    this->vertexCount = other.vertexCount;
+    this->vertexData = other.vertexData;
+    this->vertexStride = other.vertexStride;
+    this->vertexBuffer = other.vertexBuffer;
+
+    other.vertexData = nullptr;
+    other.vertexBuffer = 0;
+    other.vertexCount = 0;
+    other.materialCount = 0;
+  }
+  return *this;
 }
 
 unsigned int Mesh::GetMaterialsCount() const {
 	return this->materialCount;
 }
 
-std::vector<Material*> Mesh::GetDefaultMaterials() const {
+std::vector<std::shared_ptr<Material>> Mesh::GetDefaultMaterials() const {
 	return this->materials;
 }
 
@@ -167,9 +208,9 @@ const Mesh::SubMesh& Mesh::operator[](unsigned int index) const {
 	return SubMeshAt(index);
 }
 
-Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
+Mesh Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	if (!fs::exists(modelPath) || !fs::is_regular_file(modelPath)) {
-		return nullptr;
+		return Mesh();
 	}
 
 	Assimp::Importer importer{};
@@ -179,7 +220,7 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 	);
 
 	if (!loaded_scene || !loaded_scene->HasMeshes()) {
-		return nullptr;
+		return Mesh();
 	}
 
 	spdlog::info("Loading mesh {}", modelPath.string());
@@ -396,10 +437,10 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 		glBindBuffer(GL_ARRAY_BUFFER, 0);
 	}
 
-	std::vector<Material*> materials;
+	std::vector<std::shared_ptr<Material>> materials;
 
 	if (loadMaterials && loaded_scene->HasMaterials()) {
-		ShaderProgram* pbrProg = ShaderProgram::Build().WithVertexShader(
+    std::shared_ptr<ShaderProgram> pbrProg = ShaderProgram::Build().WithVertexShader(
 			ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
 		).WithPixelShader(
 			ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr.frag")
@@ -416,22 +457,22 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 			meshMaterial->GetTexture(aiTextureType_NORMALS, 0, &normalTexturePath);
 			meshMaterial->GetTexture(aiTextureType_METALNESS, 0, &armTexturePath);
 
-			Texture2D* albedoTex =
+			ResourceRef<Texture2D> albedoTex =
 				fs::is_regular_file(modelPath.parent_path() / colorTexturePath.C_Str())
 				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / colorTexturePath.C_Str()), Texture::ColorTextureRGB)
 				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
 
-			Texture2D* normalTex =
+			ResourceRef<Texture2D> normalTex =
 				fs::is_regular_file(modelPath.parent_path() / normalTexturePath.C_Str())
 				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / normalTexturePath.C_Str()), Texture::TechnicalMapXYZ)
 				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
 			
-			Texture2D* armTex =
+			ResourceRef<Texture2D> armTex =
 				fs::is_regular_file(modelPath.parent_path() / armTexturePath.C_Str())
 				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / armTexturePath.C_Str()), Texture::TechnicalMapXYZ)
 				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
 			
-			Material* materialResult = new Material(pbrProg);
+      std::shared_ptr<Material> materialResult = std::make_shared<Material>(pbrProg);
 			materialResult->SetValue("albedoMap", albedoTex);
 			materialResult->SetValue("normalMap", normalTex);
 			materialResult->SetValue("armMap", armTex);
@@ -440,15 +481,14 @@ Mesh* Mesh::Load(fs::path modelPath, bool loadMaterials) {
 		}
 	}
 
-	Mesh* loadedMesh = new Mesh();
-	loadedMesh->subMeshes = subMeshes;
-	loadedMesh->materialCount = materialsCount;
-	loadedMesh->materials = materials;
-	loadedMesh->vertexCount = vertexCount;
-	loadedMesh->vertexStride = VertexSpec::Mesh.VertexSize();
-	loadedMesh->vertexBuffer = vertexBuffer;
-
-	delete[] vertexData;
+	Mesh loadedMesh = Mesh();
+	loadedMesh.subMeshes = subMeshes;
+	loadedMesh.materialCount = materialsCount;
+	loadedMesh.materials = materials;
+	loadedMesh.vertexCount = vertexCount;
+	loadedMesh.vertexStride = VertexSpec::Mesh.VertexSize();
+	loadedMesh.vertexBuffer = vertexBuffer;
+  loadedMesh.vertexData = vertexData;
 
 	return loadedMesh;
 }

@@ -12,7 +12,7 @@
 #include "../res/shaders/shared/shared.h"
 #include "../res/shaders/shared/uniforms.h"
 
-Texture2D* GenerateBRDFConvolution() {
+std::shared_ptr<Texture2D> GenerateBRDFConvolution() {
 	static ComputeShaderDispatch* BrdfConvolutionDispatch;
 
 	if (BrdfConvolutionDispatch == nullptr) {
@@ -33,19 +33,19 @@ Texture2D* GenerateBRDFConvolution() {
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, texSize, texSize, 0, GL_RG, GL_FLOAT, nullptr);
 	glBindTexture(GL_TEXTURE_2D, 0);
 
-	Texture2D* result = new Texture2D(texSize, texSize, creationParams, handle);
+	Texture2D result(Texture2D(texSize, texSize, creationParams, handle));
 
-	result->SetWrapModeU(TextureWrap::Clamp);
-	result->SetWrapModeV(TextureWrap::Clamp);
-	result->SetMinFilter(TextureFilter::Linear);
-	result->SetMagFilter(TextureFilter::Linear);
+	result.SetWrapModeU(TextureWrap::Clamp);
+	result.SetWrapModeV(TextureWrap::Clamp);
+	result.SetMinFilter(TextureFilter::Linear);
+	result.SetMagFilter(TextureFilter::Linear);
 	
-	result->Update();
+	result.Update();
 
-	BrdfConvolutionDispatch->GetData()->SetValue("outputImg", result);
+	BrdfConvolutionDispatch->GetData()->SetValue("outputImg", &result);
 	BrdfConvolutionDispatch->Dispatch(glm::ceil(texSize / 8), glm::ceil(texSize / 8), 1);
 
-	return result;
+	return std::make_shared<Texture2D>(std::move(result));
 }
 
 ReflectionProbeSystem::ReflectionProbeSystem(Scene* scene):
@@ -58,7 +58,7 @@ skyboxProbe(nullptr) {
 
 void ReflectionProbeSystem::RecalculateSkyboxIBL() {
 	// Silly
-	Cubemap* skyCubemap = GetScene()->Resources()->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
+	ResourceRef<Cubemap> skyCubemap = ResourceDatabase::Global->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 
 	Skybox* sky = Skybox::GetCurrentSkybox();
 
@@ -68,15 +68,15 @@ void ReflectionProbeSystem::RecalculateSkyboxIBL() {
 
 	if (!sky) {
 		this->skyboxProbe->dirty = false;
-		this->skyboxProbe->irradianceMap = new Cubemap(1, 1, Texture::HDRColorBuffer);
-		this->skyboxProbe->prefilterMap = new Cubemap(1, 1, Texture::HDRColorBuffer);
+		this->skyboxProbe->irradianceMap = std::make_shared<Cubemap>(1, 1, Texture::HDRColorBuffer);
+		this->skyboxProbe->prefilterMap = std::make_shared<Cubemap>(1, 1, Texture::HDRColorBuffer);
 
 		return;
 	}
 	
 	this->skyboxProbe->dirty = false;
-	this->skyboxProbe->irradianceMap = skyCubemap->GenerateIrradianceMap();
-	this->skyboxProbe->prefilterMap = skyCubemap->GeneratePrefilterIBLMap();
+	this->skyboxProbe->irradianceMap = std::make_shared<Cubemap>(skyCubemap->GenerateIrradianceMap());
+	this->skyboxProbe->prefilterMap = std::make_shared<Cubemap>(skyCubemap->GeneratePrefilterIBLMap());
 }
 
 void ReflectionProbeSystem::InvalidateAll() {
@@ -110,7 +110,7 @@ ReflectionProbe* ReflectionProbeSystem::GetClosestProbe(glm::vec3 position) {
 }
 
 Texture2D* ReflectionProbeSystem::BRDFConvolutionMap() {
-	return this->brdfConvolutionMap;
+	return this->brdfConvolutionMap.get();
 }
 
 void ReflectionProbeSystem::OnPostRender() {
@@ -181,8 +181,11 @@ void ReflectionProbeSystem::OnPostRender() {
 		}
 		
 		probe->dirty = false;
-		probe->irradianceMap = static_cast<Cubemap*>(this->reflectionProbeFramebuffer->GetColorTexture())->GenerateIrradianceMap();
-		probe->prefilterMap = static_cast<Cubemap*>(this->reflectionProbeFramebuffer->GetColorTexture())->GeneratePrefilterIBLMap();
+
+    Cubemap* fboColor = static_cast<Cubemap*>(this->reflectionProbeFramebuffer->GetColorTexture());
+
+    probe->irradianceMap = std::make_shared<Cubemap>(fboColor->GenerateIrradianceMap());
+    probe->prefilterMap = std::make_shared<Cubemap>(fboColor->GeneratePrefilterIBLMap());
 
 		break; // Only recompute 1 probe at a time
 	}

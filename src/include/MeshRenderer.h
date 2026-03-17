@@ -8,21 +8,21 @@
 
 class MeshRenderer : public GameObject {
 private:
-	Mesh* mesh;
-	std::vector<Material*> materials;
+	ResourceRef<Mesh> mesh;
+	std::vector<std::shared_ptr<Material>> materials;
 
 	void ResetUniformBuffer();
 public:
 	MeshRenderer();
-	MeshRenderer(Mesh* mesh, Material* material);
-	MeshRenderer(Mesh* mesh, const std::vector<Material*>& materials);
+	MeshRenderer(ResourceRef<Mesh> mesh, std::shared_ptr<Material> material);
+	MeshRenderer(ResourceRef<Mesh> mesh, const std::vector<std::shared_ptr<Material>>& materials);
 
 	Mesh* GetMesh();
-	void SetMesh(Mesh* newMesh);
+	void SetMesh(ResourceRef<Mesh> newMesh);
 
 	Material* GetMaterial(int materialIndex = 0);
 
-	void SetMaterial(Material* newMaterial, int materialIndex = 0);
+	void SetMaterial(std::shared_ptr<Material> newMaterial, int materialIndex = 0);
 
 	void Render() const;
 };

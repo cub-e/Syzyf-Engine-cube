@@ -8,12 +8,12 @@
 
 class Skybox : public GameObject {
 private:
-	static Mesh* skyMesh;
-	Material* skyMaterial;
+	ResourceRef<Mesh> skyMesh;
+  std::shared_ptr<Material> skyMaterial;
 
 	static Skybox* currentSkybox;
 public:
-	Skybox(Material* skyMaterial);
+	Skybox(std::shared_ptr<Material> skyMaterial);
 
 	Material* GetSkyMaterial();
 	Mesh* GetSkyMesh();

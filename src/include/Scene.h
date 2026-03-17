@@ -2,13 +2,14 @@
 
 #include <concepts>
 #include <vector>
-#include <typeinfo>
 #include <queue>
-
+#include <filesystem>
 #include <spdlog/spdlog.h>
 
 #include <Transform.h>
 #include <Messaging.h>
+
+namespace fs = std::filesystem;
 
 class GameObject;
 class InputSystem;

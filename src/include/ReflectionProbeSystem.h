@@ -12,7 +12,7 @@ private:
 
 	Framebuffer* reflectionProbeFramebuffer;
 
-	Texture2D* brdfConvolutionMap;
+  std::shared_ptr<Texture2D> brdfConvolutionMap;
 public:
 	ReflectionProbeSystem(Scene* scene);
 
@@ -22,7 +22,7 @@ public:
 
 	ReflectionProbe* GetClosestProbe(glm::vec3 position);
 
-	Texture2D* BRDFConvolutionMap();
+  Texture2D* BRDFConvolutionMap();
 
 	virtual void OnPostRender();
 

@@ -6,6 +6,8 @@
 
 #include "../res/shaders/shared/shared.h"
 
+class Mesh;
+
 class Light : public GameObject, public ImGuiDrawable {
 public:
 	enum class LightType {
@@ -56,7 +58,11 @@ private:
 
 	mutable glm::mat4 savedTransform;
 
-	Material* gizmoMat;
+  static std::shared_ptr<Material> gizmoMat;
+
+  static ResourceRef<Mesh> directionalGizmoMesh;
+  static ResourceRef<Mesh> spotGizmoMesh;
+  static ResourceRef<Mesh> pointGizmoMesh;
 public:
 	virtual ~Light();
 
@@ -93,4 +99,6 @@ public:
 	virtual void DrawImGui();
 	
 	ShaderLightRep GetShaderRepresentation() const;
+private:
+  static std::shared_ptr<Material> GetGizmoMat();
 };

@@ -34,7 +34,30 @@ variantInfo(variantInfo),
 handle(handle) { }
 
 ShaderBase::~ShaderBase() {
+  if (this->handle != 0) return;
 	glDeleteShader(this->handle);
+}
+
+ShaderBase::ShaderBase(ShaderBase&& other) noexcept :
+  filePath(std::move(other.filePath)),
+  variantInfo(std::move(other.variantInfo)),
+  handle(other.handle) {
+    other.handle = 0;
+}
+
+ShaderBase& ShaderBase::operator=(ShaderBase&& other) noexcept {
+  if (this != &other) {
+    if (this->handle != 0) {
+      glDeleteShader(this->handle);
+    }
+    filePath = std::move(other.filePath);
+    variantInfo = std::move(other.variantInfo);
+    handle = other.handle;
+
+    other.handle = 0;
+  }
+
+  return *this;
 }
 
 char* LoadFile(const fs::path& filePath) {
@@ -256,13 +279,6 @@ GLuint CompileShader(fs::path filePath, GLenum shaderType, VertexSpec* spec = nu
 	return shaderHandle;
 }
 
-ShaderBase* ShaderBase::Load(fs::path filePath, const ShaderVariantInfo& variantInfo) {
-#ifndef _MSC_VER
-#warning TODO
-#endif
-	return nullptr;
-}
-
 const fs::path& ShaderBase::GetFilePath() const {
 	return this->filePath;
 }
@@ -280,6 +296,15 @@ GLuint ShaderBase::GetHandle() const {
 VertexShader::VertexShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle, VertexSpec spec):
 ShaderBase(filePath, variantInfo, handle),
 vertexSpec(spec) { }
+
+VertexShader::VertexShader(VertexShader&& other) noexcept :
+  ShaderBase(std::move(other)), vertexSpec(std::move(other.vertexSpec)) {}
+
+VertexShader& VertexShader::operator=(VertexShader&& other) noexcept {
+  ShaderBase::operator=(std::move(other));
+  vertexSpec = std::move(other.vertexSpec);
+  return *this;
+}
 
 VertexShader VertexShader::Load(fs::path filePath) {
   VertexSpec spec { std::vector<VertexInput>{} };
@@ -299,6 +324,14 @@ GLenum VertexShader::GetType() const {
 GeometryShader::GeometryShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
 
+GeometryShader::GeometryShader(GeometryShader&& other) noexcept :
+  ShaderBase(std::move(other)) {}
+
+GeometryShader& GeometryShader::operator=(GeometryShader&& other) noexcept {
+  ShaderBase::operator=(std::move(other));
+  return *this;
+}
+
 GeometryShader GeometryShader::Load(fs::path filePath) {
   GLuint handle = CompileShader(filePath, GL_GEOMETRY_SHADER);
 
@@ -312,6 +345,14 @@ GLenum GeometryShader::GetType() const {
 TesselationEvaluationShader::TesselationEvaluationShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
 
+TesselationEvaluationShader::TesselationEvaluationShader(TesselationEvaluationShader&& other) noexcept :
+  ShaderBase(std::move(other)) {}
+
+TesselationEvaluationShader& TesselationEvaluationShader::operator=(TesselationEvaluationShader&& other) noexcept {
+  ShaderBase::operator=(std::move(other));
+  return *this;
+}
+
 TesselationEvaluationShader TesselationEvaluationShader::Load(fs::path filePath) {
   GLuint handle = CompileShader(filePath, GL_TESS_EVALUATION_SHADER);
   return TesselationEvaluationShader(filePath, {}, handle);
@@ -323,6 +364,14 @@ GLenum TesselationEvaluationShader::GetType() const {
 
 TesselationControlShader::TesselationControlShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
+
+TesselationControlShader::TesselationControlShader(TesselationControlShader&& other) noexcept :
+  ShaderBase(std::move(other)) {}
+
+TesselationControlShader& TesselationControlShader::operator=(TesselationControlShader&& other) noexcept {
+  ShaderBase::operator=(std::move(other));
+  return *this;
+}
 
 TesselationControlShader TesselationControlShader::Load(fs::path filePath) {
   GLuint handle = CompileShader(filePath, GL_TESS_CONTROL_SHADER);
@@ -336,6 +385,14 @@ GLenum TesselationControlShader::GetType() const {
 PixelShader::PixelShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
 
+PixelShader::PixelShader(PixelShader&& other) noexcept :
+  ShaderBase(std::move(other)) {}
+
+PixelShader& PixelShader::operator=(PixelShader&& other) noexcept {
+  ShaderBase::operator=(std::move(other));
+  return *this;
+}
+
 PixelShader PixelShader::Load(fs::path filePath) {
   GLuint handle = CompileShader(filePath, GL_FRAGMENT_SHADER);
   return PixelShader(filePath, {}, handle);
@@ -347,6 +404,14 @@ GLenum PixelShader::GetType() const {
 
 ComputeShader::ComputeShader(fs::path filePath, ShaderVariantInfo variantInfo, GLuint handle):
 ShaderBase(filePath, variantInfo, handle) { }
+
+ComputeShader::ComputeShader(ComputeShader&& other) noexcept :
+  ShaderBase(std::move(other)) {}
+
+ComputeShader& ComputeShader::operator=(ComputeShader&& other) noexcept {
+  ShaderBase::operator=(std::move(other));
+  return *this;
+}
 
 ComputeShader ComputeShader::Load(fs::path filePath) {
   GLuint handle = CompileShader(filePath, GL_COMPUTE_SHADER);
@@ -386,7 +451,7 @@ ShaderBuilder& ShaderBuilder::WithPixelShader(ResourceRef<PixelShader> pixelShad
 	return *this;
 }
 
-ShaderProgram* ShaderBuilder::Link() {
+std::shared_ptr<ShaderProgram> ShaderBuilder::Link() {
   GLuint programHandle = glCreateProgram();
 
   if (this->vertexShader.IsValid()) glAttachShader(programHandle, this->vertexShader->GetHandle());
@@ -410,12 +475,12 @@ ShaderProgram* ShaderBuilder::Link() {
 		spdlog::error("Error linking shader:\n{}", compileMsg);
 	}
 
-	ShaderProgram* prog = new ShaderProgram(
+  std::shared_ptr<ShaderProgram> prog(new ShaderProgram(
 		this->vertexShader,
 		this->geometryShader,
 		this->pixelShader,
 		programHandle
-	);
+	));
 
 	if (this->tessCtrlShader.IsValid() && this->tessEvalShader.IsValid()) {
 		prog->flags = ShaderProgramFlags::UsePatches;
@@ -424,7 +489,7 @@ ShaderProgram* ShaderBuilder::Link() {
 		prog->flags = ShaderProgramFlags::None;
 	}
 
-	return prog;
+	return prog; 
 }
 
 ShaderProgram::ShaderProgram(ResourceRef<VertexShader> vertexShader, ResourceRef<GeometryShader> geometryShader, ResourceRef<PixelShader> pixelShader, GLuint handle):
@@ -437,6 +502,36 @@ handle(handle) {
 
 ShaderProgram::~ShaderProgram() {
 	glDeleteProgram(this->handle);
+}
+
+ShaderProgram::ShaderProgram(ShaderProgram&& other) noexcept :
+  vertexShader(std::move(other.vertexShader)),
+  geometryShader(std::move(other.geometryShader)),
+  pixelShader(std::move(other.pixelShader)),
+  uniforms(std::move(other.uniforms)),
+  flags(other.flags),
+  handle(other.handle) {
+  other.handle = 0;
+  this->uniforms = UniformSpec(this);
+}
+
+ShaderProgram& ShaderProgram::operator=(ShaderProgram&& other) noexcept {
+  if (this != &other) {
+    if (this->handle != 0) {
+      glDeleteProgram(this->handle);
+    }
+
+    this->vertexShader = std::move(other.vertexShader);
+    this->geometryShader = std::move(other.geometryShader);
+    this->pixelShader = std::move(other.pixelShader);
+    this->uniforms = std::move(other.uniforms);
+    this->flags = other.flags;
+    this->handle = other.handle;
+
+    other.handle = 0;
+    this->uniforms = UniformSpec(this);
+  }
+  return *this;
 }
 
 ShaderBuilder ShaderProgram::Build() {
@@ -522,9 +617,9 @@ const UniformSpec& ComputeShaderProgram::GetUniforms() const {
 }
 
 ComputeShaderDispatch::ComputeShaderDispatch(ResourceRef<ComputeShader> compShader):
-ComputeShaderDispatch(new ComputeShaderProgram(compShader)) { }
+ComputeShaderDispatch(std::make_shared<ComputeShaderProgram>(compShader)) { }
 
-ComputeShaderDispatch::ComputeShaderDispatch(ComputeShaderProgram* program) {
+ComputeShaderDispatch::ComputeShaderDispatch(std::shared_ptr<ComputeShaderProgram> program) {
 	this->program = program;
 	this->dispatchData = new ComputeDispatchData(program);
 }
@@ -541,5 +636,5 @@ ComputeDispatchData* ComputeShaderDispatch::GetData() {
 	return this->dispatchData;
 }
 ComputeShaderProgram* ComputeShaderDispatch::GetProgram() {
-	return this->program;
+	return this->program.get();
 }

@@ -7,17 +7,20 @@
 
 class ReflectionProbeSystem;
 class Material;
+class Mesh;
 
 class ReflectionProbe : public GameObject, public ImGuiDrawable {
 	friend class ReflectionProbeSystem;
 private:
+  ResourceRef<Mesh> cubemapGizmoMesh;
+
 	static constexpr unsigned int resolution = 256;
 
 	bool dirty;
-	Cubemap* irradianceMap;
-	Cubemap* prefilterMap;
+  std::shared_ptr<Cubemap> irradianceMap;
+  std::shared_ptr<Cubemap> prefilterMap;
 
-	Material* gizmoMaterial;
+  std::shared_ptr<Material> gizmoMaterial;
 public:
 	ReflectionProbe();
 

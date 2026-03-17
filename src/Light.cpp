@@ -5,17 +5,29 @@
 #include <Mesh.h>
 #include <Graphics.h>
 #include <imgui.h>
+#include <memory>
 
-ShaderProgram* GetGizmoShader(Scene* scene) {
-	static ShaderProgram* gizmoProg = ShaderProgram::Build()
-	.WithVertexShader(scene->Resources()->Get<VertexShader>("./res/shaders/lit.vert"))
-	.WithPixelShader(scene->Resources()->Get<PixelShader>("./res/shaders/halo.frag"))
-	.Link();
-	
-	gizmoProg->SetCastsShadows(false);
-	gizmoProg->SetIgnoresDepthPrepass(true);
+ResourceRef<Mesh> Light::directionalGizmoMesh;
+ResourceRef<Mesh> Light::spotGizmoMesh;
+ResourceRef<Mesh> Light::pointGizmoMesh;
 
-	return gizmoProg;
+std::shared_ptr<Material> Light::gizmoMat;
+
+std::shared_ptr<Material> Light::GetGizmoMat() {
+  if (!Light::gizmoMat) {
+    std::shared_ptr<ShaderProgram> gizmoProg = ShaderProgram::Build()
+    .WithVertexShader(ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert"))
+    .WithPixelShader(ResourceDatabase::Global->Get<PixelShader>("./res/shaders/halo.frag"))
+    .Link();
+
+    // possibly wrong
+    gizmoProg->SetCastsShadows(false);
+    gizmoProg->SetIgnoresDepthPrepass(true);
+
+    Light::gizmoMat = std::make_shared<Material>(gizmoProg);
+  }
+
+	return Light::gizmoMat;
 }
 
 Light::PointLight::PointLight(const glm::vec3& color, float range, float intensity, float linearAttenuation, float quadraticAttenuation):
@@ -50,7 +62,11 @@ linearAttenuation(lightInfo.linearAttenuation),
 quadraticAttenuation(lightInfo.quadraticAttenuation),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
+  this->gizmoMat = GetGizmoMat();
+
+  directionalGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
+  spotGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
+  pointGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/point_gizmo.obj");
 }
 
 Light::Light(Light::SpotLight lightInfo):
@@ -64,7 +80,11 @@ linearAttenuation(lightInfo.linearAttenuation),
 quadraticAttenuation(lightInfo.quadraticAttenuation),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
+  this->gizmoMat = GetGizmoMat(); 
+
+  directionalGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
+  spotGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
+  pointGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/point_gizmo.obj");
 }
 
 Light::Light(Light::DirectionalLight lightInfo):
@@ -78,7 +98,11 @@ linearAttenuation(0),
 quadraticAttenuation(0),
 shadowCasting(false),
 savedTransform(GlobalTransform()) {
-	this->gizmoMat = new Material(GetGizmoShader(GetScene()));
+  this->gizmoMat = GetGizmoMat(); 
+
+  directionalGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
+  spotGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
+  pointGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/point_gizmo.obj");
 }
 
 void Light::Set(Light::PointLight lightInfo) {
@@ -214,10 +238,9 @@ ShaderLightRep Light::GetShaderRepresentation() const {
 }
 
 void Light::DrawGizmos() {
-	static Mesh* directionalGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/directional_gizmo.obj");
-	static Mesh* spotGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/spot_gizmo.obj");
-	static Mesh* pointGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/point_gizmo.obj");
-
+  if (!directionalGizmoMesh.IsValid() || !this->gizmoMat) {
+    spdlog::error("Light: DrawGizmos: directionalGizmoMesh or gizmoMat is invalid");
+  }
 	this->gizmoMat->SetValue("uColor", this->color * (this->intensity * 5));
 
 	if (this->type == LightType::Directional) {

@@ -12,37 +12,35 @@ ReflectionProbe::ReflectionProbe():
 dirty(true),
 irradianceMap(nullptr),
 prefilterMap(nullptr) {
-	ShaderProgram* cubemapGizmoShader = ShaderProgram::Build()
-	.WithVertexShader(GetScene()->Resources()->Get<VertexShader>("./res/shaders/lit.vert"))
-	.WithPixelShader(GetScene()->Resources()->Get<PixelShader>("./res/shaders/cubemap.frag"))
+  std::shared_ptr<ShaderProgram> cubemapGizmoShader = ShaderProgram::Build()
+	.WithVertexShader(ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert"))
+	.WithPixelShader(ResourceDatabase::Global->Get<PixelShader>("./res/shaders/cubemap.frag"))
 	.Link();
 	
-	this->gizmoMaterial = new Material(cubemapGizmoShader);
+	this->gizmoMaterial = std::make_shared<Material>(cubemapGizmoShader);
 }
 
 void ReflectionProbe::Regenerate() {
 	this->dirty = true;
 }
 
-Mesh* cubemapGizmoMesh = nullptr;
-
 Cubemap* ReflectionProbe::GetIrradianceMap() {
-	return this->irradianceMap;
+	return this->irradianceMap.get();
 }
 Cubemap* ReflectionProbe::GetPrefilterMap() {
-	return this->prefilterMap;
+	return this->prefilterMap.get();
 }
 
 void ReflectionProbe::DrawGizmos() {
-	if (cubemapGizmoMesh == nullptr) {
-		cubemapGizmoMesh = GetScene()->Resources()->Get<Mesh>("./res/models/sphere.obj");
+	if (!cubemapGizmoMesh.IsValid()) {
+		cubemapGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/sphere.obj");
 	}
 
 	if (this->dirty) {
 		return;
 	}
 
-	this->gizmoMaterial->SetValue("cubemap", this->prefilterMap);
+	this->gizmoMaterial->SetValue("cubemap", this->prefilterMap.get());
 
 	GetScene()->GetGraphics()->DrawGizmoMesh(cubemapGizmoMesh, 0, this->gizmoMaterial, GlobalTransform().Value());
 }
