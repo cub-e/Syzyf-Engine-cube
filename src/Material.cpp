@@ -188,6 +188,65 @@ uniformSpec(&uniformSpec) {
 	memset(this->storageBuffers, 0, storageBuffersCount * sizeof(BufferPair));
 }
 
+ShaderVariableStorage::~ShaderVariableStorage() {
+  if (this->dataBuffer != nullptr) {
+    delete[] (char*)this->dataBuffer;
+    this->dataBuffer = nullptr;
+  }
+
+  if (this->uniformBuffers != nullptr && this->uniformSpec != nullptr) {
+    int uniformBuffersCount = this->uniformSpec->UniformBuffersCount();
+
+    for (int i = 0; i < uniformBuffersCount; i++) {
+      if (this->uniformBuffers[i].bufferData != nullptr) {
+        delete[] (std::byte*)this->uniformBuffers[i].bufferData;
+      }
+      if (this->uniformBuffers[i].bufferHandle != 0) {
+        glDeleteBuffers(1, &this->uniformBuffers[i].bufferHandle);
+      }
+    }
+
+    delete[] this->uniformBuffers;
+    this->uniformBuffers = nullptr;
+  }
+
+  if (this->storageBuffers != nullptr) {
+    delete[] this->storageBuffers;
+    this->storageBuffers = nullptr;
+  }
+}
+
+ShaderVariableStorage::ShaderVariableStorage(ShaderVariableStorage&& other) noexcept :
+  dataBuffer(other.dataBuffer),
+  uniformBuffers(other.uniformBuffers),
+  storageBuffers(other.storageBuffers),
+  uniformSpec(other.uniformSpec),
+  dirty(other.dirty) {
+  
+  other.dataBuffer = nullptr;
+  other.uniformBuffers = nullptr;
+  other.storageBuffers = nullptr;
+  other.uniformSpec = nullptr;
+}
+
+ShaderVariableStorage& ShaderVariableStorage::operator=(ShaderVariableStorage&& other) noexcept {
+  if (this != &other) {
+    this->~ShaderVariableStorage();
+
+    this->dataBuffer = other.dataBuffer;
+    this->uniformBuffers = other.uniformBuffers;
+    this->storageBuffers = other.storageBuffers;
+    this->uniformSpec = other.uniformSpec;
+    this->dirty = other.dirty;
+
+    other.dataBuffer = nullptr;
+    other.uniformBuffers = nullptr;
+    other.storageBuffers = nullptr;
+    other.uniformSpec = nullptr;
+  }
+  return *this;
+}
+
 const UniformSpec* ShaderVariableStorage::GetUniforms() const {
 	return this->uniformSpec;
 }
@@ -259,6 +318,12 @@ void Material::BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle) {
 const ShaderProgram* Material::GetShader() const {
 	return this->shader.get();
 }
+
+void Material::RebuildShader() {
+  this->shader->Rebuild();
+  this->shaderVariables = ShaderVariableStorage(this->shader->GetUniforms());
+}
+
 const UniformSpec* Material::GetUniforms() const {
 	return this->shaderVariables.GetUniforms();
 }

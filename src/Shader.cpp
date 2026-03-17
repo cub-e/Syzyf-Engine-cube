@@ -34,7 +34,7 @@ variantInfo(variantInfo),
 handle(handle) { }
 
 ShaderBase::~ShaderBase() {
-  if (this->handle != 0) return;
+  if (this->handle == 0) return;
 	glDeleteShader(this->handle);
 }
 
@@ -538,6 +538,40 @@ ShaderBuilder ShaderProgram::Build() {
 	return ShaderBuilder{};
 }
 
+void ShaderProgram::Rebuild() {
+  glDeleteProgram(this->handle);
+
+  GLuint programHandle = glCreateProgram();
+
+  if (this->vertexShader.IsValid()) {
+    this->vertexShader = Resources::Global->Get<VertexShader>(this->vertexShader->GetFilePath());
+    glAttachShader(programHandle, this->vertexShader->GetHandle());
+  }
+  if (this->pixelShader.IsValid()) {
+    this->pixelShader = Resources::Global->Get<PixelShader>(this->pixelShader->GetFilePath());
+    glAttachShader(programHandle, this->pixelShader->GetHandle());
+  } 
+  if (this->geometryShader.IsValid()) {
+    this->geometryShader = Resources::Global->Get<GeometryShader>(this->geometryShader->GetFilePath());
+    glAttachShader(programHandle, this->geometryShader->GetHandle());
+  } 
+
+  glLinkProgram(programHandle);
+
+	int compileSuccess;
+	char compileMsg[512];
+
+	glGetProgramiv(programHandle, GL_LINK_STATUS, &compileSuccess);
+	if (!compileSuccess) {
+		glGetProgramInfoLog(programHandle, 512, NULL, compileMsg);
+
+		spdlog::error("Error linking shader:\n{}", compileMsg);
+	}
+
+	this->handle = programHandle;
+  this->uniforms = UniformSpec(this);
+}
+
 GLuint ShaderProgram::GetHandle() const {
 	return this->handle;
 }
@@ -621,7 +655,7 @@ ComputeShaderDispatch(std::make_shared<ComputeShaderProgram>(compShader)) { }
 
 ComputeShaderDispatch::ComputeShaderDispatch(std::shared_ptr<ComputeShaderProgram> program) {
 	this->program = program;
-	this->dispatchData = new ComputeDispatchData(program);
+	this->dispatchData = std::make_unique<ComputeDispatchData>(program);
 }
 
 void ComputeShaderDispatch::Dispatch(int groupsX, int groupsY, int groupsZ) const {
@@ -633,7 +667,7 @@ void ComputeShaderDispatch::Dispatch(int groupsX, int groupsY, int groupsZ) cons
 }
 
 ComputeDispatchData* ComputeShaderDispatch::GetData() {
-	return this->dispatchData;
+	return this->dispatchData.get();
 }
 ComputeShaderProgram* ComputeShaderDispatch::GetProgram() {
 	return this->program.get();

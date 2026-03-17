@@ -24,6 +24,12 @@ private:
 	bool dirty;
 public:
 	ShaderVariableStorage(const UniformSpec& uniformSpec);
+  ~ShaderVariableStorage();
+
+  ShaderVariableStorage(const ShaderVariableStorage&) = delete;
+  ShaderVariableStorage& operator=(const ShaderVariableStorage&) = delete;
+  ShaderVariableStorage(ShaderVariableStorage&& other) noexcept;
+  ShaderVariableStorage& operator=(ShaderVariableStorage&& other) noexcept;
 	
 	void Bind() const;
 
@@ -76,6 +82,11 @@ private:
 public:
 	Material(std::shared_ptr<ShaderProgram> shader);
 
+  Material(const Material&) = delete;
+  Material& operator=(const Material&) = delete;
+  Material(Material&& other) noexcept = default;
+  Material& operator=(Material&& other) noexcept = default;
+
 	void Bind() const;
 
   template<TextureClass T>
@@ -120,6 +131,7 @@ public:
 	void BindStorageBuffer(int storageBufferIndex, GLuint bufferHandle);
 
 	const ShaderProgram* GetShader() const;
+  void RebuildShader();
 	const UniformSpec* GetUniforms() const;
 };
 

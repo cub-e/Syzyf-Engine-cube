@@ -40,6 +40,7 @@ private:
   internal::ResourceHandle handle;
 
   explicit ResourceRef(internal::ResourceHandle h);
+  explicit operator bool() const { return IsValid(); }
 
 public:
   ResourceRef();
@@ -73,23 +74,28 @@ private:
   std::vector<std::size_t> generations;
   std::vector<uint32_t> referenceCounts;
   std::vector<std::size_t> freeList;
+  std::vector<fs::file_time_type> timestamps;
 
   std::unordered_map<fs::path, internal::ResourceHandle> pathToHandle;
   std::unordered_map<std::size_t, fs::path> indexToPath;
 
   internal::ResourceHandle Allocate(const fs::path& path, T&& resource) {
     std::size_t index;
+    fs::file_time_type writeTime = fs::exists(path) ? fs::last_write_time(path) : fs::file_time_type();
+
     if (freeList.empty()) {
       index = resources.size();
       this->resources.push_back(std::move(resource));
       this->generations.push_back(1);
       this->referenceCounts.push_back(1);
+      this->timestamps.push_back(writeTime);
     } else {
       index = this->freeList.back();
       this->freeList.pop_back();
       this->resources[index].emplace(std::move(resource));
       this->generations[index]++;
       this->referenceCounts[index] = 1;
+      this->timestamps[index] = writeTime;
     }
 
     internal::ResourceHandle handle { index, this->generations[index] };
@@ -130,6 +136,17 @@ public:
   internal::ResourceHandle Get(const fs::path& path, T_Params... loadParams) {
     auto handle = this->pathToHandle.find(path);
     if (handle != this->pathToHandle.end()) {
+      std::size_t index = handle->second.index;
+
+      if (fs::exists(path)) {
+        auto currentTime = fs::last_write_time(path);
+        if (currentTime != this->timestamps[index]) {
+          this->resources[index].emplace(T::Load(path, loadParams...));
+          this->timestamps[index] = currentTime;
+          spdlog::info("Resources: Cached file changed, reloading: {}", path.string());
+        }
+      }
+
       referenceCounts[handle->second.index]++;
       return handle->second;
     }
@@ -208,6 +225,10 @@ public:
     return ResourceRef<T_Resource>(GetOrCreatePool<T_Resource>()->Get(resourcePath, loadParams...));
   }
 
+  ~Resources() {
+    Resources::Global = nullptr;
+  }
+
   void FreeUnreferenced() {
     for (auto& [type, pool] : pools) {
       pool->FreeUnreferenced();
@@ -268,7 +289,7 @@ ResourceRef<T>& ResourceRef<T>::operator=(ResourceRef&& other) noexcept {
 
 template <typename T>
 ResourceRef<T>::~ResourceRef() {
-  if (handle.IsValid()) {
+  if (handle.IsValid() && Resources::Global != nullptr) {
     Resources::Global->Release<T>(handle);
   }
 }

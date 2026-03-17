@@ -201,6 +201,7 @@ public:
   ShaderProgram& operator=(ShaderProgram&& other) noexcept;
 
 	static ShaderBuilder Build();
+  void Rebuild();
 	
 	GLuint GetHandle() const;
 	const UniformSpec& GetUniforms() const;
@@ -216,7 +217,7 @@ public:
 
 class ComputeShaderDispatch {
 private:
-	ComputeDispatchData* dispatchData;
+  std::unique_ptr<ComputeDispatchData> dispatchData;
   std::shared_ptr<ComputeShaderProgram> program;
 public:
 	ComputeShaderDispatch(ResourceRef<ComputeShader> compShader);

@@ -29,12 +29,14 @@ private:
 	float movementSpeed = 0.1f;
 	float mouseSensitivity = 1.0f;
   SceneNode* schnozNode;
+  SceneNode* starsNode;
 public:
-	Mover(SceneNode* schnozNode) {
+	Mover(SceneNode* schnozNode, SceneNode* starsNode) {
 		this->pitch = 0;
 		this->rotation = 0;
 		this->mode = 0;
     this->schnozNode = schnozNode;
+    this->starsNode = starsNode;
 	}
 
 	void Update() {
@@ -84,8 +86,18 @@ public:
 			GetScene()->Input()->SetMouseLocked(this->movementEnabled);
 		}
 
-    if (GetScene()->Input()->KeyDown(Key::Delete)) {
-      this->schnozNode->GetObject<MeshRenderer>();
+    if (GetScene()->Input()->KeyDown(Key::Delete) && this->schnozNode) {
+      this->schnozNode->GetObject<MeshRenderer>()->GetMaterial()->RebuildShader();
+      this->schnozNode->GetObject<MeshRenderer>()->GetMaterial()->SetValue(
+        "colorTex", Resources::Global->Get<Texture2D>("./res/models/schnoz/Diffuse2.png", Texture::ColorTextureRGB)
+      );
+      this->schnozNode->GetObject<MeshRenderer>()->GetMaterial()->SetValue(
+        "uColor", glm::vec3(1.0)
+      );
+    }
+    if (GetScene()->Input()->KeyDown(Key::Insert) && this->starsNode) {
+      delete this->starsNode;
+      this->starsNode = nullptr;
     }
 	}
 
@@ -283,7 +295,7 @@ void InitScene(Scene* mainScene) {
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
 	camera->LocalTransform().Position() = glm::vec3(0.0f, 1.5f, -10.0f);
 
-	auto skyboxNode = mainScene->CreateNode(constructNode, "Floor");
+	auto skyboxNode = mainScene->CreateNode("Floor");
 	skyboxNode->AddObject<Skybox>(skyMat);
 
 	auto lightNode = mainScene->CreateNode("Point Light");
@@ -347,7 +359,7 @@ void InitScene(Scene* mainScene) {
 	schnozNode->SetLayer(5);
 
 
-	cameraNode->AddObject<Mover>(schnozNode);
+	cameraNode->AddObject<Mover>(schnozNode, constructNode);
 
 	SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
