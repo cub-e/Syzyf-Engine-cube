@@ -31,11 +31,11 @@ namespace internal {
   };
 }
 
-class ResourceDatabase;
+class Resources;
 
 template <typename T>
 class ResourceRef {
-friend class ResourceDatabase;
+friend class Resources;
 private:
   internal::ResourceHandle handle;
 
@@ -63,7 +63,7 @@ public:
 
 template <typename T>
 class ResourcePool : public IResourcePool {
-friend class ResourceDatabase;
+friend class Resources;
 private:
   // Deque because of ShaderVariableStorage
   //  it stores a pointer which stops being valid when
@@ -101,8 +101,6 @@ private:
 
   void FreeSlot(std::size_t index) {
     this->resources[index].reset();
-
-    this->generations[index]++;
 
     fs::path path = indexToPath[index];
     this->pathToHandle.erase(path);
@@ -171,7 +169,7 @@ public:
   }
 };
 
-class ResourceDatabase {
+class Resources {
 private:
   template <typename T> friend class ResourceRef;
 
@@ -202,7 +200,7 @@ private:
   }
 
 public:
-  inline static ResourceDatabase* Global = nullptr;
+  inline static Resources* Global = nullptr;
 
   template<class T_Resource, typename... T_Params>
     requires(Loadable<T_Resource, T_Params...>)
@@ -233,7 +231,7 @@ ResourceRef<T>::ResourceRef(internal::ResourceHandle h) : handle(h) {}
 template <typename T>
 ResourceRef<T>::ResourceRef(const ResourceRef& other) : handle(other.handle) {
   if (handle.IsValid()) {
-    ResourceDatabase::Global->AddReference<T>(handle);
+    Resources::Global->AddReference<T>(handle);
   }
 }
 
@@ -241,11 +239,11 @@ template <typename T>
 ResourceRef<T>& ResourceRef<T>::operator=(const ResourceRef& other) {
   if (this != &other) {
     if (handle.IsValid()) {
-      ResourceDatabase::Global->Release<T>(handle);
+      Resources::Global->Release<T>(handle);
     }
     handle = other.handle;
     if (handle.IsValid()) {
-      ResourceDatabase::Global->AddReference<T>(handle);
+      Resources::Global->AddReference<T>(handle);
     }
   }
   return *this;
@@ -260,7 +258,7 @@ template <typename T>
 ResourceRef<T>& ResourceRef<T>::operator=(ResourceRef&& other) noexcept {
   if (this != &other) {
     if (handle.IsValid()) {
-      ResourceDatabase::Global->Release<T>(handle);
+      Resources::Global->Release<T>(handle);
     }
     handle = other.handle;
     other.handle = { 0, 0 };
@@ -271,13 +269,13 @@ ResourceRef<T>& ResourceRef<T>::operator=(ResourceRef&& other) noexcept {
 template <typename T>
 ResourceRef<T>::~ResourceRef() {
   if (handle.IsValid()) {
-    ResourceDatabase::Global->Release<T>(handle);
+    Resources::Global->Release<T>(handle);
   }
 }
 
 template <typename T>
 T* ResourceRef<T>::Get() const {
-  return ResourceDatabase::Global->Resolve<T>(handle);
+  return Resources::Global->Resolve<T>(handle);
 }
 
 template <typename T>

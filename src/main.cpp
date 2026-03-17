@@ -28,13 +28,13 @@ private:
 	int mode;
 	float movementSpeed = 0.1f;
 	float mouseSensitivity = 1.0f;
-  Scene* starsScene;
+  SceneNode* schnozNode;
 public:
-	Mover(Scene* starsScene) {
+	Mover(SceneNode* schnozNode) {
 		this->pitch = 0;
 		this->rotation = 0;
 		this->mode = 0;
-    this->starsScene = starsScene;
+    this->schnozNode = schnozNode;
 	}
 
 	void Update() {
@@ -85,15 +85,7 @@ public:
 		}
 
     if (GetScene()->Input()->KeyDown(Key::Delete)) {
-      if (this->starsScene) {
-        spdlog::info("Deleting starsScene");
-        starsScene->GetRootNode()->GetParent()->DetachScene(starsScene);
-        delete starsScene;
-        ResourceDatabase::Global->FreeUnreferenced();
-        this->starsScene = nullptr;
-      } else {
-        spdlog::info("starsScene already deleted");
-      }
+      this->schnozNode->GetObject<MeshRenderer>();
     }
 	}
 
@@ -129,15 +121,15 @@ private:
 	int starCount;
 public:
 	Stars(int starCount = 1000) {
-		this->starMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/star.obj");
+		this->starMesh = Resources::Global->Get<Mesh>("./res/models/star.obj");
 		
     std::shared_ptr<ShaderProgram> starProgram = ShaderProgram::Build()
 		.WithVertexShader(
-			ResourceDatabase::Global->Get<VertexShader>("./res/shaders/star.vert")
+			Resources::Global->Get<VertexShader>("./res/shaders/star.vert")
 		).WithGeometryShader(
-			ResourceDatabase::Global->Get<GeometryShader>("./res/shaders/star.geom")
+			Resources::Global->Get<GeometryShader>("./res/shaders/star.geom")
 		).WithPixelShader(
-			ResourceDatabase::Global->Get<PixelShader>("./res/shaders/star.frag")
+			Resources::Global->Get<PixelShader>("./res/shaders/star.frag")
 		).Link();
 		starProgram->SetIgnoresDepthPrepass(true);
 		starProgram->SetCastsShadows(false);
@@ -164,57 +156,57 @@ public:
 
 void InitScene(Scene* mainScene) {
   std::shared_ptr<ShaderProgram> skyProg = ShaderProgram::Build().WithVertexShader(
-		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/skybox.vert")
+		Resources::Global->Get<VertexShader>("./res/shaders/skybox.vert")
 	).WithPixelShader(
-		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/skybox.frag")
+		Resources::Global->Get<PixelShader>("./res/shaders/skybox.frag")
 	).Link();
 
   std::shared_ptr<ShaderProgram> coloredProg = ShaderProgram::Build().WithVertexShader(
-		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
+		Resources::Global->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/lambert color.frag")
+		Resources::Global->Get<PixelShader>("./res/shaders/lambert color.frag")
 	).Link();
 
   std::shared_ptr<ShaderProgram> diffuseTexProg = ShaderProgram::Build().WithVertexShader(
-		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
+		Resources::Global->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/lambert.frag")
+		Resources::Global->Get<PixelShader>("./res/shaders/lambert.frag")
 	).Link();
 
   std::shared_ptr<ShaderProgram> pbrProg = ShaderProgram::Build().WithVertexShader(
-		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
+		Resources::Global->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr.frag")
+		Resources::Global->Get<PixelShader>("./res/shaders/pbr.frag")
 	).Link();
 
   std::shared_ptr<ShaderProgram> pbrRefractProg = ShaderProgram::Build().WithVertexShader(
-		ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
+		Resources::Global->Get<VertexShader>("./res/shaders/lit.vert")
 	).WithPixelShader(
-		ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr refract.frag")
+		Resources::Global->Get<PixelShader>("./res/shaders/pbr refract.frag")
 	).Link();
 
-	ResourceRef<Mesh> gmConstructMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/construct/construct.obj", true);
-	ResourceRef<Mesh> cannonMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/cannon/cannon.obj");
-	ResourceRef<Mesh> cubeMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/not_cube.obj");
-	ResourceRef<Mesh> tvMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/tv_stand.fbx");
-	ResourceRef<Mesh> schnozMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/schnoz/schnoz.obj");
+	ResourceRef<Mesh> gmConstructMesh = Resources::Global->Get<Mesh>("./res/models/construct/construct.obj", true);
+	ResourceRef<Mesh> cannonMesh = Resources::Global->Get<Mesh>("./res/models/cannon/cannon.obj");
+	ResourceRef<Mesh> cubeMesh = Resources::Global->Get<Mesh>("./res/models/not_cube.obj");
+	ResourceRef<Mesh> tvMesh = Resources::Global->Get<Mesh>("./res/models/tv_stand.fbx");
+	ResourceRef<Mesh> schnozMesh = Resources::Global->Get<Mesh>("./res/models/schnoz/schnoz.obj");
 
-	ResourceRef<Cubemap> skyCubemap = ResourceDatabase::Global->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
+	ResourceRef<Cubemap> skyCubemap = Resources::Global->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 	skyCubemap->SetWrapModeU(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeV(TextureWrap::Clamp);
 	skyCubemap->SetWrapModeW(TextureWrap::Clamp);
 
-	ResourceRef<Texture2D> cannonDiffuse = ResourceDatabase::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
-	ResourceRef<Texture2D> cannonNormal = ResourceDatabase::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
-	ResourceRef<Texture2D> cannonARM = ResourceDatabase::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> cannonDiffuse = Resources::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_diff_1k.png", Texture::ColorTextureRGB);
+	ResourceRef<Texture2D> cannonNormal = Resources::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_nor_gl_1k.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> cannonARM = Resources::Global->Get<Texture2D>("./res/models/cannon/textures/cannon_01_arm_1k.png", Texture::TechnicalMapXYZ);
 	
-	ResourceRef<Texture2D> reflectiveDiffuse = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
-	ResourceRef<Texture2D> reflectiveNormal = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
-	ResourceRef<Texture2D> reflectiveARM = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
-	ResourceRef<Texture2D> roughARM = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
-	ResourceRef<Texture2D> shinyNonMetalARM = ResourceDatabase::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> reflectiveDiffuse = Resources::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-albedo.png", Texture::ColorTextureRGB);
+	ResourceRef<Texture2D> reflectiveNormal = Resources::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-Normal-ogl.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> reflectiveARM = Resources::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-metal-arm.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> roughARM = Resources::Global->Get<Texture2D>("./res/textures/material_preview/worn-rough-metal-arm.png", Texture::TechnicalMapXYZ);
+	ResourceRef<Texture2D> shinyNonMetalARM = Resources::Global->Get<Texture2D>("./res/textures/material_preview/worn-shiny-nonmetal-arm.png", Texture::TechnicalMapXYZ);
 
-	ResourceRef<Texture2D> schnozTexture = ResourceDatabase::Global->Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
+	ResourceRef<Texture2D> schnozTexture = Resources::Global->Get<Texture2D>("./res/models/schnoz/Diffuse.png", Texture::ColorTextureRGB);
 
 	Viewport* schnozPreview = new Viewport();
 	schnozPreview->GetFramebuffer()->CreateColorAttachment(true, false);
@@ -327,8 +319,6 @@ void InitScene(Scene* mainScene) {
 
 	starsAttachmentNode->AttachScene(starsScene);
 
-	cameraNode->AddObject<Mover>(starsScene);
-
 	SceneNode* tvNode = mainScene->CreateNode("TV");
 	tvNode->LocalTransform().Scale() = glm::vec3(1.5, 1.5, 1.5);
 	tvNode->LocalTransform().Position() = glm::vec3(3, 0, -2);
@@ -355,6 +345,9 @@ void InitScene(Scene* mainScene) {
 	schnozNode->AddObject<MeshRenderer>(schnozMesh, schnozMat);
 	schnozNode->AddObject<AutoRotator>(1);
 	schnozNode->SetLayer(5);
+
+
+	cameraNode->AddObject<Mover>(schnozNode);
 
 	SceneNode* schnozLightNode = mainScene->CreateNode("Schnoz Light");
 	schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);

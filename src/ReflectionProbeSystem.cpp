@@ -16,7 +16,7 @@ std::shared_ptr<Texture2D> GenerateBRDFConvolution() {
 	static ComputeShaderDispatch* BrdfConvolutionDispatch;
 
 	if (BrdfConvolutionDispatch == nullptr) {
-		BrdfConvolutionDispatch = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/brdf_convolution.comp"));
+		BrdfConvolutionDispatch = new ComputeShaderDispatch(Resources::Global->Get<ComputeShader>("./res/shaders/cubemapBlit/brdf_convolution.comp"));
 	}
 
 	TextureParams creationParams;
@@ -58,7 +58,7 @@ skyboxProbe(nullptr) {
 
 void ReflectionProbeSystem::RecalculateSkyboxIBL() {
 	// Silly
-	ResourceRef<Cubemap> skyCubemap = ResourceDatabase::Global->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
+	ResourceRef<Cubemap> skyCubemap = Resources::Global->Get<Cubemap>("./res/textures/citrus_orchard_road_puresky.hdr", Texture::HDRColorBuffer);
 
 	Skybox* sky = Skybox::GetCurrentSkybox();
 

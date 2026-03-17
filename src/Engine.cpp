@@ -157,8 +157,8 @@ void Engine::Terminate() {
 		delete rootScene;
 	}
 
-  delete ResourceDatabase::Global;
-  ResourceDatabase::Global = nullptr;
+  delete Resources::Global;
+  Resources::Global = nullptr;
 
 	ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
@@ -173,9 +173,9 @@ void Engine::Update() {
 
 	rootScene->Update();
 
-  // Assuming ResourceDatabase exists because the rest of the program
+  // Assuming Resources exists because the rest of the program
   //  wouldn't run without it anyway
-  ResourceDatabase::Global->FreeUnreferenced();
+  Resources::Global->FreeUnreferenced();
 }
 
 void Engine::Render() {
@@ -218,7 +218,7 @@ bool Engine::Setup() {
 		return false;
 	}
 
-  ResourceDatabase::Global = new ResourceDatabase();
+  Resources::Global = new Resources();
 
 	rootScene = Scene::CreateStandaloneScene();
 

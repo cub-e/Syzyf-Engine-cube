@@ -13,8 +13,8 @@ dirty(true),
 irradianceMap(nullptr),
 prefilterMap(nullptr) {
   std::shared_ptr<ShaderProgram> cubemapGizmoShader = ShaderProgram::Build()
-	.WithVertexShader(ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert"))
-	.WithPixelShader(ResourceDatabase::Global->Get<PixelShader>("./res/shaders/cubemap.frag"))
+	.WithVertexShader(Resources::Global->Get<VertexShader>("./res/shaders/lit.vert"))
+	.WithPixelShader(Resources::Global->Get<PixelShader>("./res/shaders/cubemap.frag"))
 	.Link();
 	
 	this->gizmoMaterial = std::make_shared<Material>(cubemapGizmoShader);
@@ -33,7 +33,7 @@ Cubemap* ReflectionProbe::GetPrefilterMap() {
 
 void ReflectionProbe::DrawGizmos() {
 	if (!cubemapGizmoMesh.IsValid()) {
-		cubemapGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/sphere.obj");
+		cubemapGizmoMesh = Resources::Global->Get<Mesh>("./res/models/sphere.obj");
 	}
 
 	if (this->dirty) {

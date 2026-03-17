@@ -7,7 +7,7 @@ Skybox* Skybox::currentSkybox = nullptr;
 Skybox::Skybox(std::shared_ptr<Material> skyMaterial):
 skyMaterial(skyMaterial) {
 	if (!skyMesh.IsValid()) {
-		skyMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/sky.obj");
+		skyMesh = Resources::Global->Get<Mesh>("./res/models/sky.obj");
 	}
 
 	SetAsCurrentSkybox();

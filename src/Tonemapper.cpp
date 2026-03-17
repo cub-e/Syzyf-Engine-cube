@@ -9,9 +9,9 @@
 #include <Graphics.h>
 
 Tonemapper::Tonemapper() {
-	this->reinhardTonemapperShader = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/tonemapping/reinhard_tonemapper.comp"));
-	this->acesTonemapperShader = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/tonemapping/aces_tonemapper.comp"));
-	this->gtTonemapperShader = new ComputeShaderDispatch(ResourceDatabase::Global->Get<ComputeShader>("./res/shaders/tonemapping/gt_tonemapper.comp"));
+	this->reinhardTonemapperShader = new ComputeShaderDispatch(Resources::Global->Get<ComputeShader>("./res/shaders/tonemapping/reinhard_tonemapper.comp"));
+	this->acesTonemapperShader = new ComputeShaderDispatch(Resources::Global->Get<ComputeShader>("./res/shaders/tonemapping/aces_tonemapper.comp"));
+	this->gtTonemapperShader = new ComputeShaderDispatch(Resources::Global->Get<ComputeShader>("./res/shaders/tonemapping/gt_tonemapper.comp"));
 
 	this->toneOperator = TonemapperOperator::None;
 }

@@ -16,8 +16,8 @@ std::shared_ptr<Material> Light::gizmoMat;
 std::shared_ptr<Material> Light::GetGizmoMat() {
   if (!Light::gizmoMat) {
     std::shared_ptr<ShaderProgram> gizmoProg = ShaderProgram::Build()
-    .WithVertexShader(ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert"))
-    .WithPixelShader(ResourceDatabase::Global->Get<PixelShader>("./res/shaders/halo.frag"))
+    .WithVertexShader(Resources::Global->Get<VertexShader>("./res/shaders/lit.vert"))
+    .WithPixelShader(Resources::Global->Get<PixelShader>("./res/shaders/halo.frag"))
     .Link();
 
     // possibly wrong
@@ -64,9 +64,9 @@ shadowCasting(false),
 savedTransform(GlobalTransform()) {
   this->gizmoMat = GetGizmoMat();
 
-  directionalGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
-  spotGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
-  pointGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/point_gizmo.obj");
+  directionalGizmoMesh = Resources::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
+  spotGizmoMesh = Resources::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
+  pointGizmoMesh = Resources::Global->Get<Mesh>("./res/models/point_gizmo.obj");
 }
 
 Light::Light(Light::SpotLight lightInfo):
@@ -82,9 +82,9 @@ shadowCasting(false),
 savedTransform(GlobalTransform()) {
   this->gizmoMat = GetGizmoMat(); 
 
-  directionalGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
-  spotGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
-  pointGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/point_gizmo.obj");
+  directionalGizmoMesh = Resources::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
+  spotGizmoMesh = Resources::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
+  pointGizmoMesh = Resources::Global->Get<Mesh>("./res/models/point_gizmo.obj");
 }
 
 Light::Light(Light::DirectionalLight lightInfo):
@@ -100,9 +100,9 @@ shadowCasting(false),
 savedTransform(GlobalTransform()) {
   this->gizmoMat = GetGizmoMat(); 
 
-  directionalGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
-  spotGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
-  pointGizmoMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/point_gizmo.obj");
+  directionalGizmoMesh = Resources::Global->Get<Mesh>("./res/models/directional_gizmo.obj");
+  spotGizmoMesh = Resources::Global->Get<Mesh>("./res/models/spot_gizmo.obj");
+  pointGizmoMesh = Resources::Global->Get<Mesh>("./res/models/point_gizmo.obj");
 }
 
 void Light::Set(Light::PointLight lightInfo) {

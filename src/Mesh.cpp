@@ -441,9 +441,9 @@ Mesh Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 	if (loadMaterials && loaded_scene->HasMaterials()) {
     std::shared_ptr<ShaderProgram> pbrProg = ShaderProgram::Build().WithVertexShader(
-			ResourceDatabase::Global->Get<VertexShader>("./res/shaders/lit.vert")
+			Resources::Global->Get<VertexShader>("./res/shaders/lit.vert")
 		).WithPixelShader(
-			ResourceDatabase::Global->Get<PixelShader>("./res/shaders/pbr.frag")
+			Resources::Global->Get<PixelShader>("./res/shaders/pbr.frag")
 		).Link();
 
 		for (int matIndex = 0; matIndex < loaded_scene->mNumMaterials; matIndex++) {
@@ -459,18 +459,18 @@ Mesh Mesh::Load(fs::path modelPath, bool loadMaterials) {
 
 			ResourceRef<Texture2D> albedoTex =
 				fs::is_regular_file(modelPath.parent_path() / colorTexturePath.C_Str())
-				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / colorTexturePath.C_Str()), Texture::ColorTextureRGB)
-				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
+				? Resources::Global->Get<Texture2D>((modelPath.parent_path() / colorTexturePath.C_Str()), Texture::ColorTextureRGB)
+				: Resources::Global->Get<Texture2D>("./res/textures/default_color.png", Texture::ColorTextureRGB);
 
 			ResourceRef<Texture2D> normalTex =
 				fs::is_regular_file(modelPath.parent_path() / normalTexturePath.C_Str())
-				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / normalTexturePath.C_Str()), Texture::TechnicalMapXYZ)
-				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
+				? Resources::Global->Get<Texture2D>((modelPath.parent_path() / normalTexturePath.C_Str()), Texture::TechnicalMapXYZ)
+				: Resources::Global->Get<Texture2D>("./res/textures/default_norm.png", Texture::TechnicalMapXYZ);
 			
 			ResourceRef<Texture2D> armTex =
 				fs::is_regular_file(modelPath.parent_path() / armTexturePath.C_Str())
-				? ResourceDatabase::Global->Get<Texture2D>((modelPath.parent_path() / armTexturePath.C_Str()), Texture::TechnicalMapXYZ)
-				: ResourceDatabase::Global->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
+				? Resources::Global->Get<Texture2D>((modelPath.parent_path() / armTexturePath.C_Str()), Texture::TechnicalMapXYZ)
+				: Resources::Global->Get<Texture2D>("./res/textures/default_arm.png", Texture::TechnicalMapXYZ);
 			
       std::shared_ptr<Material> materialResult = std::make_shared<Material>(pbrProg);
 			materialResult->SetValue("albedoMap", albedoTex);

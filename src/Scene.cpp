@@ -413,14 +413,14 @@ void Scene::Update() {
 	while(!this->deletedReceiversQueue.empty()) {
 		auto deleted = this->deletedReceiversQueue.front();
 		deleted->~MessageReceiver();
-		delete[] reinterpret_cast<unsigned char*>(deleted);
+    std::free(deleted);
     this->deletedReceiversQueue.pop();
 	}
 	
 	while(!this->deletedNodesQueue.empty()) {
 		auto deleted = this->deletedNodesQueue.front();
 		deleted->~SceneNode();
-    delete[] reinterpret_cast<unsigned char*>(deleted);
+    std::free(deleted);
 		this->deletedNodesQueue.pop();
 	}
 }

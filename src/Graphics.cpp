@@ -314,14 +314,14 @@ void SceneGraphics::RenderFullscreenFrameQuad() {
   if (!this->quadProg) {
 	  this->quadProg = ShaderProgram::Build()
 	    .WithVertexShader(
-		    ResourceDatabase::Global->Get<VertexShader>("./res/shaders/fullscreen.vert")
+		    Resources::Global->Get<VertexShader>("./res/shaders/fullscreen.vert")
 	    ).WithPixelShader(
-		    ResourceDatabase::Global->Get<PixelShader>("./res/shaders/blit.frag")
+		    Resources::Global->Get<PixelShader>("./res/shaders/blit.frag")
 	    ).Link();
   }
 
 	if (!this->quadMesh.IsValid()) {
-    this->quadMesh = ResourceDatabase::Global->Get<Mesh>("./res/models/fullscreenquad.obj");
+    this->quadMesh = Resources::Global->Get<Mesh>("./res/models/fullscreenquad.obj");
   }
 
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
