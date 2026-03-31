@@ -1,3 +1,4 @@
+#include "DungeonGenerator.h"
 #include "GltfImporter.h"
 
 #include "TimeSystem.h"
@@ -261,25 +262,25 @@ void InitScene(Scene* mainScene) {
 	// auto constructNode = mainScene->CreateNode("gm_construct");
 	// constructNode->AddObject<MeshRenderer>(gmConstructMesh, gmConstructMesh->GetDefaultMaterials());
 
-	auto cannonNode = mainScene->CreateNode("Cannon");
-	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
-
-	auto cubeNode = mainScene->CreateNode("Reflective Cube");
-	cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
-	cubeNode->GlobalTransform().Position() = {-2.0f, 1.0f, 0.0f};
-	cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
-
-	auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
-	roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
-	roughCubeNode->LocalTransform().Position() = {0, 0, 3};
-
-	auto pinkTransparentCubeNode = mainScene->CreateNode(cubeNode, "Pink Cube");
-	pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, pinkTransparentMat);
-	pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
-
-	auto blueTransparentCubeNode = mainScene->CreateNode(cubeNode, "Blue Cube");
-	blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, blueTransparentMat);
-	blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
+	// auto cannonNode = mainScene->CreateNode("Cannon");
+	// cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
+	//
+	// auto cubeNode = mainScene->CreateNode("Reflective Cube");
+	// cubeNode->AddObject<MeshRenderer>(cubeMesh, reflectiveMat);
+	// cubeNode->GlobalTransform().Position() = {-2.0f, 1.0f, 0.0f};
+	// cubeNode->GlobalTransform().Scale() = glm::vec3(0.6f);
+	//
+	// auto roughCubeNode = mainScene->CreateNode(cubeNode, "Rough Cube");
+	// roughCubeNode->AddObject<MeshRenderer>(cubeMesh, roughMat);
+	// roughCubeNode->LocalTransform().Position() = {0, 0, 3};
+	//
+	// auto pinkTransparentCubeNode = mainScene->CreateNode(cubeNode, "Pink Cube");
+	// pinkTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, pinkTransparentMat);
+	// pinkTransparentCubeNode->LocalTransform().Position() = {-3, 0, -3};
+	//
+	// auto blueTransparentCubeNode = mainScene->CreateNode(cubeNode, "Blue Cube");
+	// blueTransparentCubeNode->AddObject<MeshRenderer>(cubeMesh, blueTransparentMat);
+	// blueTransparentCubeNode->LocalTransform().Position() = {-3, 0, -5};
 
 	auto cameraNode = mainScene->CreateNode("Camera");
 	Camera* camera = cameraNode->AddObject<Camera>(Camera::Perspective(40.0f, 16.0f/9.0f, 0.5f, 200.0f));
@@ -299,38 +300,38 @@ void InitScene(Scene* mainScene) {
 	lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
 	lightNode2->GlobalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(91.0f, 0.0f, 0.0f)));
 
-	auto envProbe = mainScene->CreateNode(cubeNode, "Reflection Probe");
-	envProbe->AddObject<ReflectionProbe>();
+	// auto envProbe = mainScene->CreateNode(cubeNode, "Reflection Probe");
+	// envProbe->AddObject<ReflectionProbe>();
+	//
+	// auto envProbe2 = mainScene->CreateNode("Reflection Probe");
+	// envProbe2->AddObject<ReflectionProbe>();
+	// envProbe2->GlobalTransform().Position() = {-10.0f, 1.5f, 0.6f};
+	//
+	// auto envProbe3 = mainScene->CreateNode("Reflection Probe");
+	// envProbe3->AddObject<ReflectionProbe>();
+	// envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
 
-	auto envProbe2 = mainScene->CreateNode("Reflection Probe");
-	envProbe2->AddObject<ReflectionProbe>();
-	envProbe2->GlobalTransform().Position() = {-10.0f, 1.5f, 0.6f};
+	// auto starsAttachmentNode = mainScene->CreateNode("Stars Scene Attachment");
+	//
+	// auto starsScene = new Scene();
+	//
+	// auto starsNode = starsScene->CreateNode("Stars");
+	// starsNode->AddObject<Stars>(1000);
+	// starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
+	//
+	// starsAttachmentNode->AttachScene(starsScene);
 
-	auto envProbe3 = mainScene->CreateNode("Reflection Probe");
-	envProbe3->AddObject<ReflectionProbe>();
-	envProbe3->GlobalTransform().Position() = {-29.0f, 1.5f, 0.6f};
-
-	auto starsAttachmentNode = mainScene->CreateNode("Stars Scene Attachment");
-	
-	auto starsScene = new Scene();
-
-	auto starsNode = starsScene->CreateNode("Stars");
-	starsNode->AddObject<Stars>(1000);
-	starsNode->GlobalTransform().Position() = {-15.0f, 5.5f, -105.0f};
-
-	starsAttachmentNode->AttachScene(starsScene);
-
-	SceneNode* tvNode = mainScene->CreateNode("TV");
-	tvNode->LocalTransform().Scale() = glm::vec3(1.5, 1.5, 1.5);
-	tvNode->LocalTransform().Position() = glm::vec3(3, 0, -2);
-	tvNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(-90.0f, 20.0f, 0.0f)));
-
-	auto tvRenderer = tvNode->AddObject<MeshRenderer>(tvMesh, nullptr);
-	tvRenderer->SetMaterial(tvMatStand, 0);
-	tvRenderer->SetMaterial(screenMat, 1);
-	tvRenderer->SetMaterial(tvMatStand, 2);
-	tvRenderer->SetMaterial(tvMatStand, 3);
-
+	// SceneNode* tvNode = mainScene->CreateNode("TV");
+	// tvNode->LocalTransform().Scale() = glm::vec3(1.5, 1.5, 1.5);
+	// tvNode->LocalTransform().Position() = glm::vec3(3, 0, -2);
+	// tvNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(-90.0f, 20.0f, 0.0f)));
+	//
+	// auto tvRenderer = tvNode->AddObject<MeshRenderer>(tvMesh, nullptr);
+	// tvRenderer->SetMaterial(tvMatStand, 0);
+	// tvRenderer->SetMaterial(screenMat, 1);
+	// tvRenderer->SetMaterial(tvMatStand, 2);
+	// tvRenderer->SetMaterial(tvMatStand, 3);
+	//
 	SceneNode* schnozCameraNode = mainScene->CreateNode("Schnoz Camera");
 	schnozCameraNode->LocalTransform().Position() = glm::vec3(-56.5, 2.0, -2.0);
 	schnozCameraNode->LocalTransform().Rotation() = glm::quat(glm::radians(glm::vec3(5.0f, 85.0f, 0.0f)));
@@ -354,19 +355,22 @@ void InitScene(Scene* mainScene) {
 	cameraNode->AddObject<Bloom>();
 	cameraNode->AddObject<Tonemapper>()->SetOperator(Tonemapper::TonemapperOperator::GranTurismo);
 
-	ShaderProgram* pbrGltfProg = ShaderProgram::Build().WithVertexShader(
-		mainScene->Resources()->Get<VertexShader>("./res/shaders/lit_gltf.vert")
-	).WithPixelShader(
-		mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
-	).Link();
-  SceneNode* gltfAttachmentNode = mainScene->CreateNode("Gltf Scene Attachment");
-  Scene* gltfScene = GltfImporter::LoadScene("./res/models/animated_cube.glb", "Animated Thing");
-  gltfScene->GetRootNode()->AddObject<AnimatedThingTag>();
-  starsAttachmentNode->AttachScene(gltfScene);
+	// ShaderProgram* pbrGltfProg = ShaderProgram::Build().WithVertexShader(
+	// 	mainScene->Resources()->Get<VertexShader>("./res/shaders/lit_gltf.vert")
+	// ).WithPixelShader(
+	// 	mainScene->Resources()->Get<PixelShader>("./res/shaders/pbr_gltf.frag")
+	// ).Link();
+	//  SceneNode* gltfAttachmentNode = mainScene->CreateNode("Gltf Scene Attachment");
+	//  Scene* gltfScene = GltfImporter::LoadScene("./res/models/animated_cube.glb", "Animated Thing");
+	//  gltfScene->GetRootNode()->AddObject<AnimatedThingTag>();
+	//  starsAttachmentNode->AttachScene(gltfScene);
+	//
+	//  SceneNode* animatedGltfAttachmentNode = mainScene->CreateNode("Animated Gltf Attachment");
+	//  Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/RiggedFigure.glb", "Animated Gltf");
+	//  animatedGltfAttachmentNode->AttachScene(animatedGltfScene);
 
-  SceneNode* animatedGltfAttachmentNode = mainScene->CreateNode("Animated Gltf Attachment");
-  Scene* animatedGltfScene = GltfImporter::LoadScene("./res/models/RiggedFigure.glb", "Animated Gltf");
-  animatedGltfAttachmentNode->AttachScene(animatedGltfScene);
+  SceneNode* dungeon = mainScene->CreateNode("Dungeon");
+  dungeon->AddObject<DungeonGenerator>();
 
 	mainScene->AddComponent<DebugInspector>();
   mainScene->AddComponent<AnimationSystem>();

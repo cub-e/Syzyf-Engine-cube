@@ -27,11 +27,13 @@ private:
     Doors doors;
   };
 
+  const glm::vec2 roomSize = { 1.0f, 1.0f };
+  const float marginSize = roomSize.x * 0.1;
   const unsigned int mapColumns = 10;
   std::vector<Room> map;
 public:
   DungeonGenerator();
   virtual ~DungeonGenerator();
 
-  void Awake();
+  // Add imgui
 };
