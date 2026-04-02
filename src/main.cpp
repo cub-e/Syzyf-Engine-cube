@@ -40,7 +40,12 @@
 #include <Debug.h>
 #include <InputSystem.h>
 #include <Engine.h>
+#include <glm/common.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/geometric.hpp>
 #include <glm/trigonometric.hpp>
+#define GLM_ENABLE_EXPERIMENTAL
+#include "glm/gtx/vector_angle.hpp"
 #include <spdlog/spdlog.h>
 
 class AnimatedThingTag : public GameObject {};
@@ -48,6 +53,187 @@ class AnimatedThingTag : public GameObject {};
 #include <AiNode.h>
 
 #include <vector>
+
+class BlenderControls : public GameObject, public ImGuiDrawable {
+private:
+  enum class Mode {
+    None,
+    Translation,
+    Rotation,
+    Scale,
+  };
+  // Add none, and maybe change it so it supports two at the same time
+  enum class Axis {
+    None,
+    X,
+    Y,
+    Z,
+  };
+
+  Axis currentAxis = Axis::None;
+  Mode currentMode = Mode::None;
+
+  std::optional<glm::vec2> initialMousePosition = std::nullopt;
+  glm::quat savedRotation = glm::identity<glm::quat>();
+  glm::vec3 savedScale = { 1.0f, 1.0f, 1.0f };
+public:
+  BlenderControls() {}
+  ~BlenderControls() {}
+
+  void Update() {
+    SwitchInputMode();
+    SwitchAxis();
+
+    switch (this->currentMode) {
+      case Mode::None:
+        break;
+      case Mode::Translation:
+        HandleTranslationInput();
+        break;
+      case Mode::Rotation:
+        HandleRotationInput();
+        break;
+      case Mode::Scale:
+        HandleScaleInput();
+        break;
+    }
+  }
+
+  void HandleTranslationInput() {
+    return;
+  }
+
+  void HandleRotationInput() {
+    const auto mousePosition = this->GetScene()->Input()->GetMousePosition();
+    const auto screenResolution = this->GetScene()->GetGraphics()->GetScreenResolution();
+    glm::vec2 screenCenter = screenResolution * 0.5f;
+
+    if (!this->initialMousePosition.has_value()) {
+      this->initialMousePosition = mousePosition;
+      this->savedRotation = this->GetTransform().LocalTransform().Rotation().value;
+    }
+
+    glm::vec2 toInitialMousePosition = glm::normalize(this->initialMousePosition.value() - screenCenter);
+    glm::vec2 toMousePosition = glm::normalize(mousePosition - screenCenter);
+
+    float angle = -glm::orientedAngle(toInitialMousePosition, toMousePosition); 
+
+    switch (this->currentAxis) {
+      case Axis::None:
+        // TODO
+        break;
+      case Axis::X:
+        this->LocalTransform().Rotation() = glm::angleAxis(angle, glm::vec3(1.0f, 0.0f, 0.0f)) * this->savedRotation;
+        break;
+      case Axis::Y:
+        this->LocalTransform().Rotation() = glm::angleAxis(angle, glm::vec3(0.0f, 1.0f, 0.0f)) * this->savedRotation;
+        break;
+      case Axis::Z:
+        this->LocalTransform().Rotation() = glm::angleAxis(angle, glm::vec3(0.0f, 0.0f, 1.0f)) * this->savedRotation;
+        break;
+    }
+  }
+
+  void HandleScaleInput() {
+    const auto mousePosition = this->GetScene()->Input()->GetMousePosition();
+    const auto screenResolution = this->GetScene()->GetGraphics()->GetScreenResolution();
+    glm::vec2 screenCenter = screenResolution * 0.5f;
+
+    if (!this->initialMousePosition.has_value()) {
+      this->initialMousePosition = mousePosition;
+      this->savedScale = this->GetTransform().LocalTransform().Scale().value;
+    }
+
+    float initialDistanceToCenter = glm::length(this->initialMousePosition.value() - screenCenter);
+    float distanceToCenter = glm::length(mousePosition - screenCenter);
+
+    float scaleAmount = distanceToCenter / (initialDistanceToCenter + 0.0001f);
+
+    spdlog::info("Scale amount: {}", scaleAmount);
+
+    switch (this->currentAxis) {
+      case Axis::None:
+        this->LocalTransform().Scale() = this->savedScale * glm::vec3(scaleAmount);
+        break;
+      case Axis::X:
+        this->LocalTransform().Scale() = this->savedScale * glm::vec3(scaleAmount, 1.0f, 1.0f);
+        break;
+      case Axis::Y:
+        this->LocalTransform().Scale() = this->savedScale * glm::vec3(1.0f, scaleAmount, 1.0f);
+
+        break;
+      case Axis::Z:
+        this->LocalTransform().Scale() = this->savedScale * glm::vec3(1.0f, 1.0f, scaleAmount);
+        break;
+    }
+  }
+
+  void SwitchInputMode() {
+    // Not sure whether i should be returning or not
+    if (GetScene()->Input()->KeyDown(Key::G)) {
+      this->currentMode = Mode::Translation;
+      return;
+    }
+    if (GetScene()->Input()->KeyDown(Key::R)) {
+      this->currentMode = Mode::Rotation;
+      return;
+    }
+    if (GetScene()->Input()->KeyDown(Key::S)) {
+      this->currentMode = Mode::Scale;
+      return;
+    }
+
+    if ((GetScene()->Input()->KeyDown(Key::Enter) || GetScene()->Input()->ButtonDown(MouseButton::Left)) && this->currentMode != Mode::None) {
+      if (this->currentMode == Mode::Rotation) {
+        this->LocalTransform().Rotation() = glm::normalize(this->LocalTransform().Rotation().value);
+      }
+
+      this->initialMousePosition = std::nullopt;
+      this->currentMode = Mode::None;
+      this->currentAxis = Axis::None;
+      return;
+    }
+
+    if (GetScene()->Input()->KeyDown(Key::Escape) && this->currentMode != Mode::None) {
+      switch (this->currentMode) {
+        case Mode::Rotation:
+          this->GetTransform().LocalTransform().Rotation() = this->savedRotation;
+          break;
+        case Mode::Scale:
+          this->GetTransform().LocalTransform().Scale() = this->savedScale;
+          break;
+        default:
+          break;
+      }
+
+      this->initialMousePosition = std::nullopt;
+      this->currentMode = Mode::None;
+      this->currentAxis = Axis::None;
+      return;
+    }
+  }
+
+  void SwitchAxis() {
+    if (this->currentMode == Mode::None) {
+      return;
+    }
+
+    if (GetScene()->Input()->KeyDown(Key::X)) {
+      this->currentAxis = Axis::X;
+      return;
+    }
+    if (GetScene()->Input()->KeyDown(Key::Y)) {
+      this->currentAxis = Axis::Y;
+      return;
+    }
+    if (GetScene()->Input()->KeyDown(Key::Z)) {
+      this->currentAxis = Axis::Z;
+      return;
+    }
+  }
+
+	virtual void DrawImGui() {}
+};
 
 class Mover : public GameObject, public ImGuiDrawable {
 private:
@@ -522,6 +708,7 @@ void InitScene(Scene* mainScene) {
 	 // constructNode->AddObject<Physics::Body>(Physics::Body::Mesh(gmConstructMesh, JPH::EMotionType::Static, Physics::Layers::NON_MOVING));
 
 	auto cannonNode = mainScene->CreateNode("Cannon");
+  cannonNode->AddObject<BlenderControls>();
 	cannonNode->AddObject<MeshRenderer>(cannonMesh, cannonMat);
 
 	auto cubeNode = mainScene->CreateNode("Reflective Cube");
