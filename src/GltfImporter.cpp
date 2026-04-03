@@ -554,7 +554,9 @@ void GltfImporter::GltfSamplerToTextureParams(TextureParams& params, fastgltf::S
 std::vector<Material*> GltfImporter::LoadMaterials(Scene* scene, fastgltf::Asset& asset, bool isSkinned) {
   std::vector<Material*> materials;
   materials.reserve(asset.materials.size());
-  ResourceDatabase* resources = scene->Resources();
+  // ResourceDatabase* resources = scene->Resources();
+#warning GltfImporter remove the global database
+  ResourceDatabase* resources = ResourceDatabase::ResourceDatabase::Global;
 
   const char* vertexShaderPath = isSkinned ? "./res/shaders/lit_gltf_animation.vert" : "./res/shaders/lit_gltf.vert";
 
