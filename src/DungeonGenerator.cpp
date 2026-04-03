@@ -33,7 +33,6 @@ void DungeonGenerator::Regenerate() {
     // ?
     for (auto* scene : this->GetNode()->GetAttachedScenes()) {
         this->GetNode()->DetachScene(scene);
-        scene->QueueDelete(scene);
         this->GetScene()->QueueDelete(scene);
     }
 
@@ -57,7 +56,7 @@ bool DungeonGenerator::GenerateDungeon() {
     const int roomCount = this->settings.mapColumns * this->settings.mapColumns;
 
     this->map.clear();
-    this->map.resize(roomCount * this->settings.mapColumns, Room());
+    this->map.resize(roomCount, Room());
     Room room;
 
     // Start position
@@ -84,7 +83,8 @@ bool DungeonGenerator::GenerateDungeon() {
             }
         };
 
-        Traverse(visited, startPosition, 5, false);
+        int branchLength = glm::linearRand(this->settings.minBranchLength, this->settings.maxBranchLength);
+        Traverse(visited, startPosition, branchLength, false);
     } 
     
     // Rooms
@@ -221,6 +221,8 @@ void DungeonGenerator::Traverse(std::set<int>& visited, const int startPosition,
                 previousPositions.pop_back();
 
                 backtrack = true;
+            } else if (availableDirections.empty() && previousPositions.empty() && moved == false) {
+                break;
             }
         }
 
