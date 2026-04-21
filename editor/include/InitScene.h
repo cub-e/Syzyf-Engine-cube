@@ -63,7 +63,6 @@ class GoochMaterial : public GameObject, public ImGuiDrawable {
         : material(material), dirLight(dirLight) {}
 
     void Render() {
-        spdlog::info("Gooch material render");
         material->SetValue("warmColor", warmColor);
         material->SetValue("coldColor", coldColor);
         material->SetValue("warmStrength", warmStrength);
