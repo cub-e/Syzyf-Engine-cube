@@ -56,7 +56,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 		}
 
 		float shadowAmount = 0.0;
-
+#ifndef DISABLE_SHADOWS
 		if (l.shadowAtlasIndex >= 0) {
 			vec3 lightDir = normalize(l.position - worldPos);
 
@@ -113,6 +113,7 @@ vec3 shade(in Material mat, in vec3 worldPos, in vec3 normal, in vec3 tangent) {
 
 			shadowAmount /= 9.0;
 		}
+#endif
 
 		result += (1.0 - shadowAmount) * SHADING_FUNCTION(l, mat, worldPos, normal, tangent);
 	}

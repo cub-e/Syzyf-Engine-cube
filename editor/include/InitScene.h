@@ -47,6 +47,41 @@
 
 class EditorCameraTag : public GameObject {};
 
+class GoochMaterial : public GameObject, public ImGuiDrawable {
+  private:
+    Material* material = nullptr;
+    Light* dirLight = nullptr;
+
+    glm::vec3 warmColor = {1.0f, 1.0f, 0.0f};
+    glm::vec3 coldColor = {0.0f, 0.0f, 1.0f};
+    float warmStrength = 0.3f;
+    float coldStrength = 0.3f;
+    glm::vec3 baseColor = glm::vec3(0.4f);
+
+  public:
+    GoochMaterial(Material* material, Light* dirLight)
+        : material(material), dirLight(dirLight) {}
+
+    void Render() {
+        spdlog::info("Gooch material render");
+        material->SetValue("warmColor", warmColor);
+        material->SetValue("coldColor", coldColor);
+        material->SetValue("warmStrength", warmStrength);
+        material->SetValue("coldStrength", coldStrength);
+        material->SetValue("baseColor", baseColor);
+        material->SetValue("lightDir",
+                           glm::vec3(dirLight->GlobalTransform().Value()[2]));
+    }
+
+    void DrawImGui() {
+        ImGui::ColorEdit3("Warm Color", &warmColor.x);
+        ImGui::ColorEdit3("Cold Color", &coldColor.x);
+        ImGui::SliderFloat("Warm Strength", &warmStrength, 0.0f, 1.0f);
+        ImGui::SliderFloat("Cold Strength", &coldStrength, 0.0f, 1.0f);
+        ImGui::ColorEdit3("Base Color", &baseColor.x);
+    }
+};
+
 class Mover : public GameObject, public ImGuiDrawable {
   private:
     float pitch;
@@ -301,8 +336,9 @@ inline void InitScene(Scene& mainScene) {
     lightNode->GlobalTransform().Position() = {-1, 2.2f, 0};
 
     auto lightNode2 = mainScene.CreateNode("Directional Light");
-    lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 1))
-        ->SetShadowCasting(true);
+    auto* dirLight =
+        lightNode2->AddObject<Light>(Light::DirectionalLight({1, 1, 1}, 1));
+    dirLight->SetShadowCasting(true);
     lightNode2->GlobalTransform().Position() = {1, 2.2f, 0};
     lightNode2->GlobalTransform().Rotation() =
         glm::quat(glm::radians(glm::vec3(64.0f, 0.0f, 0.0f)));
@@ -460,4 +496,18 @@ inline void InitScene(Scene& mainScene) {
     schnozLightNode->LocalTransform().Position() = glm::vec3(-55.5, 3.0, -2.0);
     schnozLightNode->AddObject<Light>(
         Light::PointLight(glm::vec3(1, 1, 1), 5, 5));
+
+    ShaderProgram* goochProg =
+        ShaderProgram::Build()
+            .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
+                "./res/shaders/lit.vert"))
+            .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
+                "./res/shaders/gooch.frag"))
+            .Link();
+    Material* goochMat = new Material(goochProg);
+    SceneNode* goochSchnozNode = mainScene.CreateNode("Gooch Monkey");
+    Mesh* goochMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/monkey.obj");
+    goochSchnozNode->AddObject<MeshRenderer>(goochMesh, goochMat);
+    goochSchnozNode->AddObject<GoochMaterial>(goochMat, dirLight);
 }
