@@ -509,4 +509,10 @@ inline void InitScene(Scene& mainScene) {
         mainScene.Resources()->Get<Mesh>("./res/models/monkey.obj");
     goochSchnozNode->AddObject<MeshRenderer>(goochMesh, goochMat);
     goochSchnozNode->AddObject<GoochMaterial>(goochMat, dirLight);
+
+    SceneNode* goochSphereNode = mainScene.CreateNode("Gooch Node");
+    Mesh* sphereMesh =
+        mainScene.Resources()->Get<Mesh>("./res/models/sphere.obj");
+    goochSphereNode->AddObject<MeshRenderer>(sphereMesh, goochMat);
+    goochSphereNode->AddObject<GoochMaterial>(goochMat, dirLight);
 }
