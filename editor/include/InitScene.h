@@ -70,6 +70,14 @@ class GoochMaterial : public GameObject, public ImGuiDrawable {
         material->SetValue("baseColor", baseColor);
         material->SetValue("lightDir",
                            glm::vec3(dirLight->GlobalTransform().Value()[2]));
+
+        // this->GetScene()
+        //     ->GetComponent<Physics::DebugRenderer>()
+        //     ->DrawBoundingBox(this->GetObject<MeshRenderer>()
+        //                           ->GetMesh()
+        //                           ->GetSubMeshes()[0]
+        //                           .GetBounds(),
+        //                       JPH::Color(0.0f, 1.0f, 0.0f));
     }
 
     void DrawImGui() {
@@ -508,11 +516,13 @@ inline void InitScene(Scene& mainScene) {
     Mesh* goochMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/monkey.obj");
     goochSchnozNode->AddObject<MeshRenderer>(goochMesh, goochMat);
+    goochSchnozNode->GlobalTransform().Position() = {-3.0f, 3.0f, 0.0f};
     goochSchnozNode->AddObject<GoochMaterial>(goochMat, dirLight);
 
     SceneNode* goochSphereNode = mainScene.CreateNode("Gooch Node");
     Mesh* sphereMesh =
         mainScene.Resources()->Get<Mesh>("./res/models/sphere.obj");
     goochSphereNode->AddObject<MeshRenderer>(sphereMesh, goochMat);
+    goochSphereNode->GlobalTransform().Position() = {3.0f, 3.0f, 0.0f};
     goochSphereNode->AddObject<GoochMaterial>(goochMat, dirLight);
 }
