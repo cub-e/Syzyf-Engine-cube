@@ -63,11 +63,16 @@ private:
 
     int jointBufferOffset = -1;
 
+    GLuint indirectBuffer = 0;
+    GLuint indirectBufferOffset = 0;
+    bool isIndirect = false;
+
     RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, uint8_t layer);
     RenderNode(const Mesh::SubMesh* mesh, const Material* material, unsigned int instanceCount, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
     RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, uint8_t layer);
     RenderNode(const Mesh::SubMesh* mesh, const Material* material, bool ignoreDepth, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
-	};
+    RenderNode(const Mesh::SubMesh* mesh, const Material* material, GLuint indirectBuffer, GLuint indirectBufferOffset, const glm::mat4& transformation, const BoundingBox& bounds, uint8_t layer);
+  };
 
   std::vector<RenderNode> currentRenders;
   std::vector<RenderNode> gizmoRenders;
@@ -131,6 +136,14 @@ public:
                          const glm::mat4 &transformation,
                          unsigned int instanceCount, const BoundingBox &bounds,
                          uint8_t layer = Layer::Default);
+
+  void DrawMeshIndirect(const Mesh* mesh, int subMeshIndex,
+                        const Material* material,
+                        const glm::mat4& transformation,
+                        GLuint indirectBuffer,
+                        GLuint indirectBufferOffset,
+                        const BoundingBox& bounds,
+                        uint8_t layer = Layer::Default);
 
   void DrawGizmoMesh(const Mesh *mesh, int subMeshIndex,
                      const Material *material, const glm::mat4 &transformation,

@@ -351,7 +351,7 @@ inline void InitScene(Scene& mainScene) {
     ShaderProgram* scatterProgram =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/scatter.vert"))
+                "./res/shaders/scatter/scatter.vert"))
             .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
                 "./res/shaders/lambert color.frag"))
             .Link();
