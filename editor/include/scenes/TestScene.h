@@ -351,28 +351,24 @@ inline void InitScene(Scene& mainScene) {
     ShaderProgram* scatterProgram =
         ShaderProgram::Build()
             .WithVertexShader(mainScene.Resources()->Get<VertexShader>(
-                "./res/shaders/scatter.vert"))
+                "./res/shaders/scatter/scatter.vert"))
             .WithPixelShader(mainScene.Resources()->Get<PixelShader>(
                 "./res/shaders/lambert color.frag"))
             .Link();
-    scatterProgram->SetCastsShadows(true);
+    scatterProgram->SetCastsShadows(false);
     scatterProgram->SetIgnoresDepthPrepass(true);
     auto scatterMaterial = new Material(scatterProgram);
     scatterMaterial->SetValue("uColor", glm::vec3(0.2, 0.6, 0.9));
     SceneNode* scatter = mainScene.CreateNode("Scatter");
     Scatter::Settings scatterSettings =
         Scatter::SettingsBuilder()
-            .WithInstanceCount(5000)
-            .WithAreaExtents(glm::vec3(50.0f, 0.0f, 50.0f))
-            .AddProjection({.raycastLength = 20.0f, .raycastOffset = 20.0f})
-            .AddRelax({.minDistance = 2.0f, .maxAttempts = 30})
+            .WithInstanceCount(1000000)
+            .WithAreaExtents(glm::vec3(200.0f, 200.0f, 200.0f))
             .AddTransform(
                 {.minRotation = {glm::radians(-15.0f), 0.0f,
                                  glm::radians(-15.0f)},
                  .maxRotation = {glm::radians(15.0f), glm::radians(360.0f),
                                  glm::radians(15.0f)}})
-            .AddArray({.arraySize = 0})
-            .AddArray({.arraySize = 1})
             .Build();
     Scatter::Spawner* scatterSpawner = scatter->AddObject<Scatter::Spawner>(
         cubeMesh, std::move(scatterMaterial), scatterSettings);
@@ -487,17 +483,18 @@ inline void InitScene(Scene& mainScene) {
         .Detach();
     ;
 
-    Mesh* mirrorMesh =
-        mainScene.Resources()->Get<Mesh>("./res/models/plane.obj");
-    SceneNode* mirrorNode = mainScene.CreateNode("Mirror");
-    mirrorNode->AddObject<Mirror>(mirrorMesh);
-    mirrorNode->GlobalTransform().Position() = {15.0f, 0.0f, 1.5f};
-    mirrorNode->GlobalTransform().Rotation() =
-        glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
-    mirrorNode->GetObjectInChildren<MeshRenderer>()->GlobalTransform().Scale() =
-        {10.0f, 7.0f, 1.0f};
-    Physics::CreateCompoundShapeFromNode(
-        mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
-        JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
+    // Mesh* mirrorMesh =
+    //     mainScene.Resources()->Get<Mesh>("./res/models/plane.obj");
+    // SceneNode* mirrorNode = mainScene.CreateNode("Mirror");
+    // mirrorNode->AddObject<Mirror>(mirrorMesh);
+    // mirrorNode->GlobalTransform().Position() = {15.0f, 0.0f, 1.5f};
+    // mirrorNode->GlobalTransform().Rotation() =
+    //     glm::quat(glm::radians(glm::vec3(0.0f, 180.0f, 0.0f)));
+    // mirrorNode->GetObjectInChildren<MeshRenderer>()->GlobalTransform().Scale()
+    // =
+    //     {10.0f, 7.0f, 1.0f};
+    // Physics::CreateCompoundShapeFromNode(
+    //     mirrorNode->GetObjectInChildren<MeshRenderer>()->GetNode(), false,
+    //     JPH::EMotionType::Static, Physics::Layers::NON_MOVING);
 }
 } // namespace TestScene

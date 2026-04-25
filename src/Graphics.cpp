@@ -26,54 +26,6 @@
 
 #define LIGHT_GRID_SIZE 16
 
-Frustum ComputeFrustum(const glm::mat4 &projectionMatrix) {
-  Frustum result;
-
-  const glm::vec4 planeLeftParams = glm::normalize(
-      -(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 0)));
-  const glm::vec4 planeRightParams = glm::normalize(
-      -(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 0)));
-  const glm::vec4 planeBottomParams = glm::normalize(
-      -(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 1)));
-  const glm::vec4 planeTopParams = glm::normalize(
-      -(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 1)));
-  const glm::vec4 planeNearParams = glm::normalize(
-      -(glm::row(projectionMatrix, 3) + glm::row(projectionMatrix, 2)));
-  const glm::vec4 planeFarParams = glm::normalize(
-      -(glm::row(projectionMatrix, 3) - glm::row(projectionMatrix, 2)));
-
-  result.left = Plane(glm::vec3(planeLeftParams), planeLeftParams.w);
-  result.right = Plane(glm::vec3(planeRightParams), planeRightParams.w);
-  result.bottom = Plane(glm::vec3(planeBottomParams), planeBottomParams.w);
-  result.top = Plane(glm::vec3(planeTopParams), planeTopParams.w);
-  result.nearPlane = Plane(glm::vec3(planeNearParams), planeNearParams.w);
-  result.farPlane = Plane(glm::vec3(planeFarParams), planeFarParams.w);
-
-  return result;
-}
-
-bool TestPlane(const Plane &plane, const BoundingBox &bounds) {
-  const glm::vec3 n = plane.normal;
-  const float d = plane.distance;
-
-  const glm::vec3 c = bounds.center;
-  const glm::vec3 h = bounds.GetExtents();
-
-  const float e = h.x * glm::abs(glm::dot(n, glm::vec3(bounds.axisU))) +
-                  h.y * glm::abs(glm::dot(n, glm::vec3(bounds.axisV))) +
-                  h.z * glm::abs(glm::dot(n, glm::vec3(bounds.axisW)));
-
-  const float s = glm::dot(c, n) + d;
-
-  return s - e <= 0;
-}
-
-bool TestFrustum(const Frustum &frustum, const BoundingBox &bounds) {
-  return (TestPlane(frustum.left, bounds) && TestPlane(frustum.right, bounds) &&
-          TestPlane(frustum.bottom, bounds) && TestPlane(frustum.top, bounds) &&
-          TestPlane(frustum.farPlane, bounds));
-}
-
 RenderParams::RenderParams(RenderPassType pass, glm::vec4 viewport,
                            bool clearDepth, LayerMask layers)
     : pass(pass), viewport(viewport), clearDepth(clearDepth), layers(layers) {}
@@ -109,6 +61,16 @@ SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh *mesh,
                                       const BoundingBox &bounds, uint8_t layer)
     : mesh(mesh), material(material), ignoreDepth(ignoreDepth),
       transformation(transformation), bounds(bounds), layer(layer) {}
+
+SceneGraphics::RenderNode::RenderNode(const Mesh::SubMesh* mesh,
+                                      const Material* material,
+                                      GLuint indirectBuffer,
+                                      GLuint indirectBufferOffset,
+                                      const glm::mat4& transformation,
+                                      const BoundingBox& bounds, uint8_t layer)
+    : mesh(mesh), material(material), instanceCount(0),
+      transformation(transformation), bounds(bounds), layer(layer),
+      indirectBuffer(indirectBuffer), indirectBufferOffset(indirectBufferOffset), isIndirect(true) {}
 
 SceneGraphics::SceneGraphics(Scene *scene)
     : GameObjectSystem(scene), currentRenders(), gizmoRenders(),
@@ -339,7 +301,20 @@ void SceneGraphics::RenderObjects(const ShaderGlobalUniforms &globalUniforms,
       glDisable(GL_DEPTH_TEST);
     }
 
-    if (mat->GetShader()->UsesPatches()) {
+    if (node.isIndirect) {
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, node.indirectBuffer);
+
+        void* offsetPointer = (void*)(uintptr_t)node.indirectBufferOffset;
+
+        if (mat->GetShader()->UsesPatches()) {
+            glPatchParameteri(GL_PATCH_VERTICES, (int)mesh->GetType());
+            glDrawElementsIndirect(GL_PATCHES, GL_UNSIGNED_INT, offsetPointer);
+        } else {
+            glDrawElementsIndirect(mesh->GetDrawMode(), GL_UNSIGNED_INT, offsetPointer);
+        }
+        glBindBuffer(GL_DRAW_INDIRECT_BUFFER, 0);
+    }
+    else if (mat->GetShader()->UsesPatches()) {
       glPatchParameteri(GL_PATCH_VERTICES, (int)mesh->GetType());
 
       if (drawsGizmos || node.instanceCount <= 0) {
@@ -552,6 +527,23 @@ void SceneGraphics::DrawMeshInstanced(const Mesh *mesh, int subMeshIndex,
   targetRenderQueue->push_back(RenderNode(&mesh->SubMeshAt(subMeshIndex),
                                           material, instanceCount,
                                           transformation, bounds, layer));
+}
+
+void SceneGraphics::DrawMeshIndirect(const Mesh* mesh, int subMeshIndex,
+                                     const Material* material,
+                                     const glm::mat4& transformation,
+                                     GLuint indirectBuffer,
+                                     GLuint indirectBufferOffset,
+                                     const BoundingBox& bounds,
+                                     uint8_t layer) {
+    auto* targetRenderQueue = &this->currentRenders;
+    if (material->GetShader()->IsTransparent()) {
+        targetRenderQueue = &this->transparentRenders;
+    } else if (material->GetShader()->IsVolumetric()) {
+        targetRenderQueue = &this->volumetricRenders;
+    }
+
+    targetRenderQueue->push_back(RenderNode(&mesh->SubMeshAt(subMeshIndex), material, indirectBuffer, indirectBufferOffset, transformation, bounds, layer));
 }
 
 void SceneGraphics::Render() {
