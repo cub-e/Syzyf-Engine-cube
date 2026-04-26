@@ -34,3 +34,7 @@ add_custom_command(TARGET SyzyfEditor POST_BUILD
                    COMMAND ${CMAKE_COMMAND} -E copy_if_different
                    ${CMAKE_CURRENT_SOURCE_DIR}/default_editor_layout.ini
                    ${CMAKE_CURRENT_BINARY_DIR}/default_editor_layout.ini)
+
+install(TARGETS SyzyfEditor DESTINATION bin)
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/res DESTINATION bin)
+install(FILES ${CMAKE_CURRENT_SOURCE_DIR}/default_editor_layout.ini DESTINATION bin)

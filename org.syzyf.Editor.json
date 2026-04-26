@@ -1,0 +1,41 @@
+{
+    "app-id": "org.syzyf.Editor",
+    "runtime": "org.freedesktop.Platform",
+    "runtime-version": "23.08",
+    "sdk": "org.freedesktop.Sdk",
+    "command": "syzyf-editor.sh", 
+    "finish-args": [
+        "--socket=x11",
+        "--socket=wayland",
+        "--device=dri",
+        "--share=ipc"
+    ],
+    "build-options": {
+        "build-args": [
+            "--share=network"
+        ]
+    },
+    "modules": [
+        {
+            "name": "SyzyfEditor",
+            "buildsystem": "cmake",
+            "builddir": true,
+            "config-opts": [
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DBUILD_EDITOR=ON"
+            ],
+            "sources": [
+                {
+                    "type": "dir",
+                    "path": "."
+                }
+            ],
+            "post-install": [
+                "echo '#!/bin/sh' > /app/bin/syzyf-editor.sh",
+                "echo 'cd /app/bin' >> /app/bin/syzyf-editor.sh",
+                "echo 'exec ./SyzyfEditor \"$@\"' >> /app/bin/syzyf-editor.sh",
+                "chmod +x /app/bin/syzyf-editor.sh"
+            ]
+        }
+    ]
+}

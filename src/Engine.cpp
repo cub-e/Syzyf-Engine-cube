@@ -96,7 +96,7 @@ bool Engine::InitProgram() {
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, GL_VERSION_MINOR);
 	SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
-	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG | SDL_GL_CONTEXT_DEBUG_FLAG);
+	SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_FORWARD_COMPATIBLE_FLAG);
 
 	SDL_DisplayID mainScreen = SDL_GetPrimaryDisplay();
 	const SDL_DisplayMode* mainScreenMode = SDL_GetDesktopDisplayMode(mainScreen);
@@ -139,15 +139,15 @@ bool Engine::InitProgram() {
 	int contextFlags = 0;
 	glGetIntegerv(GL_CONTEXT_FLAGS, &contextFlags);
 
-	if (contextFlags & GL_CONTEXT_FLAG_DEBUG_BIT) {
-		glEnable(GL_DEBUG_OUTPUT);
-		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-		glDebugMessageCallback(glDebugOutput, nullptr);
-		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, true);
-	}
-	else {
-		spdlog::warn("Current machine does not support OpenGL debugging");
-	}
+	// if (contextFlags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+	// 	glEnable(GL_DEBUG_OUTPUT);
+	// 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+	// 	glDebugMessageCallback(glDebugOutput, nullptr);
+	// 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr, true);
+	// }
+	// else {
+	// 	spdlog::warn("Current machine does not support OpenGL debugging");
+	// }
 
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);

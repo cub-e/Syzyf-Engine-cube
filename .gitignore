@@ -29,3 +29,8 @@ res/testing/
 # doxygen
 html/
 latex/
+
+# flatpak
+repo/
+*.flatpak
+.flatpak-builder/

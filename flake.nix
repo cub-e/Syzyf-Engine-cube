@@ -45,6 +45,10 @@
           clang-tools
           doxygen
           graphviz
+
+          flatpak
+          desktopsd
+          flatpak-builder
         ];
 
         buildInputs = with pkgs; [
